@@ -13,6 +13,7 @@ export interface Client {
   facturation_adresse: string | null;
   facturation_mode: string;
   statut: string;
+  preview_slug: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -133,6 +134,25 @@ export async function restoreClient(id: string) {
   const { error } = await supabase
     .from("clients")
     .update({ statut: "actif" })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Generate a URL-safe slug from a client name */
+export function slugifyClientName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+export async function updateClientSlug(id: string, slug: string) {
+  const { error } = await supabase
+    .from("clients")
+    .update({ preview_slug: slug || null })
     .eq("id", id);
   if (error) throw error;
 }

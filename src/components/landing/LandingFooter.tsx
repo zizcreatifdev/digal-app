@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import digalLogo from "@/assets/digal-logo.png";
 
 export function LandingFooter() {
@@ -19,13 +20,13 @@ export function LandingFooter() {
             <a href="#tarifs" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
               Tarifs
             </a>
-            <a href="#" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/cgu" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
               CGU
-            </a>
-            <a href="#" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link to="/privacy" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
               Confidentialité
-            </a>
-            <a href="#contact" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <a href={`mailto:contact@digal.sn`} className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
               Contact
             </a>
           </nav>

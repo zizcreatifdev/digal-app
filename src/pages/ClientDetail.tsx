@@ -12,12 +12,13 @@ import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
 import { useState, useEffect } from "react";
 import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
+import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
 import { EditClientModal } from "@/components/clients/EditClientModal";
 import { DropBoxReview } from "@/components/clients/DropBoxReview";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 const FREEMIUM_ARCHIVE_LIMIT = 3;
 
@@ -31,15 +32,35 @@ const ClientDetail = () => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [slugEdit, setSlugEdit] = useState<string | null>(null);
+  const [savingSlug, setSavingSlug] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     Promise.all([fetchClient(id), fetchClientNetworks(id)])
-      .then(([c, n]) => { setClient(c); setNetworks(n); })
+      .then(([c, n]) => {
+        setClient(c);
+        setNetworks(n);
+        setSlugEdit(c.preview_slug ?? slugifyClientName(c.nom));
+      })
       .catch(() => toast.error("Client introuvable"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleSaveSlug = async () => {
+    if (!client || slugEdit === null) return;
+    setSavingSlug(true);
+    try {
+      await updateClientSlug(client.id, slugEdit.trim());
+      setClient({ ...client, preview_slug: slugEdit.trim() || null });
+      toast.success("Slug mis à jour");
+    } catch {
+      toast.error("Erreur lors de la mise à jour du slug");
+    } finally {
+      setSavingSlug(false);
+    }
+  };
 
   const handleArchiveToggle = async () => {
     if (!client || !user) return;
@@ -235,6 +256,33 @@ const ClientDetail = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Preview slug card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              Slug du lien de validation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-mono shrink-0">/preview/</span>
+              <Input
+                className="font-mono text-sm flex-1"
+                value={slugEdit ?? ""}
+                onChange={(e) => setSlugEdit(e.target.value.replace(/[^a-z0-9-]/g, "-").toLowerCase())}
+                placeholder={slugifyClientName(client.nom)}
+              />
+              <Button size="sm" onClick={handleSaveSlug} disabled={savingSlug}>
+                {savingSlug ? "..." : "Enregistrer"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground font-sans mt-2">
+              Ce slug apparaîtra dans l'URL du lien de validation partagé avec le client.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <GeneratePreviewLinkModal
@@ -242,6 +290,7 @@ const ClientDetail = () => {
         onOpenChange={setPreviewModalOpen}
         clientId={client.id}
         clientName={client.nom}
+        clientSlug={client.preview_slug}
       />
 
       <CreateKpiReportModal

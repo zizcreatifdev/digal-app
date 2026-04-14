@@ -166,7 +166,83 @@ function ProfileTab() {
           </Button>
         </CardContent>
       </Card>
+
+      <PreviewSettingsCard />
     </div>
+  );
+}
+
+/* ──────────────────────── PREVIEW SETTINGS CARD ──────────────────────── */
+function PreviewSettingsCard() {
+  const { user } = useAuth();
+  const [defaultPeriod, setDefaultPeriod] = useState("semaine_courante");
+  const [saving, setSaving] = useState(false);
+
+  const PERIOD_LABELS: Record<string, string> = {
+    semaine_courante: "Semaine en cours",
+    mois_courant: "Mois en cours",
+    semaine_suivante: "Semaine suivante",
+    mois_suivant: "Mois suivant",
+  };
+
+  useEffect(() => {
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "preview_default_period")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setDefaultPeriod(data.value);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", "preview_default_period")
+        .maybeSingle();
+      if (existing) {
+        await supabase.from("site_settings").update({ value: defaultPeriod }).eq("key", "preview_default_period");
+      } else {
+        await supabase.from("site_settings").insert({ key: "preview_default_period", value: defaultPeriod, created_by: user.id });
+      }
+      toast.success("Période par défaut enregistrée");
+    } catch {
+      toast.error("Erreur lors de l'enregistrement");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif flex items-center gap-2">
+          <FileText className="h-4 w-4" /> Lien de validation
+        </CardTitle>
+        <CardDescription className="font-sans">Période sélectionnée par défaut lors de la génération d'un lien.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label>Période par défaut</Label>
+          <Select value={defaultPeriod} onValueChange={setDefaultPeriod}>
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(PERIOD_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={handleSave} disabled={saving} size="sm">
+          {saving ? "Enregistrement..." : "Enregistrer"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

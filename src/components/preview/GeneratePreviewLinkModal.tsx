@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { createPreviewLink, getPreviewUrl, PERIOD_OPTIONS, PeriodOption, getPeriodDates } from "@/lib/preview-links";
 import { logPreviewAction } from "@/lib/activity-logs";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, Link2 } from "lucide-react";
 import { format } from "date-fns";
@@ -19,14 +21,34 @@ interface GeneratePreviewLinkModalProps {
   onOpenChange: (open: boolean) => void;
   clientId: string;
   clientName: string;
+  clientSlug?: string | null;
 }
 
-export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientName }: GeneratePreviewLinkModalProps) {
+export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientName, clientSlug }: GeneratePreviewLinkModalProps) {
   const { user } = useAuth();
   const [period, setPeriod] = useState<PeriodOption>("semaine_courante");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingDefaults, setLoadingDefaults] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Load DM default period from site_settings
+  useEffect(() => {
+    if (!open || !user) return;
+    setLoadingDefaults(true);
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "preview_default_period")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value && PERIOD_OPTIONS.some((o) => o.id === data.value)) {
+          setPeriod(data.value as PeriodOption);
+        }
+      })
+      .finally(() => setLoadingDefaults(false));
+  }, [open, user]);
 
   const { start, end } = getPeriodDates(period);
 
@@ -34,7 +56,10 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
     if (!user) return;
     setLoading(true);
     try {
-      const link = await createPreviewLink(clientId, user.id, period);
+      const link = await createPreviewLink(clientId, user.id, period, {
+        clientSlug: clientSlug ?? null,
+        welcomeMessage: welcomeMessage.trim() || undefined,
+      });
       setGeneratedUrl(getPreviewUrl(link.slug));
       toast.success("Lien de validation créé");
       logPreviewAction(user.id, "Lien de validation généré", clientName, link.id);
@@ -58,6 +83,7 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
     if (!open) {
       setGeneratedUrl(null);
       setCopied(false);
+      setWelcomeMessage("");
     }
     onOpenChange(open);
   };
@@ -79,7 +105,11 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
           <div className="space-y-4 mt-2">
             <div>
               <Label className="font-sans">Période</Label>
-              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodOption)}>
+              <Select
+                value={period}
+                onValueChange={(v) => setPeriod(v as PeriodOption)}
+                disabled={loadingDefaults}
+              >
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PERIOD_OPTIONS.map((o) => (
@@ -97,6 +127,17 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
               <p className="text-[10px] text-muted-foreground font-sans mt-1">
                 Le lien sera valable 48 heures après sa création.
               </p>
+            </div>
+
+            <div>
+              <Label className="font-sans">Message d'accueil (optionnel)</Label>
+              <Textarea
+                className="mt-1 resize-none"
+                rows={2}
+                value={welcomeMessage}
+                onChange={(e) => setWelcomeMessage(e.target.value)}
+                placeholder={`Bonjour, voici les posts de ${clientName} pour validation...`}
+              />
             </div>
 
             <Button onClick={handleGenerate} disabled={loading} className="w-full">

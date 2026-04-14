@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : 09 — Phase 3A admin + emails + upgrade UI_
+_Prompt courant : 10 — Phase 3B preview + landing page_
 
 ---
 
@@ -63,16 +63,22 @@ _Prompt courant : 09 — Phase 3A admin + emails + upgrade UI_
 
 ---
 
-### Module PREVIEW LINKS (validation client) — 90% ✅
+### Module PREVIEW LINKS (validation client) — 97% ✅ → Prompt-10
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Génération lien unique | ✅ Complet | Slug 12 chars |
+| Génération lien unique | ✅ Complet | Slug `{clientSlug}-{random6}` ou random12 |
 | Page preview publique | ✅ Complet | `/preview/:slug` sans auth |
 | Sélection période | ✅ Complet | Semaine/mois courant ou suivant |
 | Validation/refus par client | ✅ Complet | `preview_actions` |
 | Expiration liens | ✅ Complet | Edge function `scheduled-cleanup` |
 | Maquette réseau (NetworkMockup) | ✅ Complet | |
-| **Tests** | ❌ Aucun | |
+| **Slug client modifiable** | ✅ Complet (prompt-10) | `clients.preview_slug` + édition dans ClientDetail |
+| **Période par défaut configurable** | ✅ Complet (prompt-10) | `site_settings.preview_default_period` + Settings Profil |
+| **Countdown expiration** | ✅ Complet (prompt-10) | "Ce lien expire dans X heures" sur PreviewPage |
+| **Message d'accueil** | ✅ Complet (prompt-10) | Champ texte dans GeneratePreviewLinkModal + affiché sur preview |
+| **Page expirée améliorée** | ✅ Complet (prompt-10) | Date d'expiration visible + logo Digal |
+| Onglets réseaux scroll mobile | ✅ Complet | `overflow-x-auto` + shrink-0 |
+| **Tests** | 15/15 ✅ | preview-links.test.ts |
 
 ---
 
@@ -243,16 +249,20 @@ _Prompt courant : 09 — Phase 3A admin + emails + upgrade UI_
 
 ---
 
-### Module LANDING PAGE — 95% ✅
-| Composant | État |
-|-----------|------|
-| Hero Section | ✅ |
-| Problem Section | ✅ |
-| Solution Section | ✅ |
-| Pricing Section | ✅ |
-| CTA Section | ✅ |
-| Header / Footer | ✅ |
-| Marquee Banner | ✅ |
+### Module LANDING PAGE — 100% ✅ → Prompt-10
+| Composant | État | Notes |
+|-----------|------|-------|
+| Hero Section | ✅ | Countdown depuis site_settings.launch_date |
+| Problem Section | ✅ | |
+| Solution Section | ✅ | |
+| **Mockups Section** | ✅ (prompt-10) | 4 cartes feature avec mockups visuels (Calendrier, Validation, KPI, Facturation) |
+| Pricing Section | ✅ | |
+| CTA Section | ✅ | |
+| Header / Footer | ✅ | Footer avec liens /cgu + /privacy + contact email |
+| Marquee Banner | ✅ | |
+| **Page /privacy** | ✅ (prompt-10) | Politique de confidentialité RGPD/loi sénégalaise |
+| **Page /cgu** | ✅ (prompt-10) | CGU complètes avec mention accès Owner |
+| **Routes /privacy + /cgu** | ✅ (prompt-10) | Ajoutées dans App.tsx |
 
 ---
 
@@ -324,3 +334,4 @@ _Prompt courant : 09 — Phase 3A admin + emails + upgrade UI_
 | 07 | Phase 2A core : onboarding checklist 5 étapes, blocs périodes production, boîte dépôt Mode 2 | 2026-04-14 |
 | 08 | Phase 2B core : numérotation SIGLE+4chiffres, tampon+signature PDF, boost dépenses→facture | 2026-04-14 |
 | 09 | Phase 3A : dashboard owner (export CSV + onglet financier), clé promo + prolongation flexible, emails (rejet/waitlist/preview + cron J-30/15/7), ProUpgradeModal mockups, limites freemium (archive×3 + templates×3) | 2026-04-14 |
+| 10 | Phase 3B : preview améliorations (slug client, période défaut, countdown, message accueil, page expirée), landing page (MockupsSection, /privacy, /cgu, footer liens) | 2026-04-14 |

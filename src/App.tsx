@@ -39,6 +39,8 @@ import AdminDocumentation from "./pages/admin/AdminDocumentation";
 import AdminContrats from "./pages/admin/AdminContrats";
 import AdminProfil from "./pages/admin/AdminProfil";
 import DocsPage from "./pages/DocsPage";
+import Privacy from "./pages/Privacy";
+import CGU from "./pages/CGU";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,8 @@ const App = () => (
             <Route path="/changelog" element={<Changelog />} />
             <Route path="/admin/setup" element={<AdminSetup />} />
             <Route path="/preview/:slug" element={<PreviewPage />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/cgu" element={<CGU />} />
             <Route
               path="/dashboard"
               element={
