@@ -1,20 +1,42 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
-  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign,
+  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
+
+const createAccountSchema = z.object({
+  prenom: z.string().min(1, "Prénom requis"),
+  nom: z.string().min(1, "Nom requis"),
+  email: z.string().email("Email invalide"),
+  password: z.string().min(8, "Minimum 8 caractères"),
+  confirmPassword: z.string().min(1, "Confirmation requise"),
+  type_compte: z.enum(["solo", "agence"]),
+  plan: z.enum(["freemium", "solo_standard", "agence_standard", "agence_pro"]),
+  agence_nom: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
+type CreateAccountForm = z.infer<typeof createAccountSchema>;
 
 interface UserProfile {
   id: string;
@@ -50,6 +72,37 @@ export default function AdminComptes() {
   const [financial, setFinancial] = useState<AccountFinancial | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingFinancial, setLoadingFinancial] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const createForm = useForm<CreateAccountForm>({
+    resolver: zodResolver(createAccountSchema),
+    defaultValues: { type_compte: "solo", plan: "freemium" },
+  });
+
+  const createAccount = useMutation({
+    mutationFn: async (values: CreateAccountForm) => {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          prenom: values.prenom,
+          nom: values.nom,
+          email: values.email,
+          password: values.password,
+          plan: values.plan,
+          agence_nom: values.agence_nom || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      toast.success("Compte créé avec succès");
+      setCreateOpen(false);
+      createForm.reset({ type_compte: "solo", plan: "freemium" });
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erreur lors de la création"),
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-comptes"],
@@ -209,9 +262,14 @@ export default function AdminComptes() {
               {users?.length ?? 0} comptes enregistrés — cliquez sur un compte pour voir son activité
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!users?.length} className="font-sans">
-            <Download className="h-4 w-4 mr-2" /> Exporter CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setCreateOpen(true)} className="font-sans">
+              <UserPlus className="h-4 w-4 mr-2" /> Créer un compte
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={!users?.length} className="font-sans">
+              <Download className="h-4 w-4 mr-2" /> Exporter CSV
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -259,6 +317,112 @@ export default function AdminComptes() {
             </CardContent>
           </Card>
         )}
+
+        {/* Modal création de compte */}
+        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) createForm.reset({ type_compte: "solo", plan: "freemium" }); }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-serif flex items-center gap-2">
+                <UserPlus className="h-5 w-5" /> Créer un compte
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={createForm.handleSubmit((v) => createAccount.mutate(v))} className="space-y-4 font-sans">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="prenom" className="text-xs">Prénom *</Label>
+                  <Input id="prenom" {...createForm.register("prenom")} placeholder="Awa" />
+                  {createForm.formState.errors.prenom && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.prenom.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="nom" className="text-xs">Nom *</Label>
+                  <Input id="nom" {...createForm.register("nom")} placeholder="Diallo" />
+                  {createForm.formState.errors.nom && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.nom.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-xs">Email *</Label>
+                <Input id="email" type="email" {...createForm.register("email")} placeholder="awa@agence.sn" />
+                {createForm.formState.errors.email && (
+                  <p className="text-xs text-destructive">{createForm.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="password" className="text-xs">Mot de passe *</Label>
+                  <Input id="password" type="password" {...createForm.register("password")} placeholder="min. 8 caractères" />
+                  {createForm.formState.errors.password && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.password.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword" className="text-xs">Confirmation *</Label>
+                  <Input id="confirmPassword" type="password" {...createForm.register("confirmPassword")} placeholder="Répéter" />
+                  {createForm.formState.errors.confirmPassword && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.confirmPassword.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Type de compte *</Label>
+                <RadioGroup
+                  defaultValue="solo"
+                  onValueChange={(v) => createForm.setValue("type_compte", v as "solo" | "agence")}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <RadioGroupItem value="solo" id="type-solo" />
+                    <Label htmlFor="type-solo" className="text-sm font-normal cursor-pointer">Solo / Freelance</Label>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <RadioGroupItem value="agence" id="type-agence" />
+                    <Label htmlFor="type-agence" className="text-sm font-normal cursor-pointer">Agence</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Plan *</Label>
+                <Select
+                  defaultValue="freemium"
+                  onValueChange={(v) => createForm.setValue("plan", v as CreateAccountForm["plan"])}
+                >
+                  <SelectTrigger><SelectValue placeholder="Choisir un plan" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freemium">Freemium</SelectItem>
+                    <SelectItem value="solo_standard">Solo Standard</SelectItem>
+                    <SelectItem value="agence_standard">Agence Standard</SelectItem>
+                    <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+                {createForm.watch("plan") !== "freemium" && (
+                  <p className="text-xs text-muted-foreground">Licence active — expiration dans 6 mois</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="agence_nom" className="text-xs">Nom de l'agence / entreprise</Label>
+                <Input id="agence_nom" {...createForm.register("agence_nom")} placeholder="Optionnel" />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(false)} className="font-sans">
+                  Annuler
+                </Button>
+                <Button type="submit" size="sm" disabled={createAccount.isPending} className="font-sans">
+                  {createAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                  Créer le compte
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDetail(null); } }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
