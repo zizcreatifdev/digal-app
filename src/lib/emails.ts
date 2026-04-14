@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 type EmailType = "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement"
-  | "rejet_createur" | "waitlist_approuve" | "preview_expire";
+  | "rejet_createur" | "waitlist_approuve" | "preview_expire" | "activation";
 
 interface SendEmailOptions {
   type: EmailType;
@@ -12,6 +12,8 @@ interface SendEmailOptions {
   commentaire?: string;
   lien_preview?: string;
   nom_client?: string;
+  activation_link?: string;
+  type_compte_label?: string;
 }
 
 /**
@@ -80,4 +82,25 @@ export async function sendPreviewExpiredEmail(
   nom_client?: string
 ): Promise<void> {
   return sendEmail({ type: "preview_expire", to, prenom, nom_client });
+}
+
+export async function sendActivationEmail(
+  to: string,
+  prenom: string,
+  type_compte: string,
+  activation_link: string
+): Promise<void> {
+  const labelMap: Record<string, string> = {
+    solo: "Solo",
+    agence: "Agence",
+    agence_standard: "Agence Standard",
+    agence_pro: "Agence Pro",
+  };
+  return sendEmail({
+    type: "activation",
+    to,
+    prenom,
+    activation_link,
+    type_compte_label: labelMap[type_compte] ?? type_compte,
+  });
 }

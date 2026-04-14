@@ -41,6 +41,7 @@ import AdminProfil from "./pages/admin/AdminProfil";
 import DocsPage from "./pages/DocsPage";
 import Privacy from "./pages/Privacy";
 import CGU from "./pages/CGU";
+import Activate from "./pages/Activate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -289,6 +290,7 @@ const App = () => (
               }
             />
             <Route path="/docs/:type" element={<DocsPage />} />
+            <Route path="/activate/:token" element={<Activate />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

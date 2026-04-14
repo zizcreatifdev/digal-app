@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle, Mail } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { sendWaitlistApprovalEmail } from "@/lib/emails";
+import { sendActivationEmail } from "@/lib/emails";
 
 interface WaitlistEntry {
   id: string;
@@ -38,16 +38,38 @@ export default function AdminWaitlist() {
     mutationFn: async ({ id, statut, entry }: { id: string; statut: string; entry: WaitlistEntry }) => {
       const { error } = await supabase.from("waitlist").update({ statut }).eq("id", id);
       if (error) throw error;
-      // Send approval email (silent fail)
+
       if (statut === "approuve") {
+        // Create activation token
+        const { data: tokenData, error: tokenError } = await supabase
+          .from("activation_tokens")
+          .insert({
+            email: entry.email,
+            prenom: entry.prenom ?? "",
+            nom: entry.nom ?? "",
+            type_compte: entry.type_compte ?? "solo",
+          })
+          .select("token")
+          .single();
+
+        if (tokenError || !tokenData) {
+          console.warn("[waitlist] Failed to create activation token:", tokenError?.message);
+          return;
+        }
+
+        const activationLink = `${window.location.origin}/activate/${tokenData.token}`;
         try {
-          await sendWaitlistApprovalEmail(entry.email, entry.prenom ?? "");
+          await sendActivationEmail(entry.email, entry.prenom ?? "", entry.type_compte ?? "solo", activationLink);
         } catch { /* silent */ }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-waitlist"] });
-      toast.success("Statut mis à jour");
+      if (variables.statut === "approuve") {
+        toast.success(`Email d'activation envoyé à ${variables.entry.email}`);
+      } else {
+        toast.success("Statut mis à jour");
+      }
     },
   });
 

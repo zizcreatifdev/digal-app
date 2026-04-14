@@ -13,14 +13,16 @@ const DIGAL_LOGO_HTML = `<img src="data:image/svg+xml;base64,${DIGAL_LOGO_B64}" 
 
 interface EmailPayload {
   type: "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement"
-    | "rejet_createur" | "waitlist_approuve" | "preview_expire";
+    | "rejet_createur" | "waitlist_approuve" | "preview_expire" | "activation";
   to: string;
   prenom?: string;
   expiration_date?: string;
   plan?: string;
-  commentaire?: string;   // rejet_createur
-  lien_preview?: string;  // waitlist_approuve / preview_expire
-  nom_client?: string;    // preview_expire
+  commentaire?: string;        // rejet_createur
+  lien_preview?: string;       // waitlist_approuve / preview_expire
+  nom_client?: string;         // preview_expire
+  activation_link?: string;    // activation
+  type_compte_label?: string;  // activation
 }
 
 function wrapHtml(body: string): string {
@@ -118,6 +120,20 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
           <h2>Bonjour ${name},</h2>
           <p>Le lien de prévisualisation partagé avec <strong>${payload.nom_client ?? "votre client"}</strong> a expiré.</p>
           <p>Vous pouvez en générer un nouveau depuis la fiche client dans Digal.</p>
+          <p>L'équipe Digal</p>
+        `),
+      };
+    case "activation":
+      return {
+        subject: "Votre accès Digal est prêt !",
+        html: wrapHtml(`
+          <h2>Bonjour ${name} !</h2>
+          <p>Votre demande d'accès Digal en tant que <strong>${payload.type_compte_label ?? "utilisateur"}</strong> a été approuvée.</p>
+          <p>Cliquez sur le bouton ci-dessous pour activer votre compte et choisir votre mot de passe :</p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${payload.activation_link ?? "#"}" style="background:#c4522a;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Activer mon compte →</a>
+          </p>
+          <p style="font-size:12px;color:#999;">Ce lien est valable 48 heures. Si vous n'avez pas demandé cet accès, ignorez cet email.</p>
           <p>L'équipe Digal</p>
         `),
       };
