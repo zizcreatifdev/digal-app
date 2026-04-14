@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : Initialisation mémoire_
+_Prompt courant : 06 — Phase 1 fondations critiques_
 
 ---
 
@@ -13,7 +13,7 @@ _Prompt courant : Initialisation mémoire_
 
 ## État des modules
 
-### Module AUTH — 90% ✅
+### Module AUTH — 92% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Login email/password | ✅ Complet | Via Supabase Auth |
@@ -21,6 +21,7 @@ _Prompt courant : Initialisation mémoire_
 | Reset password | ✅ Complet | Page `/reset-password` |
 | AuthGuard (protection routes) | ✅ Complet | Redirige vers /login |
 | Rôles (admin/user) | ✅ Complet | Table `user_roles` |
+| **Protection routes par profileRole** | ✅ Complet (prompt-06) | `allowedProfileRoles` dans AuthGuard |
 | TOTP 2FA pour admin | ✅ Complet | `AdminTotpGate` |
 | Onboarding wizard | ✅ Complet | 4 étapes, skip possible |
 | Waitlist | ✅ Complet | Page publique |
@@ -28,18 +29,18 @@ _Prompt courant : Initialisation mémoire_
 
 ---
 
-### Module CLIENTS — 85% ✅
+### Module CLIENTS — 95% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Liste clients actifs | ✅ Complet | |
 | Ajout client + réseaux | ✅ Complet | Modal AddClientModal |
-| Détail client | ✅ Complet | Page ClientDetail |
+| **Édition client post-création** | ✅ Complet (prompt-06) | EditClientModal + updateClient() |
+| Détail client | ✅ Complet | Page ClientDetail + bouton Modifier |
 | Réseaux sociaux par client | ✅ Complet | Table `client_networks` |
 | Archive / restore client | ✅ Complet | |
 | Couleur de marque | ✅ Complet | Color picker |
 | Upload logo client | ✅ Complet | Supabase Storage |
 | Freemium limit (2 clients) | ✅ Complet | Via `getAccountAccess` |
-| Edition client | ⚠️ Partiel | Vérifier si édition post-création disponible |
 | **Tests** | ❌ Aucun | |
 
 ---
@@ -86,8 +87,9 @@ _Prompt courant : Initialisation mémoire_
 | Génération PDF | ✅ Complet | jsPDF + `facturation-pdf.ts` |
 | Méthodes paiement (Wave, OM, etc.) | ✅ Complet | |
 | Numérotation auto | ✅ Complet | `DEV-YYYY-NNN` / `FAC-YYYY-NNN` |
+| **Protection route /facturation** | ✅ Complet (prompt-06) | DM + Solo uniquement |
 | Téléchargement PDF | ⚠️ À vérifier | Intégration UI |
-| **Tests** | ❌ Aucun | `calculateTotals` à tester en priorité |
+| **Tests** | 14/14 ✅ | `calculateTotals` testé |
 
 ---
 
@@ -101,6 +103,7 @@ _Prompt courant : Initialisation mémoire_
 | Revenus | ✅ Complet | `RevenusSection` |
 | Export CSV/rapport | ❌ Manquant | Non implémenté |
 | Graphiques | ✅ Complet | Recharts |
+| **Protection route /comptabilite** | ✅ Complet (prompt-06) | DM + Solo uniquement |
 | **Tests** | ❌ Aucun | |
 
 ---
@@ -114,7 +117,8 @@ _Prompt courant : Initialisation mémoire_
 | Prévisualisation rapport | ✅ Complet | `KpiReportPreview` |
 | Export PDF | ✅ Complet | `kpi-pdf.ts` |
 | Historique rapports | ✅ Complet | Trié par mois |
-| **Tests** | ❌ Aucun | `hasMetrics`, `getFilledMetrics` à tester |
+| **Protection route /rapports** | ✅ Complet (prompt-06) | DM + Solo uniquement |
+| **Tests** | 18/18 ✅ | hasMetrics, getFilledMetrics, formatMonth |
 
 ---
 
@@ -127,6 +131,7 @@ _Prompt courant : Initialisation mémoire_
 | Validation CM | ✅ Complet | `validateCreatorUpload()` |
 | Rejet CM + commentaire | ✅ Complet | Suppression média, notif créateur |
 | Stats membre d'équipe | ✅ Complet | `getTeamMemberStats()` |
+| **Route /createur restreinte** | ✅ Complet (prompt-06) | Rôle createur uniquement |
 | Notifications push | ⚠️ In-app only | Pas de push browser |
 | **Tests** | ❌ Aucun | |
 
@@ -151,7 +156,7 @@ _Prompt courant : Initialisation mémoire_
 | Marquer tout comme lu | ✅ Complet | |
 | Compteur non-lus | ✅ Complet | |
 | Lien depuis notification | ✅ Complet | Champ `lien` |
-| Notifications temps réel | ⚠️ Non confirmé | Pas de Realtime Supabase visible |
+| Notifications temps réel | ✅ Complet | Realtime Supabase confirmé AUDIT_C |
 | **Tests** | ❌ Aucun | |
 
 ---
@@ -163,26 +168,54 @@ _Prompt courant : Initialisation mémoire_
 | Filtres par type/date | ✅ Complet | |
 | Helpers de logging | ✅ Complet | `logAuth`, `logPostAction`, etc. |
 | Silent fail | ✅ Complet | Les erreurs de log ne cassent pas l'app |
+| **Protection route /journal** | ✅ Complet (prompt-06) | DM + Solo uniquement |
 | **Tests** | ❌ Aucun | |
 
 ---
 
-### Module PARAMÈTRES — 65% ⚠️
+### Module LICENCES — 75% ⚠️ → Prompt-06
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Page Settings | ✅ Existe | À analyser en détail |
-| Profil utilisateur | ✅ Complet | Via onboarding + settings |
-| Invitation équipe | ⚠️ Partiel | |
-| Gestion plan | ⚠️ Partiel | Lié à admin |
+| Table `license_keys` | ✅ Complet (prompt-06) | Migration 20260415000001 |
+| Génération clé DIGAL-TYPE-XXXX | ✅ Complet (prompt-06) | `AdminLicences` — bouton "Générer clé" |
+| Activation côté utilisateur | ✅ Complet (prompt-06) | Settings → Ma licence — saisie clé + RPC |
+| Extension cumulative expiration | ✅ Complet (prompt-06) | RPC `activate_license_key` |
+| Popup expiration J-30 | ✅ Complet (prompt-06) | Dashboard — Dialog sessionStorage |
+| Historique activations | ✅ Complet (prompt-06) | Settings — table `license_keys.used_by` |
+| Activation manuelle par admin | ✅ Complet | AdminLicences |
 | **Tests** | ❌ Aucun | |
 
 ---
 
-### Module ADMIN — 80% ✅
+### Module EMAIL — 50% ⚠️ → Prompt-06
+| Fonctionnalité | État | Notes |
+|----------------|------|-------|
+| Edge function `send-email` | ✅ Complet (prompt-06) | Deno + npm:resend@3 |
+| `lib/emails.ts` | ✅ Complet (prompt-06) | sendWelcomeEmail, sendExpiryWarning, sendRenewalConfirmation |
+| Templates email | ✅ Complet (prompt-06) | bienvenue, expiration J-30/15/7, renouvellement |
+| **Intégration dans les flux** | ❌ Manquant | Non câblé dans register/activation yet |
+| Clé RESEND_API_KEY configurée | ❌ À configurer | Variable env Supabase à définir |
+
+---
+
+### Module PARAMÈTRES — 70% ⚠️
+| Fonctionnalité | État | Notes |
+|----------------|------|-------|
+| Page Settings | ✅ Existe | |
+| Profil utilisateur | ✅ Complet | |
+| Invitation équipe | ⚠️ Partiel | |
+| **Saisie clé licence réelle** | ✅ Complet (prompt-06) | Input + RPC activate_license_key |
+| **Historique licences** | ✅ Complet (prompt-06) | Table depuis license_keys |
+| **Tests** | ❌ Aucun | |
+
+---
+
+### Module ADMIN — 82% ✅
 | Page admin | État | Notes |
 |------------|------|-------|
 | Dashboard KPIs (MRR, comptes) | ✅ Complet | |
 | Gestion comptes | ✅ Complet | |
+| **Génération clés DIGAL-TYPE-XXXX** | ✅ Complet (prompt-06) | Bouton "Générer clé" + table clés |
 | Gestion licences | ✅ Complet | Expiration, renewal |
 | Gestion waitlist | ✅ Complet | |
 | Gestion plans tarifaires | ✅ Complet | Promo, prix, features |
@@ -236,11 +269,14 @@ _Prompt courant : Initialisation mémoire_
 ## Prochaines étapes recommandées
 
 1. ~~**Connecter Dashboard aux vraies données**~~ → **Résolu prompt-02**
-2. **Écrire les tests unitaires** sur `lib/facturation.ts` et `lib/account-access.ts`
-3. **Finaliser l'invitation d'équipe** dans les Paramètres
-4. **Ajouter export CSV** dans la Comptabilité
-5. **Réaltime Supabase** pour les notifications
-6. **Vérifier l'édition de client** post-création
+2. ~~**Écrire les tests unitaires**~~ → **Résolu prompt-04** (61 tests)
+3. ~~**EditClientModal + updateClient**~~ → **Résolu prompt-06**
+4. ~~**Route protection par profileRole**~~ → **Résolu prompt-06**
+5. ~~**Système licences réel (clés DIGAL)**~~ → **Résolu prompt-06**
+6. ~~**Service email (Resend + edge function)**~~ → **Résolu prompt-06**
+7. **Onboarding 5 étapes + badges** (§6 CDC) — 4 étapes seulement
+8. **Blocs périodes de production** dans calendrier (§9 CDC)
+9. **Boîte de dépôt Mode 2** créateur (§10 CDC)
 
 ---
 
@@ -248,9 +284,9 @@ _Prompt courant : Initialisation mémoire_
 
 | Métrique | État |
 |----------|------|
-| Erreurs ESLint | ✅ 0 erreur (était 66) |
-| Warnings ESLint | 15 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
-| Tests unitaires | ✅ 61/61 passent (était 1/1 trivial) |
+| Erreurs ESLint | ✅ 0 erreur |
+| Warnings ESLint | 16 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Tests unitaires | ✅ 61/61 passent |
 | Fichiers de tests | 5 fichiers (example + facturation + account-access + kpi-reports + preview-links) |
 | TypeScript strict | Amélioré — `any` éliminés, types précis ajoutés |
 
@@ -265,3 +301,7 @@ _Prompt courant : Initialisation mémoire_
 | 02 | Dashboard connecté Supabase — stats réelles + activité réelle via `activity_logs` | 2026-04-14 |
 | 03 | Scan données hardcodées hors Dashboard — correction `cmName` KPI (email → prenom+nom DB) | 2026-04-14 |
 | 04 | Tests critiques — 61 tests unitaires sur facturation, account-access, kpi-reports, preview-links + fix bug `hasMetrics` null | 2026-04-14 |
+| 05A | Audit CDC sections 1-5 → AUDIT_A.md | 2026-04-14 |
+| 05B | Audit CDC sections 6-10 → AUDIT_B.md | 2026-04-14 |
+| 05C | Audit CDC sections 11-17 → AUDIT_C.md | 2026-04-14 |
+| 06 | Phase 1 fondations critiques : licences DIGAL, service email Resend, routes par rôle, EditClientModal | 2026-04-14 |

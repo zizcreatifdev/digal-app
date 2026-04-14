@@ -94,6 +94,33 @@ export async function createClient(
   return data as Client;
 }
 
+export async function updateClient(
+  id: string,
+  updates: Partial<Omit<Client, "id" | "user_id" | "created_at" | "updated_at">>,
+  networks?: { reseau: string; formats: string[]; frequence_posts: number; notes_editoriales: string }[]
+) {
+  const { error } = await supabase
+    .from("clients")
+    .update(updates)
+    .eq("id", id);
+  if (error) throw error;
+
+  if (networks !== undefined) {
+    // Delete existing networks and re-insert
+    const { error: delErr } = await supabase
+      .from("client_networks")
+      .delete()
+      .eq("client_id", id);
+    if (delErr) throw delErr;
+
+    if (networks.length > 0) {
+      const networkRows = networks.map((n) => ({ ...n, client_id: id }));
+      const { error: netErr } = await supabase.from("client_networks").insert(networkRows);
+      if (netErr) throw netErr;
+    }
+  }
+}
+
 export async function archiveClient(id: string) {
   const { error } = await supabase
     .from("clients")

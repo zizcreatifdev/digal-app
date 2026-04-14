@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,18 +63,22 @@ const ACTIVITY_COLOR_MAP: Record<string, string> = {
   autre: "text-muted-foreground",
 };
 
+const LICENSE_EXPIRY_POPUP_KEY = "digal_expiry_popup_dismissed";
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [upgradeModal, setUpgradeModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null; licence_expiration?: string | null } | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [showExpiryPopup, setShowExpiryPopup] = useState(false);
+  const [expiryDaysLeft, setExpiryDaysLeft] = useState(0);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
-  // Onboarding check
+  // Onboarding + expiry check
   useEffect(() => {
     if (!user) return;
     const check = async () => {
@@ -83,6 +88,19 @@ const Dashboard = () => {
       ]);
       setProfile(prof);
       if (!onb) setShowOnboarding(true);
+
+      // Check licence expiry (30-day warning, once per session)
+      if (prof?.licence_expiration && prof.role !== "freemium") {
+        const expiry = new Date(prof.licence_expiration);
+        const now = new Date();
+        const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const dismissedAt = sessionStorage.getItem(LICENSE_EXPIRY_POPUP_KEY);
+        if (daysLeft <= 30 && !dismissedAt) {
+          setExpiryDaysLeft(daysLeft);
+          setShowExpiryPopup(true);
+        }
+      }
+
       setCheckingOnboarding(false);
     };
     check();
@@ -366,6 +384,51 @@ const Dashboard = () => {
         onOpenChange={setUpgradeModal}
         featureName="Facturation"
       />
+
+      {/* Licence expiry warning popup */}
+      <Dialog
+        open={showExpiryPopup}
+        onOpenChange={(v) => {
+          if (!v) sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1");
+          setShowExpiryPopup(v);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-serif">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {expiryDaysLeft <= 0 ? "Licence expirée" : "Licence bientôt expirée"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm font-sans text-muted-foreground">
+            {expiryDaysLeft <= 0
+              ? "Votre licence a expiré. Vous êtes repassé en mode Freemium. Activez une clé pour continuer à accéder à toutes les fonctionnalités."
+              : `Il vous reste ${expiryDaysLeft} jour${expiryDaysLeft > 1 ? "s" : ""} avant l'expiration de votre licence. Pensez à la renouveler.`}
+          </p>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1");
+                setShowExpiryPopup(false);
+              }}
+            >
+              Plus tard
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1");
+                setShowExpiryPopup(false);
+                window.location.href = "/dashboard/parametres?tab=licence";
+              }}
+            >
+              Activer une clé
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

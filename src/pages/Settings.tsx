@@ -587,14 +587,73 @@ function TemplatesTab() {
 }
 
 /* ──────────────────────── LICENSE TAB ──────────────────────── */
+const PLAN_LABELS: Record<string, string> = {
+  freemium: "Freemium",
+  solo: "Solo Standard",
+  agence_standard: "Agence Standard",
+  agence_pro: "Agence Pro",
+  dm: "Directeur Marketing",
+  cm: "Community Manager",
+  createur: "Créateur de contenu",
+  owner: "Owner",
+  admin: "Admin",
+};
+
 function LicenseTab() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserRow | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [history, setHistory] = useState<{ key_code: string; type: string; duration_months: number; used_at: string }[]>([]);
+
+  const loadProfile = () => {
+    if (!user) return;
+    supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => setProfile(data));
+  };
+
+  const loadHistory = (profileId?: string) => {
+    if (!profileId) return;
+    supabase.from("license_keys")
+      .select("key_code, type, duration_months, used_at")
+      .eq("used_by", profileId)
+      .order("used_at", { ascending: false })
+      .then(({ data }) => setHistory(data ?? []));
+  };
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => setProfile(data));
-  }, [user]);
+    supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      setProfile(data);
+      if (data?.id) loadHistory(data.id);
+    });
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleActivate = async () => {
+    const key = keyInput.trim().toUpperCase();
+    if (!key) { toast.error("Saisissez une clé de licence"); return; }
+    if (!user) return;
+
+    setActivating(true);
+    try {
+      const { data: result, error } = await supabase.rpc("activate_license_key", { p_key_code: key });
+      if (error) throw error;
+
+      const res = result as { error?: string; success?: boolean; type?: string; expires_at?: string };
+      if (res.error) { toast.error(res.error); return; }
+
+      const expiresDate = res.expires_at ? new Date(res.expires_at).toLocaleDateString("fr-FR") : "";
+      toast.success(`Licence activée — plan ${PLAN_LABELS[res.type ?? ""] ?? res.type} jusqu'au ${expiresDate}`);
+      setKeyInput("");
+      supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+        setProfile(data);
+        if (data?.id) loadHistory(data.id);
+      });
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de l'activation");
+    } finally {
+      setActivating(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -605,7 +664,7 @@ function LicenseTab() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm">Plan actuel</span>
-            <Badge>{profile?.role ?? "freemium"}</Badge>
+            <Badge>{PLAN_LABELS[profile?.role ?? "freemium"] ?? profile?.role ?? "Freemium"}</Badge>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Expiration</span>
@@ -616,15 +675,25 @@ function LicenseTab() {
             </span>
           </div>
           <Separator />
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={() => toast.info("Demande envoyée à l'administrateur")}>
-              <Crown className="h-4 w-4 mr-1" /> Ajouter une licence
-            </Button>
-            {profile?.role === "solo_standard" && (
-              <Button size="sm" onClick={() => toast.info("Demande de passage en Agence envoyée")}>
-                Passer en mode Agence
+          <div>
+            <Label className="font-sans mb-1 block flex items-center gap-1">
+              <Crown className="h-4 w-4" /> Activer une clé de licence
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="DIGAL-SOLO-XXXXXX"
+                className="font-mono"
+                onKeyDown={(e) => e.key === "Enter" && handleActivate()}
+              />
+              <Button onClick={handleActivate} disabled={activating || !keyInput.trim()}>
+                {activating ? "..." : "Activer"}
               </Button>
-            )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              La durée s'ajoute à votre licence actuelle si elle n'est pas expirée.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -634,7 +703,32 @@ function LicenseTab() {
           <CardTitle className="font-serif">Historique des licences</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8 text-sm">Aucun historique disponible</p>
+          {history.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8 text-sm">Aucun historique disponible</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Clé</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Durée</TableHead>
+                  <TableHead>Activée le</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((h) => (
+                  <TableRow key={h.key_code}>
+                    <TableCell className="font-mono text-xs">{h.key_code}</TableCell>
+                    <TableCell><Badge variant="outline">{PLAN_LABELS[h.type] ?? h.type}</Badge></TableCell>
+                    <TableCell className="text-sm">{h.duration_months} mois</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {h.used_at ? new Date(h.used_at).toLocaleDateString("fr-FR") : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

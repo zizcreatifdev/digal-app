@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Link2, BarChart3, Receipt, Archive, Loader2,
-  Calendar, FolderOpen, Activity,
+  Calendar, FolderOpen, Activity, Pencil,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
 import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
+import { EditClientModal } from "@/components/clients/EditClientModal";
 import { toast } from "sonner";
 
 const ClientDetail = () => {
@@ -23,6 +24,7 @@ const ClientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -127,6 +129,9 @@ const ClientDetail = () => {
             </Button>
             <Button size="sm" variant="outline">
               <Receipt className="h-4 w-4" /> Facture
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setEditModalOpen(true)}>
+              <Pencil className="h-4 w-4" /> Modifier
             </Button>
             <Button
               size="sm"
@@ -233,6 +238,19 @@ const ClientDetail = () => {
           return info?.label ?? n.reseau;
         })}
         onCreated={() => {}}
+      />
+
+      <EditClientModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        client={client}
+        networks={networks}
+        onSuccess={() => {
+          if (!id) return;
+          Promise.all([fetchClient(id), fetchClientNetworks(id)])
+            .then(([c, n]) => { setClient(c); setNetworks(n); })
+            .catch(() => toast.error("Erreur lors du rechargement du client"));
+        }}
       />
     </DashboardLayout>
   );
