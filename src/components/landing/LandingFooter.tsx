@@ -1,0 +1,42 @@
+import digalLogo from "@/assets/digal-logo.png";
+
+export function LandingFooter() {
+  return (
+    <footer className="border-t border-border py-10 bg-card">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <img src={digalLogo} alt="Digal" className="h-6 w-6" loading="lazy" width={24} height={24} />
+            <span className="text-lg font-bold font-serif text-foreground">Digal</span>
+          </div>
+
+          {/* Links */}
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <a href="#fonctionnalites" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+              Fonctionnalités
+            </a>
+            <a href="#tarifs" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+              Tarifs
+            </a>
+            <a href="#" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+              CGU
+            </a>
+            <a href="#" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+              Confidentialité
+            </a>
+            <a href="#contact" className="text-xs font-sans text-muted-foreground hover:text-foreground transition-colors">
+              Contact
+            </a>
+          </nav>
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground font-sans">
+            © {new Date().getFullYear()} Digal. Tous droits réservés.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}

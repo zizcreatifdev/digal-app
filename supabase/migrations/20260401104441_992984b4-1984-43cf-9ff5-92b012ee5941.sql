@@ -1,0 +1,2 @@
+ALTER TABLE public.users DROP CONSTRAINT users_role_check;
+ALTER TABLE public.users ADD CONSTRAINT users_role_check CHECK (role IN ('freemium', 'solo', 'solo_standard', 'solo_pro', 'agence_standard', 'agence_starter', 'agence_pro', 'owner', 'dm', 'cm', 'createur'));
