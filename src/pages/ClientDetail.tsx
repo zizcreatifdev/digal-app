@@ -16,10 +16,15 @@ import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, Client,
 import { EditClientModal } from "@/components/clients/EditClientModal";
 import { DropBoxReview } from "@/components/clients/DropBoxReview";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+const FREEMIUM_ARCHIVE_LIMIT = 3;
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [networks, setNetworks] = useState<ClientNetwork[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,9 +42,27 @@ const ClientDetail = () => {
   }, [id]);
 
   const handleArchiveToggle = async () => {
-    if (!client) return;
+    if (!client || !user) return;
     try {
       if (client.statut === "actif") {
+        // Freemium: check archived clients limit
+        const { data: profile } = await supabase
+          .from("users")
+          .select("role, plan")
+          .eq("user_id", user.id)
+          .single();
+        const isFreemium = profile?.role === "freemium" && !profile?.plan;
+        if (isFreemium) {
+          const { count } = await supabase
+            .from("clients")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("statut", "archive");
+          if ((count ?? 0) >= FREEMIUM_ARCHIVE_LIMIT) {
+            toast.error(`Limite atteinte : les comptes Freemium peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients.`);
+            return;
+          }
+        }
         await archiveClient(client.id);
         setClient({ ...client, statut: "archive" });
         toast.success("Client archivé");

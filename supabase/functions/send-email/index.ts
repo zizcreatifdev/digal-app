@@ -8,11 +8,15 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const FROM = "Digal <noreply@digal.app>";
 
 interface EmailPayload {
-  type: "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement";
+  type: "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement"
+    | "rejet_createur" | "waitlist_approuve" | "preview_expire";
   to: string;
   prenom?: string;
   expiration_date?: string;
   plan?: string;
+  commentaire?: string;   // rejet_createur
+  lien_preview?: string;  // waitlist_approuve / preview_expire
+  nom_client?: string;    // preview_expire
 }
 
 function buildEmail(payload: EmailPayload): { subject: string; html: string } {
@@ -65,6 +69,37 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
           <h2>Bonne nouvelle, ${name} !</h2>
           <p>Votre licence <strong>${payload.plan ?? "Digal"}</strong> a été renouvelée avec succès.</p>
           <p>Nouvelle date d'expiration : <strong>${payload.expiration_date}</strong>.</p>
+          <p>L'équipe Digal</p>
+        `,
+      };
+    case "rejet_createur":
+      return {
+        subject: "Votre contenu n'a pas été validé",
+        html: `
+          <h2>Bonjour ${name},</h2>
+          <p>Votre contenu soumis pour validation n'a pas été accepté.</p>
+          ${payload.commentaire ? `<p><strong>Motif :</strong> ${payload.commentaire}</p>` : ""}
+          <p>N'hésitez pas à soumettre une nouvelle version en tenant compte de ce retour.</p>
+          <p>L'équipe Digal</p>
+        `,
+      };
+    case "waitlist_approuve":
+      return {
+        subject: "Votre accès Digal est confirmé 🎉",
+        html: `
+          <h2>Bonne nouvelle, ${name} !</h2>
+          <p>Votre demande d'accès à Digal a été approuvée. Vous pouvez dès maintenant vous connecter et commencer à utiliser la plateforme.</p>
+          ${payload.lien_preview ? `<p><a href="${payload.lien_preview}" style="background:#6d28d9;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">Accéder à Digal</a></p>` : ""}
+          <p>L'équipe Digal</p>
+        `,
+      };
+    case "preview_expire":
+      return {
+        subject: "Le lien de prévisualisation a expiré",
+        html: `
+          <h2>Bonjour ${name},</h2>
+          <p>Le lien de prévisualisation partagé avec <strong>${payload.nom_client ?? "votre client"}</strong> a expiré.</p>
+          <p>Vous pouvez en générer un nouveau depuis la fiche client dans Digal.</p>
           <p>L'équipe Digal</p>
         `,
       };

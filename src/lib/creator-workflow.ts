@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Post, uploadPostMedia } from "@/lib/posts";
 import { createNotification } from "@/lib/notifications";
+import { sendCreatorRejectionEmail } from "@/lib/emails";
 
 export interface AssignedTask extends Post {
   client_nom?: string;
@@ -98,6 +99,18 @@ export async function rejectCreatorUpload(
     `Votre fichier a été rejeté : "${comment}". Veuillez soumettre une nouvelle version.`,
     "warning",
   );
+
+  // Send rejection email (silent fail)
+  try {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("email, prenom")
+      .eq("user_id", creatorUserId)
+      .single();
+    if (profile?.email) {
+      await sendCreatorRejectionEmail(profile.email, profile.prenom ?? "", comment);
+    }
+  } catch { /* silent */ }
 }
 
 /** Fetch team members for an agency (DM view) */

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { sendCreatorRejectionEmail } from "@/lib/emails";
 
 export type DropBoxStatut = "en_attente" | "valide" | "rejete";
 
@@ -142,5 +143,17 @@ export async function rejectDropBoxFile(
       `Votre fichier a été rejeté : ${commentaire}`,
       "info"
     );
+  } catch { /* silent */ }
+
+  // Send rejection email (silent fail)
+  try {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("email, prenom")
+      .eq("user_id", uploadedBy)
+      .single();
+    if (profile?.email) {
+      await sendCreatorRejectionEmail(profile.email, profile.prenom ?? "", commentaire);
+    }
   } catch { /* silent */ }
 }

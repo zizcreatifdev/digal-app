@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
-type EmailType = "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement";
+type EmailType = "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement"
+  | "rejet_createur" | "waitlist_approuve" | "preview_expire";
 
 interface SendEmailOptions {
   type: EmailType;
@@ -8,6 +9,9 @@ interface SendEmailOptions {
   prenom?: string;
   expiration_date?: string;
   plan?: string;
+  commentaire?: string;
+  lien_preview?: string;
+  nom_client?: string;
 }
 
 /**
@@ -52,4 +56,28 @@ export async function sendRenewalConfirmation(
   plan: string
 ): Promise<void> {
   return sendEmail({ type: "renouvellement", to, prenom, expiration_date, plan });
+}
+
+export async function sendCreatorRejectionEmail(
+  to: string,
+  prenom: string,
+  commentaire?: string
+): Promise<void> {
+  return sendEmail({ type: "rejet_createur", to, prenom, commentaire });
+}
+
+export async function sendWaitlistApprovalEmail(
+  to: string,
+  prenom: string,
+  lien_preview?: string
+): Promise<void> {
+  return sendEmail({ type: "waitlist_approuve", to, prenom, lien_preview });
+}
+
+export async function sendPreviewExpiredEmail(
+  to: string,
+  prenom: string,
+  nom_client?: string
+): Promise<void> {
+  return sendEmail({ type: "preview_expire", to, prenom, nom_client });
 }

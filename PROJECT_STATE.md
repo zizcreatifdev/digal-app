@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : 08 — Phase 2B core_
+_Prompt courant : 09 — Phase 3A admin + emails + upgrade UI_
 
 ---
 
@@ -179,7 +179,7 @@ _Prompt courant : 08 — Phase 2B core_
 
 ---
 
-### Module LICENCES — 75% ⚠️ → Prompt-06
+### Module LICENCES — 90% ✅ → Prompt-09
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Table `license_keys` | ✅ Complet (prompt-06) | Migration 20260415000001 |
@@ -189,17 +189,21 @@ _Prompt courant : 08 — Phase 2B core_
 | Popup expiration J-30 | ✅ Complet (prompt-06) | Dashboard — Dialog sessionStorage |
 | Historique activations | ✅ Complet (prompt-06) | Settings — table `license_keys.used_by` |
 | Activation manuelle par admin | ✅ Complet | AdminLicences |
+| **Clé promo (-30%)** | ✅ Complet (prompt-09) | Switch promo + discount dans dialog génération AdminLicences |
+| **Prolongation manuelle (N mois)** | ✅ Complet (prompt-09) | Dialog CalendarPlus par utilisateur dans AdminLicences |
 | **Tests** | ❌ Aucun | |
 
 ---
 
-### Module EMAIL — 50% ⚠️ → Prompt-06
+### Module EMAIL — 85% ✅ → Prompt-09
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Edge function `send-email` | ✅ Complet (prompt-06) | Deno + npm:resend@3 |
-| `lib/emails.ts` | ✅ Complet (prompt-06) | sendWelcomeEmail, sendExpiryWarning, sendRenewalConfirmation |
-| Templates email | ✅ Complet (prompt-06) | bienvenue, expiration J-30/15/7, renouvellement |
-| **Intégration dans les flux** | ❌ Manquant | Non câblé dans register/activation yet |
+| `lib/emails.ts` | ✅ Complet (prompt-09) | +3 helpers : sendCreatorRejectionEmail, sendWaitlistApprovalEmail, sendPreviewExpiredEmail |
+| Templates email | ✅ Complet (prompt-09) | +3 types : rejet_createur, waitlist_approuve, preview_expire |
+| **Rejet créateur câblé** | ✅ Complet (prompt-09) | `rejectCreatorUpload()` + `rejectDropBoxFile()` |
+| **Approbation waitlist câblée** | ✅ Complet (prompt-09) | `AdminWaitlist.tsx` updateStatus |
+| **Cron J-30/15/7** | ✅ Complet (prompt-09) | Edge fn `expiry-reminders` + migration cron_expiry_reminders |
 | Clé RESEND_API_KEY configurée | ❌ À configurer | Variable env Supabase à définir |
 
 ---
@@ -216,14 +220,16 @@ _Prompt courant : 08 — Phase 2B core_
 
 ---
 
-### Module ADMIN — 82% ✅
+### Module ADMIN — 90% ✅ → Prompt-09
 | Page admin | État | Notes |
 |------------|------|-------|
 | Dashboard KPIs (MRR, comptes) | ✅ Complet | |
 | Gestion comptes | ✅ Complet | |
+| **Export CSV comptes + KPIs** | ✅ Complet (prompt-09) | Bouton "Exporter CSV" + fichier daté |
+| **Onglet Financier par compte** | ✅ Complet (prompt-09) | CA facturé, CA encaissé, dépenses, masse salariale (lecture seule) |
 | **Génération clés DIGAL-TYPE-XXXX** | ✅ Complet (prompt-06) | Bouton "Générer clé" + table clés |
-| Gestion licences | ✅ Complet | Expiration, renewal |
-| Gestion waitlist | ✅ Complet | |
+| **Clé promo + prolongation flexible** | ✅ Complet (prompt-09) | AdminLicences — Switch promo, dialog N mois |
+| Gestion waitlist | ✅ Complet | Email d'approbation câblé (prompt-09) |
 | Gestion plans tarifaires | ✅ Complet | Promo, prix, features |
 | Gestion contrats | ✅ Complet | Templates + contrats signés |
 | Campagnes emails | ✅ Complet | `marketing_emails` |
@@ -317,3 +323,4 @@ _Prompt courant : 08 — Phase 2B core_
 | 06 | Phase 1 fondations critiques : licences DIGAL, service email Resend, routes par rôle, EditClientModal | 2026-04-14 |
 | 07 | Phase 2A core : onboarding checklist 5 étapes, blocs périodes production, boîte dépôt Mode 2 | 2026-04-14 |
 | 08 | Phase 2B core : numérotation SIGLE+4chiffres, tampon+signature PDF, boost dépenses→facture | 2026-04-14 |
+| 09 | Phase 3A : dashboard owner (export CSV + onglet financier), clé promo + prolongation flexible, emails (rejet/waitlist/preview + cron J-30/15/7), ProUpgradeModal mockups, limites freemium (archive×3 + templates×3) | 2026-04-14 |

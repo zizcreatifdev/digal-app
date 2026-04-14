@@ -601,8 +601,16 @@ function TemplatesTab() {
 
   useEffect(() => { load(); }, [user]);
 
+  const FREEMIUM_TEMPLATE_LIMIT = 3;
+
   const handleCreate = async () => {
     if (!user || !titre) return;
+    // Freemium: enforce template limit
+    const { data: profile } = await supabase.from("users").select("role, plan").eq("user_id", user.id).single();
+    if (profile?.role === "freemium" && !profile?.plan && templates.length >= FREEMIUM_TEMPLATE_LIMIT) {
+      toast.error(`Limite atteinte : les comptes Freemium peuvent créer au maximum ${FREEMIUM_TEMPLATE_LIMIT} modèles.`);
+      return;
+    }
     const { error } = await supabase.from("post_templates").insert({ user_id: user.id, titre, texte, reseau, format });
     if (error) { toast.error("Erreur"); return; }
     toast.success("Modèle créé");

@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle, Mail } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { sendWaitlistApprovalEmail } from "@/lib/emails";
 
 interface WaitlistEntry {
   id: string;
@@ -34,9 +35,15 @@ export default function AdminWaitlist() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, statut }: { id: string; statut: string }) => {
+    mutationFn: async ({ id, statut, entry }: { id: string; statut: string; entry: WaitlistEntry }) => {
       const { error } = await supabase.from("waitlist").update({ statut }).eq("id", id);
       if (error) throw error;
+      // Send approval email (silent fail)
+      if (statut === "approuve") {
+        try {
+          await sendWaitlistApprovalEmail(entry.email, entry.prenom ?? "");
+        } catch { /* silent */ }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-waitlist"] });
@@ -98,10 +105,10 @@ export default function AdminWaitlist() {
                       <TableCell>
                         {e.statut === "en_attente" && (
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => updateStatus.mutate({ id: e.id, statut: "approuve" })}>
+                            <Button size="sm" variant="ghost" onClick={() => updateStatus.mutate({ id: e.id, statut: "approuve", entry: e })}>
                               <CheckCircle className="h-4 w-4 text-emerald-600" />
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => updateStatus.mutate({ id: e.id, statut: "refuse" })}>
+                            <Button size="sm" variant="ghost" onClick={() => updateStatus.mutate({ id: e.id, statut: "refuse", entry: e })}>
                               <XCircle className="h-4 w-4 text-red-500" />
                             </Button>
                           </div>

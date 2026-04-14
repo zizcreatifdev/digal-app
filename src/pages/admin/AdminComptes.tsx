@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
-  Calendar, BarChart3, Activity, ShieldOff, Trash2,
+  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
@@ -36,11 +36,20 @@ interface AccountDetail {
   lastActivity: string | null;
 }
 
+interface AccountFinancial {
+  caFacture: number;
+  caEncaisse: number;
+  depenses: number;
+  masseSalariale: number;
+}
+
 export default function AdminComptes() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<UserProfile | null>(null);
   const [detail, setDetail] = useState<AccountDetail | null>(null);
+  const [financial, setFinancial] = useState<AccountFinancial | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingFinancial, setLoadingFinancial] = useState(false);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-comptes"],
@@ -67,6 +76,7 @@ export default function AdminComptes() {
     setSelected(u);
     setLoadingDetail(true);
     setDetail(null);
+    setFinancial(null);
     try {
       const [clientsRes, postsRes, docsRes, logsRes] = await Promise.all([
         supabase.from("clients").select("id, nom, statut").eq("user_id", u.user_id),
@@ -86,6 +96,60 @@ export default function AdminComptes() {
       setLoadingDetail(false);
     }
   };
+
+  const loadFinancial = async (u: UserProfile) => {
+    setLoadingFinancial(true);
+    setFinancial(null);
+    try {
+      const [docsRes, paymentsRes, depensesRes, salairesRes] = await Promise.all([
+        supabase.from("documents").select("id, total, type").eq("user_id", u.user_id).eq("type", "facture"),
+        supabase.from("payments").select("montant, document_id"),
+        supabase.from("depenses").select("montant").eq("user_id", u.user_id),
+        supabase.from("salaires").select("salaire_mensuel").eq("user_id", u.user_id),
+      ]);
+      const caFacture = (docsRes.data ?? []).reduce((s, d) => s + (d.total ?? 0), 0);
+      // CA encaissé: sum payments on the user's documents
+      const userDocIds = new Set((docsRes.data ?? []).map((d) => d.id).filter(Boolean));
+      const caEncaisse = (paymentsRes.data ?? [])
+        .filter((p) => userDocIds.has(p.document_id))
+        .reduce((s, p) => s + p.montant, 0);
+      const depenses = (depensesRes.data ?? []).reduce((s, d) => s + d.montant, 0);
+      const masseSalariale = (salairesRes.data ?? []).reduce((s, s2) => s + s2.salaire_mensuel, 0);
+      setFinancial({ caFacture, caEncaisse, depenses, masseSalariale });
+    } catch {
+      toast.error("Erreur chargement données financières");
+    } finally {
+      setLoadingFinancial(false);
+    }
+  };
+
+  const exportCsv = () => {
+    if (!users?.length) return;
+    const header = "Nom,Email,Rôle,Inscription,Expiration,Statut\n";
+    const rows = users.map((u) => {
+      const expired = u.licence_expiration && new Date(u.licence_expiration) < new Date();
+      const statut = u.role === "freemium" ? "Freemium" : expired ? "Expiré" : "Actif";
+      return [
+        `"${u.prenom} ${u.nom}"`,
+        `"${u.email}"`,
+        `"${u.role}"`,
+        `"${new Date(u.created_at).toLocaleDateString("fr-FR")}"`,
+        `"${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}"`,
+        `"${statut}"`,
+      ].join(",");
+    }).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `comptes-digal-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  function formatFCFA(n: number) {
+    return n.toLocaleString("fr-FR") + " FCFA";
+  }
 
   const getStatusBadge = (u: UserProfile) => {
     if (u.role === "owner" || u.role === "dm") return <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>;
@@ -138,11 +202,16 @@ export default function AdminComptes() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Comptes utilisateurs</h1>
-          <p className="text-muted-foreground font-sans mt-1">
-            {users?.length ?? 0} comptes enregistrés — cliquez sur un compte pour voir son activité
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Comptes utilisateurs</h1>
+            <p className="text-muted-foreground font-sans mt-1">
+              {users?.length ?? 0} comptes enregistrés — cliquez sur un compte pour voir son activité
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!users?.length} className="font-sans">
+            <Download className="h-4 w-4 mr-2" /> Exporter CSV
+          </Button>
         </div>
 
         {isLoading ? (
@@ -207,6 +276,9 @@ export default function AdminComptes() {
                   </TabsTrigger>
                   <TabsTrigger value="clients" className="flex-1 text-xs font-sans">
                     <Users className="h-3.5 w-3.5 mr-1" /> Clients
+                  </TabsTrigger>
+                  <TabsTrigger value="financier" className="flex-1 text-xs font-sans" onClick={() => !financial && loadFinancial(selected)}>
+                    <BarChart3 className="h-3.5 w-3.5 mr-1" /> Financier
                   </TabsTrigger>
                   <TabsTrigger value="actions" className="flex-1 text-xs font-sans">
                     <KeyRound className="h-3.5 w-3.5 mr-1" /> Actions
@@ -273,6 +345,53 @@ export default function AdminComptes() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-8 font-sans">Aucun client</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="financier" className="mt-4">
+                  {loadingFinancial ? (
+                    <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                  ) : financial ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Card>
+                        <CardContent className="pt-4 pb-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <DollarSign className="h-4 w-4 text-emerald-500" />
+                            <span className="text-xs text-muted-foreground font-sans">CA facturé</span>
+                          </div>
+                          <p className="text-lg font-bold font-serif text-emerald-700">{formatFCFA(financial.caFacture)}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-4 pb-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <DollarSign className="h-4 w-4 text-blue-500" />
+                            <span className="text-xs text-muted-foreground font-sans">CA encaissé</span>
+                          </div>
+                          <p className="text-lg font-bold font-serif text-blue-700">{formatFCFA(financial.caEncaisse)}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-4 pb-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Briefcase className="h-4 w-4 text-orange-500" />
+                            <span className="text-xs text-muted-foreground font-sans">Dépenses</span>
+                          </div>
+                          <p className="text-lg font-bold font-serif text-orange-700">{formatFCFA(financial.depenses)}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-4 pb-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Users className="h-4 w-4 text-purple-500" />
+                            <span className="text-xs text-muted-foreground font-sans">Masse salariale</span>
+                          </div>
+                          <p className="text-lg font-bold font-serif text-purple-700">{formatFCFA(financial.masseSalariale)}</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8 font-sans">Cliquez sur l'onglet pour charger les données</p>
                   )}
                 </TabsContent>
 
