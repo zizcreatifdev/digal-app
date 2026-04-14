@@ -262,3 +262,4 @@ _Prompt courant : Initialisation mémoire_
 | init | Création des fichiers de mémoire (ARCHITECTURE, CLAUDE, TEST_AGENT, PROJECT_STATE) | 2026-04-14 |
 | 01 | Correction 66 erreurs ESLint → 0 erreur | 2026-04-14 |
 | 02 | Dashboard connecté Supabase — stats réelles + activité réelle via `activity_logs` | 2026-04-14 |
+| 03 | Scan données hardcodées hors Dashboard — correction `cmName` KPI (email → prenom+nom DB) | 2026-04-14 |

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, Eye } from "lucide-react";
 import { logKpiAction } from "@/lib/activity-logs";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -71,6 +72,19 @@ export function CreateKpiReportModal({
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<KpiReportPreviewData | null>(null);
+  const [cmName, setCmName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("users")
+      .select("prenom, nom")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        setCmName(profile ? `${profile.prenom} ${profile.nom}` : user.email?.split("@")[0] ?? "CM");
+      });
+  }, [user]);
 
   const monthOptions = generateMonthOptions();
 
@@ -98,8 +112,6 @@ export function CreateKpiReportModal({
       },
     }));
   };
-
-  const cmName = user?.email?.split("@")[0] ?? "CM";
 
   const buildPreviewData = async (): Promise<KpiReportPreviewData> => {
     const allReports = await fetchKpiReports(clientId);

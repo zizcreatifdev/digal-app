@@ -29,19 +29,18 @@ const KpiReportsPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<KpiReportPreviewData | null>(null);
+  const [cmName, setCmName] = useState<string>("");
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("clients")
-      .select("id, nom, logo_url")
-      .eq("user_id", user.id)
-      .eq("statut", "actif")
-      .order("nom")
-      .then(({ data }) => {
-        setClients(data ?? []);
-        setLoading(false);
-      });
+    Promise.all([
+      supabase.from("clients").select("id, nom, logo_url").eq("user_id", user.id).eq("statut", "actif").order("nom"),
+      supabase.from("users").select("prenom, nom").eq("user_id", user.id).maybeSingle(),
+    ]).then(([{ data: clientsData }, { data: profile }]) => {
+      setClients(clientsData ?? []);
+      setCmName(profile ? `${profile.prenom} ${profile.nom}` : user.email?.split("@")[0] ?? "CM");
+      setLoading(false);
+    });
   }, [user]);
 
   const refreshReports = () => {
@@ -60,7 +59,6 @@ const KpiReportsPage = () => {
   }, [selectedClient, user]);
 
   const selectedClientData = clients.find((c) => c.id === selectedClient);
-  const cmName = user?.email?.split("@")[0] ?? "CM";
 
   const handlePreview = (report: KpiReport) => {
     const prevMonth = getPrevMonth(report.mois);
