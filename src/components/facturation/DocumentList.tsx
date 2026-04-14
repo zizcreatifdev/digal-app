@@ -63,10 +63,10 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
     try {
       const { document: doc, lines, payments } = await fetchDocumentWithLines(docId);
 
-      // Fetch user profile for emitter info
+      // Fetch user profile for emitter info (including tampon + signature)
       const { data: profile } = await supabase
         .from("users")
-        .select("prenom, nom, email, agence_nom, logo_url")
+        .select("prenom, nom, email, agence_nom, logo_url, tampon_url, signature_url")
         .eq("user_id", doc.user_id)
         .single();
 

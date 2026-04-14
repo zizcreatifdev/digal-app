@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : 07 — Phase 2A core_
+_Prompt courant : 08 — Phase 2B core_
 
 ---
 
@@ -88,19 +88,22 @@ _Prompt courant : 07 — Phase 2A core_
 | Statuts (brouillon/envoyé/payé/...) | ✅ Complet | 7 statuts |
 | Génération PDF | ✅ Complet | jsPDF + `facturation-pdf.ts` |
 | Méthodes paiement (Wave, OM, etc.) | ✅ Complet | |
-| Numérotation auto | ✅ Complet | `DEV-YYYY-NNN` / `FAC-YYYY-NNN` |
+| **Numérotation avec SIGLE** | ✅ Complet (prompt-08) | `DEV-LCS-2026-0001` / `FAC-LCS-2026-0001` — 4 chiffres |
+| **Tampon + Signature PDF** | ✅ Complet (prompt-08) | Upload Settings → intégré en bas du PDF |
 | **Protection route /facturation** | ✅ Complet (prompt-06) | DM + Solo uniquement |
-| Téléchargement PDF | ⚠️ À vérifier | Intégration UI |
+| Téléchargement PDF | ✅ Complet | Via `DocumentList` + `generateDocumentPdf` |
 | **Tests** | 14/14 ✅ | `calculateTotals` testé |
 
 ---
 
-### Module COMPTABILITÉ — 75% ⚠️
+### Module COMPTABILITÉ — 80% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Dashboard financier | ✅ Complet | `DashboardFinancier` |
 | Dépenses (CRUD) | ✅ Complet | 4 catégories |
 | Upload pièce jointe dépense | ✅ Complet | |
+| **Boost dépenses (client + réseau)** | ✅ Complet (prompt-08) | Client affecté + réseau pub (5 types) |
+| **Boost → ligne facture** | ✅ Complet (prompt-08) | `fetchBoostDepenses` + checkbox dans CreateDocumentModal |
 | Masse salariale | ✅ Complet | `MasseSalarialeSection` |
 | Revenus | ✅ Complet | `RevenusSection` |
 | Export CSV/rapport | ❌ Manquant | Non implémenté |
@@ -281,8 +284,9 @@ _Prompt courant : 07 — Phase 2A core_
 8. ~~**Blocs périodes de production**~~ → **Résolu prompt-07**
 9. ~~**Boîte de dépôt Mode 2**~~ → **Résolu prompt-07**
 10. **Export CSV** comptabilité (§14)
-11. **Tampon + Signature** PDF (§13/§16)
-12. **SIGLE dans generateNumero()** (§13)
+11. ~~**Tampon + Signature** PDF (§13/§16)~~ → **Résolu prompt-08**
+12. ~~**SIGLE dans generateNumero()** (§13)~~ → **Résolu prompt-08**
+13. **Boost dépenses → facture** (§14) → **Résolu prompt-08**
 
 ---
 
@@ -312,3 +316,4 @@ _Prompt courant : 07 — Phase 2A core_
 | 05C | Audit CDC sections 11-17 → AUDIT_C.md | 2026-04-14 |
 | 06 | Phase 1 fondations critiques : licences DIGAL, service email Resend, routes par rôle, EditClientModal | 2026-04-14 |
 | 07 | Phase 2A core : onboarding checklist 5 étapes, blocs périodes production, boîte dépôt Mode 2 | 2026-04-14 |
+| 08 | Phase 2B core : numérotation SIGLE+4chiffres, tampon+signature PDF, boost dépenses→facture | 2026-04-14 |

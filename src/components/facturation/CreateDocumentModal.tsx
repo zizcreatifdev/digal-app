@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Zap } from "lucide-react";
 import { logDocumentAction } from "@/lib/activity-logs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +19,7 @@ import {
   createDocument,
   formatFCFA,
 } from "@/lib/facturation";
+import { Depense, BOOST_RESEAU_LABELS, fetchBoostDepenses, markBoostIncluded } from "@/lib/comptabilite";
 
 interface Client {
   id: string;
@@ -62,6 +64,9 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
   const [methodes, setMethodes] = useState<string[]>(["wave"]);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  // Boost depenses
+  const [boostDepenses, setBoostDepenses] = useState<Depense[]>([]);
+  const [includedBoosts, setIncludedBoosts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open || !user) return;
@@ -74,7 +79,32 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
     if (preselectedClientId) setClientId(preselectedClientId);
   }, [preselectedClientId]);
 
-  const totals = calculateTotals(lines, tauxBrs, tauxTva);
+  // Load boost depenses when client changes
+  useEffect(() => {
+    if (!clientId || !user) { setBoostDepenses([]); setIncludedBoosts(new Set()); return; }
+    fetchBoostDepenses(user.id, clientId).then(setBoostDepenses).catch(() => {});
+  }, [clientId, user]);
+
+  const toggleBoost = (depenseId: string) => {
+    setIncludedBoosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(depenseId)) next.delete(depenseId); else next.add(depenseId);
+      return next;
+    });
+  };
+
+  // Include boost in preview totals
+  const boostLinesPreview: DocumentLine[] = boostDepenses
+    .filter((d) => includedBoosts.has(d.id))
+    .map((d, i) => ({
+      description: `Boost ${d.reseau ?? ""}`,
+      quantite: 1,
+      prix_unitaire: d.montant,
+      brs_applicable: false,
+      montant: d.montant,
+      ordre: lines.length + i,
+    }));
+  const totals = calculateTotals([...lines, ...boostLinesPreview], tauxBrs, tauxTva);
 
   const updateLine = (index: number, field: keyof DocumentLine, value: DocumentLine[keyof DocumentLine]) => {
     setLines((prev) =>
@@ -95,6 +125,21 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
     if (!user || !clientId) return;
     setLoading(true);
     try {
+      // Build boost lines for included depenses
+      const boostLines: DocumentLine[] = boostDepenses
+        .filter((d) => includedBoosts.has(d.id))
+        .map((d, i) => ({
+          description: `Boost ${BOOST_RESEAU_LABELS[d.reseau ?? ""] ?? "Publicité"} — ${d.date_depense}`,
+          quantite: 1,
+          prix_unitaire: d.montant,
+          brs_applicable: false,
+          montant: d.montant,
+          ordre: lines.length + i,
+        }));
+
+      const allLines = [...lines, ...boostLines];
+      const allTotals = calculateTotals(allLines, tauxBrs, tauxTva);
+
       await createDocument(
         {
           user_id: user.id,
@@ -103,17 +148,25 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
           numero,
           date_emission: dateEmission,
           date_echeance: dateEcheance || null,
-          sous_total: totals.sousTotal,
+          sous_total: allTotals.sousTotal,
           taux_brs: tauxBrs,
-          montant_brs: totals.montantBrs,
+          montant_brs: allTotals.montantBrs,
           taux_tva: tauxTva,
-          montant_tva: totals.montantTva,
-          total: totals.total,
+          montant_tva: allTotals.montantTva,
+          total: allTotals.total,
           methodes_paiement: methodes,
           notes,
         },
-        lines
+        allLines
       );
+
+      // Mark included boost depenses so they no longer appear as available
+      await Promise.all(
+        boostDepenses
+          .filter((d) => includedBoosts.has(d.id))
+          .map((d) => markBoostIncluded(d.id))
+      );
+
       toast.success(`${type === "devis" ? "Devis" : "Facture"} créé(e) avec succès`);
       logDocumentAction(user.id, `${type === "devis" ? "Devis" : "Facture"} créé(e)`, numero);
       onCreated();
@@ -216,6 +269,35 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
               <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter une ligne
             </Button>
           </div>
+
+          {/* Boost depenses */}
+          {boostDepenses.length > 0 && (
+            <div>
+              <Label className="mb-2 block flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-purple-500" />
+                Dépenses boost à inclure
+              </Label>
+              <div className="space-y-2 p-3 rounded-lg border border-purple-100 bg-purple-50/50">
+                {boostDepenses.map((d) => (
+                  <label key={d.id} className="flex items-center gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={includedBoosts.has(d.id)}
+                      onCheckedChange={() => toggleBoost(d.id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-sans">
+                        {BOOST_RESEAU_LABELS[d.reseau ?? ""] ?? "Publicité"} — {d.date_depense}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-sans">{d.libelle}</p>
+                    </div>
+                    <Badge className="bg-purple-100 text-purple-700 shrink-0 text-xs">
+                      {formatFCFA(d.montant)}
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Taxes */}
           <div className="grid grid-cols-2 gap-4">

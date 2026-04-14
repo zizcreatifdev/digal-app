@@ -9,6 +9,8 @@ export interface PdfUserProfile {
   email: string;
   agence_nom?: string | null;
   logo_url?: string | null;
+  tampon_url?: string | null;
+  signature_url?: string | null;
 }
 
 export interface PdfClientInfo {
@@ -324,6 +326,43 @@ export async function generateDocumentPdf(
       pdf.setFontSize(9);
       pdf.setTextColor(...dark);
       pdf.text(doc.notes, 15, notesY + 5, { maxWidth: pageW - 30 });
+    }
+  }
+
+  // === TAMPON + SIGNATURE ===
+  const stampZoneY = pageH - 60; // Fixed zone above footer
+
+  const loadStampOrSig = async (url: string | null | undefined): Promise<string | null> => {
+    if (!url) return null;
+    return loadImage(url);
+  };
+
+  const [tamponsData, signatureData] = await Promise.all([
+    loadStampOrSig(userProfile.tampon_url),
+    loadStampOrSig(userProfile.signature_url),
+  ]);
+
+  if (signatureData || tamponsData) {
+    // Signature line label (left)
+    if (signatureData) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(...gray);
+      pdf.text("Signature", 15, stampZoneY);
+      try {
+        pdf.addImage(signatureData, "PNG", 15, stampZoneY + 3, 40, 20);
+      } catch { /* skip if image format unsupported */ }
+    }
+
+    // Tampon (right side)
+    if (tamponsData) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(...gray);
+      pdf.text("Cachet / Tampon", pageW - 55, stampZoneY);
+      try {
+        pdf.addImage(tamponsData, "PNG", pageW - 55, stampZoneY + 3, 40, 20);
+      } catch { /* skip if image format unsupported */ }
     }
   }
 

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import {
   User, Camera, Palette, FileText, Users as UsersIcon,
-  LayoutTemplate, CreditCard, Bell, Plus, Trash2, Upload, Crown,
+  LayoutTemplate, CreditCard, Bell, Plus, Trash2, Upload, Crown, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -182,9 +182,14 @@ function BillingSettingsTab() {
     wave: true, yas: false, orange_money: true, virement: false, cash: true,
   });
   const [saving, setSaving] = useState(false);
+  const [tamponsUrl, setTamponsUrl] = useState<string>("");
+  const [signatureUrl, setSignatureUrl] = useState<string>("");
+  const [uploadingTampon, setUploadingTampon] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+    // Load global billing settings
     supabase.from("site_settings").select("*").in("key", [
       "billing_sigle", "billing_brs", "billing_tva", "billing_header",
       "billing_footer", "billing_payment_methods",
@@ -200,6 +205,14 @@ function BillingSettingsTab() {
         }
       });
     });
+    // Load per-user tampon + signature from users table
+    supabase.from("users").select("tampon_url, signature_url").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setTamponsUrl(data.tampon_url ?? "");
+          setSignatureUrl(data.signature_url ?? "");
+        }
+      });
   }, [user]);
 
   const saveSetting = async (key: string, value: string) => {
@@ -230,6 +243,26 @@ function BillingSettingsTab() {
     setPaymentMethods((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
   };
 
+  const uploadStampFile = async (file: File, field: "tampon" | "signature") => {
+    if (!user) return;
+    const setter = field === "tampon" ? setUploadingTampon : setUploadingSignature;
+    setter(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${field}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, file, { upsert: true });
+      if (upErr) { toast.error("Erreur d'upload"); return; }
+      const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
+      // Save URL to users table
+      const col = field === "tampon" ? { tampon_url: publicUrl } : { signature_url: publicUrl };
+      await supabase.from("users").update(col).eq("user_id", user.id);
+      if (field === "tampon") { setTamponsUrl(publicUrl); toast.success("Tampon mis à jour"); }
+      else { setSignatureUrl(publicUrl); toast.success("Signature mise à jour"); }
+    } finally {
+      setter(false);
+    }
+  };
+
   const paymentLabels: Record<string, string> = {
     wave: "Wave", yas: "YAS", orange_money: "Orange Money", virement: "Virement bancaire", cash: "Cash",
   };
@@ -254,7 +287,80 @@ function BillingSettingsTab() {
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">DEV-</span>
               <Input value={sigle} onChange={(e) => setSigle(e.target.value.toUpperCase())} placeholder="DGL" className="w-24" maxLength={5} />
-              <span className="text-sm text-muted-foreground">-YYYY-001</span>
+              <span className="text-sm text-muted-foreground">-YYYY-0001</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tampon + Signature */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif flex items-center gap-2">
+            <Upload className="h-5 w-5" /> Tampon & Signature
+          </CardTitle>
+          <CardDescription className="font-sans">
+            Images PNG à fond transparent — appliquées automatiquement en bas de vos devis et factures.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tampon */}
+          <div className="space-y-2">
+            <Label>Tampon / Cachet</Label>
+            <div className="flex items-start gap-4">
+              <label className="flex flex-col items-center justify-center gap-1 w-32 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-muted/30 shrink-0">
+                {uploadingTampon ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-sans text-center px-1">
+                      {tamponsUrl ? "Remplacer" : "Importer PNG"}
+                    </span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStampFile(f, "tampon"); }}
+                />
+              </label>
+              {tamponsUrl && (
+                <div className="border border-border rounded-lg p-2 bg-checkerboard">
+                  <img src={tamponsUrl} alt="Tampon" className="h-20 max-w-[160px] object-contain" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Signature */}
+          <div className="space-y-2">
+            <Label>Signature</Label>
+            <div className="flex items-start gap-4">
+              <label className="flex flex-col items-center justify-center gap-1 w-32 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-muted/30 shrink-0">
+                {uploadingSignature ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-sans text-center px-1">
+                      {signatureUrl ? "Remplacer" : "Importer PNG"}
+                    </span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStampFile(f, "signature"); }}
+                />
+              </label>
+              {signatureUrl && (
+                <div className="border border-border rounded-lg p-2 bg-checkerboard">
+                  <img src={signatureUrl} alt="Signature" className="h-20 max-w-[160px] object-contain" />
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
