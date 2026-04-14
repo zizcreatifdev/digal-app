@@ -226,16 +226,16 @@ _Prompt courant : Initialisation mémoire_
 
 | # | Description | Sévérité | Module |
 |---|-------------|----------|--------|
-| 1 | Dashboard stats (clients actifs, posts, liens) sont des données statiques hardcodées | HAUTE | Dashboard |
+| 1 | ~~Dashboard stats sont des données statiques hardcodées~~ | ~~HAUTE~~ | ~~Dashboard~~ | → **Résolu prompt-02** |
 | 2 | `AdminTotpGate` : l'image QR code charge depuis une API externe (api.qrserver.com) — dépendance externe | MOYENNE | Admin |
 | 3 | `useAuth` : double fetch de session (onAuthStateChange + getSession) peut causer race condition au démarrage | BASSE | Auth |
-| 4 | Activité récente dans Dashboard = données mockées, non connectée à `activity_logs` | HAUTE | Dashboard |
+| 4 | ~~Activité récente dans Dashboard = données mockées~~ | ~~HAUTE~~ | ~~Dashboard~~ | → **Résolu prompt-02** |
 
 ---
 
 ## Prochaines étapes recommandées
 
-1. **Connecter Dashboard aux vraies données** (clients réels, posts réels, factures réelles)
+1. ~~**Connecter Dashboard aux vraies données**~~ → **Résolu prompt-02**
 2. **Écrire les tests unitaires** sur `lib/facturation.ts` et `lib/account-access.ts`
 3. **Finaliser l'invitation d'équipe** dans les Paramètres
 4. **Ajouter export CSV** dans la Comptabilité
@@ -261,3 +261,4 @@ _Prompt courant : Initialisation mémoire_
 |--------|-------------|------|
 | init | Création des fichiers de mémoire (ARCHITECTURE, CLAUDE, TEST_AGENT, PROJECT_STATE) | 2026-04-14 |
 | 01 | Correction 66 erreurs ESLint → 0 erreur | 2026-04-14 |
+| 02 | Dashboard connecté Supabase — stats réelles + activité réelle via `activity_logs` | 2026-04-14 |
