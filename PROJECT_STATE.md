@@ -209,7 +209,7 @@ _Prompt courant : 12 — Migration Supabase personnel_
 | Gestion comptes + Export CSV | ✅ Complet (prompt-09) | |
 | Onglet Financier par compte | ✅ Complet (prompt-09) | CA, dépenses, salaires |
 | Génération clés + promo + prolongation | ✅ Complet | |
-| Gestion waitlist | ✅ Complet | Email approbation câblé |
+| Gestion waitlist | ✅ Complet (prompt-19) | Copie manuelle message activation, badge statut, regénération lien |
 | Gestion plans tarifaires | ✅ Complet | |
 | Gestion contrats | ✅ Complet | |
 | Campagnes emails | ✅ Complet | |
@@ -304,3 +304,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 10 | Phase 3B : preview améliorations, landing page complète (mockups, /privacy, /cgu) | 2026-04-14 |
 | 11 | Phase 4 : PWA (Workbox + Web Push), tests ×5 (137 total), documentation v1.0.0 | 2026-04-14 |
 | 12 | Migration Supabase Lovable → personnel (quvtfhwcwxijizsiqzpd), .env + config.toml + bundle SQL 39 migrations | 2026-04-14 |
+| 13-17 | CI deploy edge fns, VAPID, vercel.json SPA, create-user admin modal, logos SVG intégration | 2026-04-14 |
+| 18 | Activation compte par lien unique (activation_tokens, edge fn, page /activate/:token) | 2026-04-14 |
+| 19 | Copie manuelle message activation (suppression email auto, bouton copy, badge statut, regénération) | 2026-04-14 |
