@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function PricingSection() {
+  const navigate = useNavigate();
   const { data: plans, isLoading } = usePlans();
 
   return (
@@ -105,6 +107,7 @@ export function PricingSection() {
                           ? "bg-primary text-primary-foreground hover:bg-primary/90"
                           : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                       }`}
+                      onClick={() => navigate("/waitlist")}
                     >
                       {plan.cta_text}
                       {plan.cta_text.includes("liste") && <ArrowRight className="h-3.5 w-3.5" />}
