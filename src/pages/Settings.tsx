@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { RESEAUX } from "@/lib/clients";
 import type { Tables } from "@/integrations/supabase/types";
+import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush, getNotificationPermission } from "@/lib/push-notifications";
 
 type UserRow = Tables<"users">;
 type PostTemplateRow = Tables<"post_templates">;
@@ -168,6 +169,7 @@ function ProfileTab() {
       </Card>
 
       <PreviewSettingsCard />
+      <PushNotificationsCard />
     </div>
   );
 }
@@ -241,6 +243,61 @@ function PreviewSettingsCard() {
         <Button onClick={handleSave} disabled={saving} size="sm">
           {saving ? "Enregistrement..." : "Enregistrer"}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ──────────────────────── PUSH NOTIFICATIONS CARD ──────────────────────── */
+function PushNotificationsCard() {
+  const { user } = useAuth();
+  const [subscribed, setSubscribed] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isPushSupported()) { setSubscribed(false); return; }
+    isPushSubscribed().then(setSubscribed);
+  }, []);
+
+  const toggle = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      if (subscribed) {
+        await unsubscribeFromPush(user.id);
+        setSubscribed(false);
+        toast.success("Notifications désactivées");
+      } else {
+        const ok = await subscribeToPush(user.id);
+        if (ok) { setSubscribed(true); toast.success("Notifications activées"); }
+        else if (getNotificationPermission() === "denied") {
+          toast.error("Permission refusée. Modifiez les paramètres de votre navigateur.");
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isPushSupported()) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif flex items-center gap-2">
+          <Bell className="h-4 w-4" /> Notifications push
+        </CardTitle>
+        <CardDescription className="font-sans">Recevez des alertes natives (expiration de licence, validations client) même lorsque l'app est fermée.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between">
+        <span className="text-sm font-sans text-muted-foreground">
+          {subscribed === null ? "Vérification…" : subscribed ? "Activées" : "Désactivées"}
+        </span>
+        <Switch
+          checked={!!subscribed}
+          onCheckedChange={toggle}
+          disabled={loading || subscribed === null}
+        />
       </CardContent>
     </Card>
   );

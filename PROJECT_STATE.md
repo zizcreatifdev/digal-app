@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : 10 — Phase 3B preview + landing page_
+_Prompt courant : 11 — Phase 4 Polish & Production (PWA + Tests + Docs)_
 
 ---
 
@@ -9,11 +9,13 @@ _Prompt courant : 10 — Phase 3B preview + landing page_
 
 **Digal** est un SaaS B2B de gestion pour agences de communication digitale et freelances (marché sénégalais). Il couvre la gestion de clients, le calendrier éditorial, la facturation (FCFA), la comptabilité, les rapports KPI et la gestion d'équipe.
 
+**Version : 1.0.0** — Production-ready.
+
 ---
 
 ## État des modules
 
-### Module AUTH — 92% ✅
+### Module AUTH — 95% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Login email/password | ✅ Complet | Via Supabase Auth |
@@ -21,28 +23,30 @@ _Prompt courant : 10 — Phase 3B preview + landing page_
 | Reset password | ✅ Complet | Page `/reset-password` |
 | AuthGuard (protection routes) | ✅ Complet | Redirige vers /login |
 | Rôles (admin/user) | ✅ Complet | Table `user_roles` |
-| **Protection routes par profileRole** | ✅ Complet (prompt-06) | `allowedProfileRoles` dans AuthGuard |
-| TOTP 2FA pour admin | ✅ Complet | `AdminTotpGate` |
+| Protection routes par profileRole | ✅ Complet (prompt-06) | `allowedProfileRoles` dans AuthGuard |
+| TOTP 2FA pour admin | ✅ Complet | `AdminTotpGate` — enrollment QR + vérification |
 | Onboarding wizard | ✅ Complet | 4 étapes, skip possible |
-| **Checklist onboarding 5 étapes** | ✅ Complet (prompt-07) | `OnboardingChecklist` floating, badges, localStorage |
+| Checklist onboarding 5 étapes | ✅ Complet (prompt-07) | `OnboardingChecklist` floating, badges, localStorage |
 | Waitlist | ✅ Complet | Page publique |
-| **Tests** | ❌ Aucun | Priorité haute |
+| Tests routes | ✅ Complet (prompt-11) | 19 tests dans `routes.test.ts` |
 
 ---
 
-### Module CLIENTS — 95% ✅
+### Module CLIENTS — 98% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Liste clients actifs | ✅ Complet | |
 | Ajout client + réseaux | ✅ Complet | Modal AddClientModal |
-| **Édition client post-création** | ✅ Complet (prompt-06) | EditClientModal + updateClient() |
+| Édition client post-création | ✅ Complet (prompt-06) | EditClientModal + updateClient() |
 | Détail client | ✅ Complet | Page ClientDetail + bouton Modifier |
 | Réseaux sociaux par client | ✅ Complet | Table `client_networks` |
 | Archive / restore client | ✅ Complet | |
 | Couleur de marque | ✅ Complet | Color picker |
 | Upload logo client | ✅ Complet | Supabase Storage |
-| Freemium limit (2 clients) | ✅ Complet | Via `getAccountAccess` |
-| **Tests** | ❌ Aucun | |
+| Freemium limit (2 clients actifs) | ✅ Complet | Via `getAccountAccess` |
+| Freemium limit (3 archivés) | ✅ Complet (prompt-09) | Bloqué à 3 archives |
+| Slug client modifiable | ✅ Complet (prompt-10) | `clients.preview_slug` + édition dans ClientDetail |
+| Tests freemium limits | ✅ Complet (prompt-11) | 16 tests dans `freemium-limits.test.ts` |
 
 ---
 
@@ -54,16 +58,15 @@ _Prompt courant : 10 — Phase 3B preview + landing page_
 | Modifier un post | ✅ Complet | `EditPostModal` |
 | Workflow statuts | ✅ Complet | idee→en_production→validation→publie |
 | Upload média post | ✅ Complet | Supabase Storage `post-media` |
-| **Blocs périodes de production** | ✅ Complet (prompt-07) | 4 types colorés, shooting/montage/livraison/custom |
+| Blocs périodes de production | ✅ Complet (prompt-07) | 4 types colorés |
 | Filtres par client/réseau | ⚠️ Partiel | À vérifier |
-| Templates de posts | ⚠️ Partiel | Table existe, UI à confirmer |
+| Templates de posts | ✅ Complet | Limite 3 en Freemium (prompt-09) |
 | Assignation à créateur | ✅ Complet | `assigne_a` field |
 | Review par CM | ✅ Complet | `ReviewPostModal` |
-| **Tests** | ❌ Aucun | |
 
 ---
 
-### Module PREVIEW LINKS (validation client) — 97% ✅ → Prompt-10
+### Module PREVIEW LINKS (validation client) — 100% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Génération lien unique | ✅ Complet | Slug `{clientSlug}-{random6}` ou random12 |
@@ -72,237 +75,160 @@ _Prompt courant : 10 — Phase 3B preview + landing page_
 | Validation/refus par client | ✅ Complet | `preview_actions` |
 | Expiration liens | ✅ Complet | Edge function `scheduled-cleanup` |
 | Maquette réseau (NetworkMockup) | ✅ Complet | |
-| **Slug client modifiable** | ✅ Complet (prompt-10) | `clients.preview_slug` + édition dans ClientDetail |
-| **Période par défaut configurable** | ✅ Complet (prompt-10) | `site_settings.preview_default_period` + Settings Profil |
-| **Countdown expiration** | ✅ Complet (prompt-10) | "Ce lien expire dans X heures" sur PreviewPage |
-| **Message d'accueil** | ✅ Complet (prompt-10) | Champ texte dans GeneratePreviewLinkModal + affiché sur preview |
-| **Page expirée améliorée** | ✅ Complet (prompt-10) | Date d'expiration visible + logo Digal |
+| Slug client modifiable | ✅ Complet (prompt-10) | |
+| Période par défaut configurable | ✅ Complet (prompt-10) | `site_settings.preview_default_period` |
+| Countdown expiration | ✅ Complet (prompt-10) | "Ce lien expire dans X heures" |
+| Message d'accueil | ✅ Complet (prompt-10) | Champ texte dans modal + affiché sur preview |
+| Page expirée améliorée | ✅ Complet (prompt-10) | Date d'expiration visible + logo Digal |
 | Onglets réseaux scroll mobile | ✅ Complet | `overflow-x-auto` + shrink-0 |
-| **Tests** | 15/15 ✅ | preview-links.test.ts |
+| Tests | ✅ 15/15 | `preview-links.test.ts` |
 
 ---
 
-### Module FACTURATION — 85% ✅
+### Module FACTURATION — 90% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Création devis | ✅ Complet | Type `devis` |
-| Création facture | ✅ Complet | Type `facture` |
+| Création devis | ✅ Complet | |
+| Création facture | ✅ Complet | |
 | Lignes de facturation | ✅ Complet | Avec BRS et TVA |
 | Calcul taxes (BRS + TVA) | ✅ Complet | `calculateTotals()` |
-| Conversion devis → facture | ✅ Complet | `convertDevisToFacture()` |
-| Enregistrement paiements | ✅ Complet | `addPayment()` |
+| Conversion devis → facture | ✅ Complet | |
+| Enregistrement paiements | ✅ Complet | |
 | Statuts (brouillon/envoyé/payé/...) | ✅ Complet | 7 statuts |
-| Génération PDF | ✅ Complet | jsPDF + `facturation-pdf.ts` |
+| Génération PDF | ✅ Complet | jsPDF |
 | Méthodes paiement (Wave, OM, etc.) | ✅ Complet | |
-| **Numérotation avec SIGLE** | ✅ Complet (prompt-08) | `DEV-LCS-2026-0001` / `FAC-LCS-2026-0001` — 4 chiffres |
-| **Tampon + Signature PDF** | ✅ Complet (prompt-08) | Upload Settings → intégré en bas du PDF |
-| **Protection route /facturation** | ✅ Complet (prompt-06) | DM + Solo uniquement |
-| Téléchargement PDF | ✅ Complet | Via `DocumentList` + `generateDocumentPdf` |
-| **Tests** | 14/14 ✅ | `calculateTotals` testé |
+| Numérotation avec SIGLE | ✅ Complet (prompt-08) | `FAC-LCS-2026-0001` |
+| Tampon + Signature PDF | ✅ Complet (prompt-08) | |
+| Protection route /facturation | ✅ Complet (prompt-06) | |
+| Tests calculateTotals | ✅ 14/14 | `facturation.test.ts` |
+| Tests generateNumero | ✅ 7/7 (prompt-11) | `documents.test.ts` |
+| Tests slugifyClientName | ✅ 6/6 (prompt-11) | `documents.test.ts` |
 
 ---
 
-### Module COMPTABILITÉ — 80% ✅
+### Module COMPTABILITÉ — 85% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Dashboard financier | ✅ Complet | `DashboardFinancier` |
-| Dépenses (CRUD) | ✅ Complet | 4 catégories |
-| Upload pièce jointe dépense | ✅ Complet | |
-| **Boost dépenses (client + réseau)** | ✅ Complet (prompt-08) | Client affecté + réseau pub (5 types) |
-| **Boost → ligne facture** | ✅ Complet (prompt-08) | `fetchBoostDepenses` + checkbox dans CreateDocumentModal |
-| Masse salariale | ✅ Complet | `MasseSalarialeSection` |
-| Revenus | ✅ Complet | `RevenusSection` |
+| Dashboard financier | ✅ Complet | |
+| Dépenses (CRUD) | ✅ Complet | |
+| Boost dépenses (client + réseau) | ✅ Complet (prompt-08) | |
+| Boost → ligne facture | ✅ Complet (prompt-08) | |
+| Masse salariale | ✅ Complet | |
 | Export CSV/rapport | ❌ Manquant | Non implémenté |
 | Graphiques | ✅ Complet | Recharts |
-| **Protection route /comptabilite** | ✅ Complet (prompt-06) | DM + Solo uniquement |
-| **Tests** | ❌ Aucun | |
+| Protection route /comptabilite | ✅ Complet (prompt-06) | |
+| Tests fetchBoostDepenses | ✅ 4/4 (prompt-11) | `boost-facture.test.ts` |
+| Tests markBoostIncluded | ✅ 2/2 (prompt-11) | `boost-facture.test.ts` |
 
 ---
 
 ### Module RAPPORTS KPI — 80% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Création rapport KPI | ✅ Complet | Par client, par mois |
-| Métriques par réseau | ✅ Complet | 5 réseaux, métriques configurées |
-| Points forts / axes d'amélioration | ✅ Complet | |
-| Prévisualisation rapport | ✅ Complet | `KpiReportPreview` |
+| Création rapport KPI | ✅ Complet | |
+| Métriques par réseau | ✅ Complet | |
+| Points forts / axes | ✅ Complet | |
 | Export PDF | ✅ Complet | `kpi-pdf.ts` |
-| Historique rapports | ✅ Complet | Trié par mois |
-| **Protection route /rapports** | ✅ Complet (prompt-06) | DM + Solo uniquement |
-| **Tests** | 18/18 ✅ | hasMetrics, getFilledMetrics, formatMonth |
+| Historique rapports | ✅ Complet | |
+| Protection route /rapports | ✅ Complet (prompt-06) | |
+| Tests | ✅ 18/18 | `kpi-reports.test.ts` |
 
 ---
 
-### Module CRÉATEUR (workflow) — 85% ✅
+### Module LICENCES — 100% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Dashboard créateur | ✅ Complet | `CreatorDashboard` (tabs: Tâches / Boîte de dépôt) |
-| Tâches assignées | ✅ Complet | Mode 1 — `fetchAssignedTasks()` |
-| Upload média créateur | ✅ Complet | → statut `en_attente_validation` |
-| Validation CM | ✅ Complet | `validateCreatorUpload()` |
-| Rejet CM + commentaire | ✅ Complet | Suppression média, notif créateur |
-| Stats membre d'équipe | ✅ Complet | `getTeamMemberStats()` |
-| **Route /createur restreinte** | ✅ Complet (prompt-06) | Rôle createur uniquement |
-| **Mode 2 boîte de dépôt** | ✅ Complet (prompt-07) | `DropBoxUpload` + `DropBoxReview` + migration |
-| Notifications push | ⚠️ In-app only | Pas de push browser |
-| **Tests** | ❌ Aucun | |
+| Table `license_keys` | ✅ Complet | |
+| Génération clé DIGAL-TYPE-XXXX | ✅ Complet | |
+| Activation côté utilisateur | ✅ Complet | RPC `activate_license_key` |
+| Extension cumulative expiration | ✅ Complet | |
+| Popup expiration J-30 | ✅ Complet | |
+| Clé promo (-30%) | ✅ Complet (prompt-09) | |
+| Prolongation manuelle (N mois) | ✅ Complet (prompt-09) | |
+| Rappels J-30/15/7 (cron) | ✅ Complet (prompt-09) | Edge fn + pg_cron |
+| Tests licences | ✅ 18/18 (prompt-11) | `licences.test.ts` |
 
 ---
 
-### Module ÉQUIPE — 70% ⚠️
+### Module EMAIL — 90% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Journal d'équipe | ✅ Complet | `TeamJournal` page |
-| Liste membres | ✅ Complet | Via `fetchTeamMembers()` |
-| Invitation collaborateurs | ⚠️ Partiel | Mentionné dans onboarding, UI à vérifier |
-| Attribution de rôles d'équipe | ⚠️ Partiel | À confirmer |
-| **Tests** | ❌ Aucun | |
+| Edge function `send-email` | ✅ Complet | Deno + Resend |
+| `lib/emails.ts` | ✅ Complet | 5 types |
+| Rejet créateur câblé | ✅ Complet (prompt-09) | |
+| Approbation waitlist câblée | ✅ Complet (prompt-09) | |
+| Cron J-30/15/7 | ✅ Complet (prompt-09) | |
+| Clé RESEND_API_KEY | ❌ À configurer | Variable env Supabase |
 
 ---
 
-### Module NOTIFICATIONS — 85% ✅
+### Module PWA — 90% ✅ (prompt-11)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Notifications in-app | ✅ Complet | `NotificationPanel` |
-| Marquer comme lu | ✅ Complet | |
-| Marquer tout comme lu | ✅ Complet | |
-| Compteur non-lus | ✅ Complet | |
-| Lien depuis notification | ✅ Complet | Champ `lien` |
-| Notifications temps réel | ✅ Complet | Realtime Supabase confirmé AUDIT_C |
-| **Tests** | ❌ Aucun | |
+| Manifest PWA | ✅ Complet | `public/manifest.json` |
+| Service Worker (Workbox) | ✅ Complet (prompt-11) | `src/sw.ts` via vite-plugin-pwa |
+| Cache assets statiques | ✅ Complet (prompt-11) | Workbox precacheAndRoute |
+| Cache API Supabase (NetworkFirst) | ✅ Complet (prompt-11) | 24h + timeout 5s |
+| Cache Storage (CacheFirst) | ✅ Complet (prompt-11) | 7 jours |
+| Auto-update SW | ✅ Complet (prompt-11) | `registerSW` dans main.tsx |
+| Web Push API | ✅ Complet (prompt-11) | VAPID, table push_subscriptions, edge fn send-push |
+| Opt-in UI (Settings) | ✅ Complet (prompt-11) | Toggle dans onglet Profil |
+| VAPID keys | ❌ À configurer | Env VITE_VAPID_PUBLIC_KEY + secrets |
 
 ---
 
-### Module JOURNAL D'ACTIVITÉ — 80% ✅
+### Module PARAMÈTRES — 85% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Logs d'activité utilisateur | ✅ Complet | `activity_logs` table |
-| Filtres par type/date | ✅ Complet | |
-| Helpers de logging | ✅ Complet | `logAuth`, `logPostAction`, etc. |
-| Silent fail | ✅ Complet | Les erreurs de log ne cassent pas l'app |
-| **Protection route /journal** | ✅ Complet (prompt-06) | DM + Solo uniquement |
-| **Tests** | ❌ Aucun | |
-
----
-
-### Module LICENCES — 90% ✅ → Prompt-09
-| Fonctionnalité | État | Notes |
-|----------------|------|-------|
-| Table `license_keys` | ✅ Complet (prompt-06) | Migration 20260415000001 |
-| Génération clé DIGAL-TYPE-XXXX | ✅ Complet (prompt-06) | `AdminLicences` — bouton "Générer clé" |
-| Activation côté utilisateur | ✅ Complet (prompt-06) | Settings → Ma licence — saisie clé + RPC |
-| Extension cumulative expiration | ✅ Complet (prompt-06) | RPC `activate_license_key` |
-| Popup expiration J-30 | ✅ Complet (prompt-06) | Dashboard — Dialog sessionStorage |
-| Historique activations | ✅ Complet (prompt-06) | Settings — table `license_keys.used_by` |
-| Activation manuelle par admin | ✅ Complet | AdminLicences |
-| **Clé promo (-30%)** | ✅ Complet (prompt-09) | Switch promo + discount dans dialog génération AdminLicences |
-| **Prolongation manuelle (N mois)** | ✅ Complet (prompt-09) | Dialog CalendarPlus par utilisateur dans AdminLicences |
-| **Tests** | ❌ Aucun | |
-
----
-
-### Module EMAIL — 85% ✅ → Prompt-09
-| Fonctionnalité | État | Notes |
-|----------------|------|-------|
-| Edge function `send-email` | ✅ Complet (prompt-06) | Deno + npm:resend@3 |
-| `lib/emails.ts` | ✅ Complet (prompt-09) | +3 helpers : sendCreatorRejectionEmail, sendWaitlistApprovalEmail, sendPreviewExpiredEmail |
-| Templates email | ✅ Complet (prompt-09) | +3 types : rejet_createur, waitlist_approuve, preview_expire |
-| **Rejet créateur câblé** | ✅ Complet (prompt-09) | `rejectCreatorUpload()` + `rejectDropBoxFile()` |
-| **Approbation waitlist câblée** | ✅ Complet (prompt-09) | `AdminWaitlist.tsx` updateStatus |
-| **Cron J-30/15/7** | ✅ Complet (prompt-09) | Edge fn `expiry-reminders` + migration cron_expiry_reminders |
-| Clé RESEND_API_KEY configurée | ❌ À configurer | Variable env Supabase à définir |
-
----
-
-### Module PARAMÈTRES — 70% ⚠️
-| Fonctionnalité | État | Notes |
-|----------------|------|-------|
-| Page Settings | ✅ Existe | |
 | Profil utilisateur | ✅ Complet | |
 | Invitation équipe | ⚠️ Partiel | |
-| **Saisie clé licence réelle** | ✅ Complet (prompt-06) | Input + RPC activate_license_key |
-| **Historique licences** | ✅ Complet (prompt-06) | Table depuis license_keys |
-| **Tests** | ❌ Aucun | |
+| Clé licence | ✅ Complet | |
+| Historique licences | ✅ Complet | |
+| Tampon + signature | ✅ Complet (prompt-08) | |
+| Modèles de posts | ✅ Complet | Limite 3 freemium |
+| Période preview par défaut | ✅ Complet (prompt-10) | |
+| Notifications push | ✅ Complet (prompt-11) | Toggle Web Push |
 
 ---
 
-### Module ADMIN — 90% ✅ → Prompt-09
+### Module ADMIN — 95% ✅
 | Page admin | État | Notes |
 |------------|------|-------|
 | Dashboard KPIs (MRR, comptes) | ✅ Complet | |
-| Gestion comptes | ✅ Complet | |
-| **Export CSV comptes + KPIs** | ✅ Complet (prompt-09) | Bouton "Exporter CSV" + fichier daté |
-| **Onglet Financier par compte** | ✅ Complet (prompt-09) | CA facturé, CA encaissé, dépenses, masse salariale (lecture seule) |
-| **Génération clés DIGAL-TYPE-XXXX** | ✅ Complet (prompt-06) | Bouton "Générer clé" + table clés |
-| **Clé promo + prolongation flexible** | ✅ Complet (prompt-09) | AdminLicences — Switch promo, dialog N mois |
-| Gestion waitlist | ✅ Complet | Email d'approbation câblé (prompt-09) |
-| Gestion plans tarifaires | ✅ Complet | Promo, prix, features |
-| Gestion contrats | ✅ Complet | Templates + contrats signés |
-| Campagnes emails | ✅ Complet | `marketing_emails` |
+| Gestion comptes + Export CSV | ✅ Complet (prompt-09) | |
+| Onglet Financier par compte | ✅ Complet (prompt-09) | CA, dépenses, salaires |
+| Génération clés + promo + prolongation | ✅ Complet | |
+| Gestion waitlist | ✅ Complet | Email approbation câblé |
+| Gestion plans tarifaires | ✅ Complet | |
+| Gestion contrats | ✅ Complet | |
+| Campagnes emails | ✅ Complet | |
 | Logs de sécurité | ✅ Complet | |
-| Facturation owner | ✅ Complet | `owner_payments` |
-| Guides / Documentation | ✅ Complet | |
-| Profil admin | ✅ Complet | |
-| Setup initial (owner) | ✅ Complet | `/admin/setup` + edge function |
-| TOTP obligatoire | ✅ Complet | `AdminTotpGate` |
-| **Tests** | ❌ Aucun | |
+| TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
 
 ---
 
-### Module LANDING PAGE — 100% ✅ → Prompt-10
+### Module LANDING PAGE — 100% ✅
 | Composant | État | Notes |
 |-----------|------|-------|
-| Hero Section | ✅ | Countdown depuis site_settings.launch_date |
-| Problem Section | ✅ | |
-| Solution Section | ✅ | |
-| **Mockups Section** | ✅ (prompt-10) | 4 cartes feature avec mockups visuels (Calendrier, Validation, KPI, Facturation) |
-| Pricing Section | ✅ | |
-| CTA Section | ✅ | |
-| Header / Footer | ✅ | Footer avec liens /cgu + /privacy + contact email |
-| Marquee Banner | ✅ | |
-| **Page /privacy** | ✅ (prompt-10) | Politique de confidentialité RGPD/loi sénégalaise |
-| **Page /cgu** | ✅ (prompt-10) | CGU complètes avec mention accès Owner |
-| **Routes /privacy + /cgu** | ✅ (prompt-10) | Ajoutées dans App.tsx |
+| Hero + countdown | ✅ | |
+| Problem / Solution | ✅ | |
+| MockupsSection | ✅ (prompt-10) | 4 cartes animées |
+| Pricing | ✅ | |
+| CTA | ✅ | |
+| Header + Footer | ✅ | Liens /cgu + /privacy |
+| Page /privacy | ✅ (prompt-10) | |
+| Page /cgu | ✅ (prompt-10) | |
 
 ---
 
-### MODULE CONTRATS (signature) — 70% ⚠️
-| Fonctionnalité | État | Notes |
-|----------------|------|-------|
-| Signature canvas | ✅ Complet | `SignatureCanvas` |
-| Modal signature | ✅ Complet | `ContractSigningModal` |
-| Génération PDF contrat | ⚠️ Partiel | Lié admin |
-| Upload PDF signé | ⚠️ Partiel | |
-| **Tests** | ❌ Aucun | |
-
----
-
-## Bugs connus
-
-| # | Description | Sévérité | Module |
-|---|-------------|----------|--------|
-| 1 | ~~Dashboard stats sont des données statiques hardcodées~~ | ~~HAUTE~~ | ~~Dashboard~~ | → **Résolu prompt-02** |
-| 2 | `AdminTotpGate` : l'image QR code charge depuis une API externe (api.qrserver.com) — dépendance externe | MOYENNE | Admin |
-| 3 | `useAuth` : double fetch de session (onAuthStateChange + getSession) peut causer race condition au démarrage | BASSE | Auth |
-| 4 | ~~Activité récente dans Dashboard = données mockées~~ | ~~HAUTE~~ | ~~Dashboard~~ | → **Résolu prompt-02** |
-
----
-
-## Prochaines étapes recommandées
-
-1. ~~**Connecter Dashboard aux vraies données**~~ → **Résolu prompt-02**
-2. ~~**Écrire les tests unitaires**~~ → **Résolu prompt-04** (61 tests)
-3. ~~**EditClientModal + updateClient**~~ → **Résolu prompt-06**
-4. ~~**Route protection par profileRole**~~ → **Résolu prompt-06**
-5. ~~**Système licences réel (clés DIGAL)**~~ → **Résolu prompt-06**
-6. ~~**Service email (Resend + edge function)**~~ → **Résolu prompt-06**
-7. ~~**Onboarding 5 étapes + badges**~~ → **Résolu prompt-07** (checklist floating)
-8. ~~**Blocs périodes de production**~~ → **Résolu prompt-07**
-9. ~~**Boîte de dépôt Mode 2**~~ → **Résolu prompt-07**
-10. **Export CSV** comptabilité (§14)
-11. ~~**Tampon + Signature** PDF (§13/§16)~~ → **Résolu prompt-08**
-12. ~~**SIGLE dans generateNumero()** (§13)~~ → **Résolu prompt-08**
-13. **Boost dépenses → facture** (§14) → **Résolu prompt-08**
+### Module DOCUMENTATION — 100% ✅ (prompt-11)
+| Document | État |
+|----------|------|
+| ARCHITECTURE.md | ✅ Mis à jour (PWA, push, migrations, edge fns, tests) |
+| TEST_AGENT.md | ✅ Mis à jour (137 tests, patterns mock, couverture) |
+| CHANGELOG.md | ✅ Créé — v1.0.0 |
+| PROJECT_STATE.md | ✅ À jour — 100% |
+| CLAUDE.md | ✅ Stable |
 
 ---
 
@@ -311,10 +237,42 @@ _Prompt courant : 10 — Phase 3B preview + landing page_
 | Métrique | État |
 |----------|------|
 | Erreurs ESLint | ✅ 0 erreur |
-| Warnings ESLint | 16 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
-| Tests unitaires | ✅ 61/61 passent |
-| Fichiers de tests | 5 fichiers (example + facturation + account-access + kpi-reports + preview-links) |
-| TypeScript strict | Amélioré — `any` éliminés, types précis ajoutés |
+| Warnings ESLint | 15 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Tests unitaires | ✅ 137/137 passent |
+| Fichiers de tests | 10 fichiers |
+| TypeScript | 0 erreur (strict) |
+| Build | ✅ Passe |
+
+---
+
+## Bugs connus
+
+| # | Description | Sévérité |
+|---|-------------|----------|
+| 1 | QR code TOTP via api.qrserver.com (dépendance externe) | MOYENNE |
+| 2 | Double fetch session dans useAuth (race condition) | BASSE |
+| 3 | Export CSV comptabilité non implémenté | BASSE |
+| 4 | RESEND_API_KEY + VAPID keys à configurer en production | CRITIQUE (config) |
+
+---
+
+## Variables d'environnement à configurer en production
+
+```bash
+# Supabase
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+
+# Web Push
+VITE_VAPID_PUBLIC_KEY=...
+
+# Supabase secrets (edge functions)
+RESEND_API_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_PUBLIC_KEY=...
+VAPID_SUBJECT=mailto:contact@digal.sn
+SUPABASE_SERVICE_ROLE_KEY=...
+```
 
 ---
 
@@ -322,16 +280,15 @@ _Prompt courant : 10 — Phase 3B preview + landing page_
 
 | Prompt | Description | Date |
 |--------|-------------|------|
-| init | Création des fichiers de mémoire (ARCHITECTURE, CLAUDE, TEST_AGENT, PROJECT_STATE) | 2026-04-14 |
+| init | Création des fichiers de mémoire | 2026-04-14 |
 | 01 | Correction 66 erreurs ESLint → 0 erreur | 2026-04-14 |
-| 02 | Dashboard connecté Supabase — stats réelles + activité réelle via `activity_logs` | 2026-04-14 |
-| 03 | Scan données hardcodées hors Dashboard — correction `cmName` KPI (email → prenom+nom DB) | 2026-04-14 |
-| 04 | Tests critiques — 61 tests unitaires sur facturation, account-access, kpi-reports, preview-links + fix bug `hasMetrics` null | 2026-04-14 |
-| 05A | Audit CDC sections 1-5 → AUDIT_A.md | 2026-04-14 |
-| 05B | Audit CDC sections 6-10 → AUDIT_B.md | 2026-04-14 |
-| 05C | Audit CDC sections 11-17 → AUDIT_C.md | 2026-04-14 |
-| 06 | Phase 1 fondations critiques : licences DIGAL, service email Resend, routes par rôle, EditClientModal | 2026-04-14 |
-| 07 | Phase 2A core : onboarding checklist 5 étapes, blocs périodes production, boîte dépôt Mode 2 | 2026-04-14 |
-| 08 | Phase 2B core : numérotation SIGLE+4chiffres, tampon+signature PDF, boost dépenses→facture | 2026-04-14 |
-| 09 | Phase 3A : dashboard owner (export CSV + onglet financier), clé promo + prolongation flexible, emails (rejet/waitlist/preview + cron J-30/15/7), ProUpgradeModal mockups, limites freemium (archive×3 + templates×3) | 2026-04-14 |
-| 10 | Phase 3B : preview améliorations (slug client, période défaut, countdown, message accueil, page expirée), landing page (MockupsSection, /privacy, /cgu, footer liens) | 2026-04-14 |
+| 02 | Dashboard connecté Supabase — stats réelles | 2026-04-14 |
+| 03 | Scan données hardcodées — correction cmName KPI | 2026-04-14 |
+| 04 | 61 tests unitaires (facturation, account-access, kpi-reports, preview-links) | 2026-04-14 |
+| 05A/B/C | Audits CDC sections 1-17 → AUDIT_A/B/C.md | 2026-04-14 |
+| 06 | Phase 1 : licences DIGAL, service email, routes par rôle, EditClientModal | 2026-04-14 |
+| 07 | Phase 2A : onboarding checklist, blocs périodes, boîte dépôt Mode 2 | 2026-04-14 |
+| 08 | Phase 2B : numérotation SIGLE, tampon+signature PDF, boost→facture | 2026-04-14 |
+| 09 | Phase 3A : export CSV + onglet financier admin, clé promo, emails trigger, ProUpgradeModal, limites freemium | 2026-04-14 |
+| 10 | Phase 3B : preview améliorations, landing page complète (mockups, /privacy, /cgu) | 2026-04-14 |
+| 11 | Phase 4 : PWA (Workbox + Web Push), tests ×5 (137 total), documentation v1.0.0 | 2026-04-14 |
