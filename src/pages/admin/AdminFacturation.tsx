@@ -104,7 +104,7 @@ const AdminFacturation = () => {
       .select("compte_email, plan")
       .order("date_paiement", { ascending: false });
     const lastPlanByEmail: Record<string, string> = {};
-    (lastPayments ?? []).forEach((p: any) => {
+    (lastPayments ?? []).forEach((p) => {
       if (p.compte_email && !lastPlanByEmail[p.compte_email]) {
         lastPlanByEmail[p.compte_email] = p.plan;
       }
@@ -144,7 +144,7 @@ const AdminFacturation = () => {
       methode: form.methode,
       date_paiement: form.date_paiement,
       statut: form.statut,
-    } as any);
+    });
     if (error) { toast.error("Erreur"); return; }
     toast.success("Paiement ajouté");
     setModalOpen(false);

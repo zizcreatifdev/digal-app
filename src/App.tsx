@@ -39,6 +39,8 @@ import AdminDocumentation from "./pages/admin/AdminDocumentation";
 import AdminContrats from "./pages/admin/AdminContrats";
 import AdminProfil from "./pages/admin/AdminProfil";
 import DocsPage from "./pages/DocsPage";
+import Privacy from "./pages/Privacy";
+import CGU from "./pages/CGU";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,8 @@ const App = () => (
             <Route path="/changelog" element={<Changelog />} />
             <Route path="/admin/setup" element={<AdminSetup />} />
             <Route path="/preview/:slug" element={<PreviewPage />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/cgu" element={<CGU />} />
             <Route
               path="/dashboard"
               element={
@@ -70,7 +74,7 @@ const App = () => (
             <Route
               path="/dashboard/clients"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro", "freemium", "cm"]}>
                   <ClientsPage />
                 </AuthGuard>
               }
@@ -78,7 +82,7 @@ const App = () => (
             <Route
               path="/dashboard/clients/:id"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro", "freemium", "cm"]}>
                   <ClientDetail />
                 </AuthGuard>
               }
@@ -94,7 +98,7 @@ const App = () => (
             <Route
               path="/dashboard/rapports"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro"]}>
                   <KpiReportsPage />
                 </AuthGuard>
               }
@@ -102,7 +106,7 @@ const App = () => (
             <Route
               path="/dashboard/createur"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["createur"]}>
                   <CreatorDashboard />
                 </AuthGuard>
               }
@@ -110,7 +114,7 @@ const App = () => (
             <Route
               path="/dashboard/facturation"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro"]}>
                   <Facturation />
                 </AuthGuard>
               }
@@ -118,7 +122,7 @@ const App = () => (
             <Route
               path="/dashboard/comptabilite"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro"]}>
                   <Comptabilite />
                 </AuthGuard>
               }
@@ -134,7 +138,7 @@ const App = () => (
             <Route
               path="/dashboard/journal"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro"]}>
                   <Journal />
                 </AuthGuard>
               }

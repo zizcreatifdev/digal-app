@@ -38,8 +38,25 @@ const PreviewPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [filterReseau, setFilterReseau] = useState<string | null>(null);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number } | null>(null);
 
   const isFreemium = true;
+
+  // Countdown to link expiry
+  useEffect(() => {
+    if (!link?.expires_at) return;
+    const tick = () => {
+      const diff = new Date(link.expires_at).getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft({ hours: 0, minutes: 0 }); return; }
+      setTimeLeft({
+        hours: Math.floor(diff / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, [link?.expires_at]);
 
   const availableNetworks = useMemo(() => {
     const nets = [...new Set(posts.map(p => p.reseau))];
@@ -278,9 +295,15 @@ const PreviewPage = () => {
             <AlertTriangle className="h-8 w-8 text-amber-500" />
           </div>
           <h1 className="text-2xl font-bold font-serif text-gray-900">Ce lien a expiré</h1>
+          {link?.expires_at && (
+            <p className="text-sm text-amber-700 font-sans bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
+              Expiré le {format(new Date(link.expires_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+            </p>
+          )}
           <p className="text-gray-500 font-sans">
             Contactez votre Community Manager pour obtenir un nouveau lien de validation.
           </p>
+          <img src={digalLogo} alt="Digal" className="h-6 w-6 mx-auto opacity-30" loading="lazy" width={24} height={24} />
         </motion.div>
       </div>
     );
@@ -349,6 +372,26 @@ const PreviewPage = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-44 space-y-6">
+
+        {/* === WELCOME MESSAGE + COUNTDOWN === */}
+        {(link?.welcome_message || timeLeft !== null) && (
+          <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4 space-y-2">
+            {link?.welcome_message && (
+              <p className="text-sm font-sans text-gray-700 leading-relaxed">{link.welcome_message}</p>
+            )}
+            {timeLeft !== null && (
+              <div className="flex items-center gap-1.5 text-xs font-sans text-amber-600">
+                <Clock className="h-3.5 w-3.5 shrink-0" />
+                {timeLeft.hours > 0
+                  ? `Ce lien expire dans ${timeLeft.hours}h${timeLeft.minutes > 0 ? ` ${timeLeft.minutes}min` : ""}`
+                  : timeLeft.minutes > 0
+                    ? `Ce lien expire dans ${timeLeft.minutes} minute${timeLeft.minutes > 1 ? "s" : ""}`
+                    : "Ce lien expire très bientôt"}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* === STATS CARDS === */}
         <div className="grid grid-cols-4 gap-3">
           {[

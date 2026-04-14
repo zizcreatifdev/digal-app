@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Post, uploadPostMedia } from "@/lib/posts";
 import { createNotification } from "@/lib/notifications";
+import { sendCreatorRejectionEmail } from "@/lib/emails";
 
 export interface AssignedTask extends Post {
   client_nom?: string;
@@ -16,7 +17,7 @@ export async function fetchAssignedTasks(creatorUserId: string) {
     .in("statut", ["en_production", "refuse"])
     .order("date_publication", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((p: any) => ({
+  return (data ?? []).map((p) => ({
     ...p,
     client_nom: p.clients?.nom,
     client_couleur: p.clients?.couleur_marque,
@@ -98,6 +99,18 @@ export async function rejectCreatorUpload(
     `Votre fichier a été rejeté : "${comment}". Veuillez soumettre une nouvelle version.`,
     "warning",
   );
+
+  // Send rejection email (silent fail)
+  try {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("email, prenom")
+      .eq("user_id", creatorUserId)
+      .single();
+    if (profile?.email) {
+      await sendCreatorRejectionEmail(profile.email, profile.prenom ?? "", comment);
+    }
+  } catch { /* silent */ }
 }
 
 /** Fetch team members for an agency (DM view) */
@@ -119,8 +132,8 @@ export async function getTeamMemberStats(userId: string) {
 
   const posts = assigned ?? [];
   const total = posts.length;
-  const completed = posts.filter((p: any) => ["valide", "publie", "en_attente_validation"].includes(p.statut)).length;
-  const rejected = posts.filter((p: any) => p.statut === "refuse").length;
+  const completed = posts.filter((p) => ["valide", "publie", "en_attente_validation"].includes(p.statut)).length;
+  const rejected = posts.filter((p) => p.statut === "refuse").length;
 
   return { total, completed, rejected };
 }

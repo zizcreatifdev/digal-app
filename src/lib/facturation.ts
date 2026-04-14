@@ -74,17 +74,27 @@ export const METHODE_LABELS: Record<string, string> = {
 export async function generateNumero(type: "devis" | "facture", userId: string): Promise<string> {
   const prefix = type === "devis" ? "DEV" : "FAC";
   const year = new Date().getFullYear();
-  const yearStart = `${prefix}-${year}-`;
+
+  // Read agency sigle from billing settings (globally unique key in site_settings)
+  const { data: sigleSetting } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "billing_sigle")
+    .maybeSingle();
+  const sigle = (sigleSetting?.value ?? "").trim().toUpperCase();
+
+  // Format: DEV-LCS-2026-0001 (with sigle) or DEV-2026-0001 (without)
+  const pattern = sigle ? `${prefix}-${sigle}-${year}-` : `${prefix}-${year}-`;
 
   const { count } = await supabase
     .from("documents")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("type", type)
-    .like("numero", `${yearStart}%`);
+    .like("numero", `${pattern}%`);
 
   const next = (count ?? 0) + 1;
-  return `${yearStart}${String(next).padStart(3, "0")}`;
+  return `${pattern}${String(next).padStart(4, "0")}`;
 }
 
 export function calculateTotals(

@@ -9,7 +9,19 @@ export interface Depense {
   date_depense: string;
   piece_jointe_url: string | null;
   created_at: string;
+  // Boost/publicité fields (added in migration 20260415000005)
+  client_id: string | null;
+  reseau: string | null;
+  inclure_facture: boolean;
 }
+
+export const BOOST_RESEAU_LABELS: Record<string, string> = {
+  facebook_ads: "Facebook Ads",
+  instagram_ads: "Instagram Ads",
+  tiktok_ads: "TikTok Ads",
+  linkedin_ads: "LinkedIn Ads",
+  google_ads: "Google Ads",
+};
 
 export interface Salaire {
   id: string;
@@ -62,8 +74,33 @@ export async function createDepense(depense: {
   categorie: string;
   date_depense: string;
   piece_jointe_url?: string | null;
+  client_id?: string | null;
+  reseau?: string | null;
 }) {
   const { error } = await supabase.from("depenses").insert(depense);
+  if (error) throw error;
+}
+
+/** Returns publicité depenses for a client that have not yet been included in a document */
+export async function fetchBoostDepenses(userId: string, clientId: string): Promise<Depense[]> {
+  const { data, error } = await supabase
+    .from("depenses")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("categorie", "publicite")
+    .eq("client_id", clientId)
+    .eq("inclure_facture", false)
+    .order("date_depense", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Depense[];
+}
+
+/** Mark a boost depense as included in a document */
+export async function markBoostIncluded(depenseId: string): Promise<void> {
+  const { error } = await supabase
+    .from("depenses")
+    .update({ inclure_facture: true })
+    .eq("id", depenseId);
   if (error) throw error;
 }
 

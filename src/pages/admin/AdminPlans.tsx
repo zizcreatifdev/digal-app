@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAllPlans, Plan } from "@/hooks/usePlans";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 const AdminPlans = () => {
   const { data: plans, isLoading } = useAllPlans();
@@ -61,13 +62,13 @@ const AdminPlans = () => {
         promo_active: form.promo_active,
         promo_label: form.promo_label || null,
         promo_prix_mensuel: form.promo_prix_mensuel ? parseInt(form.promo_prix_mensuel) : null,
-        features: featuresArr,
+        features: featuresArr as unknown as Json,
         highlighted: form.highlighted,
         badge: form.badge || null,
         cta_text: form.cta_text,
         actif: form.actif,
         updated_at: new Date().toISOString(),
-      } as any)
+      })
       .eq("id", editing.id);
     if (error) { toast.error("Erreur de sauvegarde"); return; }
     toast.success("Plan mis à jour");

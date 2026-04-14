@@ -31,8 +31,8 @@ const AdminSetup = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "Erreur inconnue");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Erreur inconnue");
     } finally {
       setLoading(false);
     }

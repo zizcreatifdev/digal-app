@@ -9,6 +9,8 @@ export interface PdfUserProfile {
   email: string;
   agence_nom?: string | null;
   logo_url?: string | null;
+  tampon_url?: string | null;
+  signature_url?: string | null;
 }
 
 export interface PdfClientInfo {
@@ -218,7 +220,7 @@ export async function generateDocumentPdf(
   });
 
   // === TOTALS ===
-  const tableEndY = (pdf as any).lastAutoTable?.finalY ?? y + 30;
+  const tableEndY = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 30;
   let ty = tableEndY + 8;
 
   const totalsStartX = pageW / 2 + 20;
@@ -291,7 +293,7 @@ export async function generateDocumentPdf(
 
     const totalPaid = payments.reduce((s, p) => s + p.montant, 0);
     const solde = doc.total - totalPaid;
-    const payFinalY = (pdf as any).lastAutoTable?.finalY ?? ty + 20;
+    const payFinalY = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? ty + 20;
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
@@ -306,8 +308,8 @@ export async function generateDocumentPdf(
 
   // === NOTES ===
   if (doc.notes) {
-    const notesY = (pdf as any).lastAutoTable?.finalY
-      ? (pdf as any).lastAutoTable.finalY + 18
+    const notesY = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
+      ? (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable.finalY + 18
       : ty + 6;
 
     if (notesY < pageH - 30) {
@@ -324,6 +326,43 @@ export async function generateDocumentPdf(
       pdf.setFontSize(9);
       pdf.setTextColor(...dark);
       pdf.text(doc.notes, 15, notesY + 5, { maxWidth: pageW - 30 });
+    }
+  }
+
+  // === TAMPON + SIGNATURE ===
+  const stampZoneY = pageH - 60; // Fixed zone above footer
+
+  const loadStampOrSig = async (url: string | null | undefined): Promise<string | null> => {
+    if (!url) return null;
+    return loadImage(url);
+  };
+
+  const [tamponsData, signatureData] = await Promise.all([
+    loadStampOrSig(userProfile.tampon_url),
+    loadStampOrSig(userProfile.signature_url),
+  ]);
+
+  if (signatureData || tamponsData) {
+    // Signature line label (left)
+    if (signatureData) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(...gray);
+      pdf.text("Signature", 15, stampZoneY);
+      try {
+        pdf.addImage(signatureData, "PNG", 15, stampZoneY + 3, 40, 20);
+      } catch { /* skip if image format unsupported */ }
+    }
+
+    // Tampon (right side)
+    if (tamponsData) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(...gray);
+      pdf.text("Cachet / Tampon", pageW - 55, stampZoneY);
+      try {
+        pdf.addImage(tamponsData, "PNG", pageW - 55, stampZoneY + 3, 40, 20);
+      } catch { /* skip if image format unsupported */ }
     }
   }
 

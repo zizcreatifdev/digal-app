@@ -6,7 +6,7 @@ export interface ActivityLog {
   action: string;
   type_action: string;
   detail: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   entity_type: string | null;
   entity_id: string | null;
   created_at: string;
@@ -43,7 +43,7 @@ export async function logActivity(
   detail?: string,
   entityType?: string,
   entityId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   try {
     await supabase.from("activity_logs").insert({

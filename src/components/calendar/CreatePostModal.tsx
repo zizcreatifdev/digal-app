@@ -81,8 +81,8 @@ export function CreatePostModal({
       resetForm();
       onOpenChange(false);
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la création");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de la création");
     } finally {
       setLoading(false);
     }

@@ -13,6 +13,7 @@ export interface Client {
   facturation_adresse: string | null;
   facturation_mode: string;
   statut: string;
+  preview_slug: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +95,33 @@ export async function createClient(
   return data as Client;
 }
 
+export async function updateClient(
+  id: string,
+  updates: Partial<Omit<Client, "id" | "user_id" | "created_at" | "updated_at">>,
+  networks?: { reseau: string; formats: string[]; frequence_posts: number; notes_editoriales: string }[]
+) {
+  const { error } = await supabase
+    .from("clients")
+    .update(updates)
+    .eq("id", id);
+  if (error) throw error;
+
+  if (networks !== undefined) {
+    // Delete existing networks and re-insert
+    const { error: delErr } = await supabase
+      .from("client_networks")
+      .delete()
+      .eq("client_id", id);
+    if (delErr) throw delErr;
+
+    if (networks.length > 0) {
+      const networkRows = networks.map((n) => ({ ...n, client_id: id }));
+      const { error: netErr } = await supabase.from("client_networks").insert(networkRows);
+      if (netErr) throw netErr;
+    }
+  }
+}
+
 export async function archiveClient(id: string) {
   const { error } = await supabase
     .from("clients")
@@ -106,6 +134,25 @@ export async function restoreClient(id: string) {
   const { error } = await supabase
     .from("clients")
     .update({ statut: "actif" })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Generate a URL-safe slug from a client name */
+export function slugifyClientName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+export async function updateClientSlug(id: string, slug: string) {
+  const { error } = await supabase
+    .from("clients")
+    .update({ preview_slug: slug || null })
     .eq("id", id);
   if (error) throw error;
 }

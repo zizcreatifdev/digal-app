@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+
+interface UserNameProfile { prenom: string; nom: string; }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +31,7 @@ export function MasseSalarialeSection({ salaires, mois, onRefresh }: Props) {
   const [inclureFacture, setInclureFacture] = useState(true);
   const [payMethode, setPayMethode] = useState("wave");
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserNameProfile | null>(null);
 
   // Check if current user is in salaires for this month; auto-add if not
   useEffect(() => {
@@ -58,8 +60,8 @@ export function MasseSalarialeSection({ salaires, mois, onRefresh }: Props) {
       });
       toast.success("Votre ligne a été ajoutée — définissez votre salaire");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -84,8 +86,8 @@ export function MasseSalarialeSection({ salaires, mois, onRefresh }: Props) {
       setMembreNom("");
       setSalaireMensuel(0);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -99,8 +101,8 @@ export function MasseSalarialeSection({ salaires, mois, onRefresh }: Props) {
       toast.success("Salaire marqué comme payé");
       setPayOpen(null);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }

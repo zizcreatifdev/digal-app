@@ -106,8 +106,8 @@ export function AddClientModal({ open, onOpenChange, onSuccess }: AddClientModal
       resetForm();
       onOpenChange(false);
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de l'ajout du client");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de l'ajout du client");
     } finally {
       setLoading(false);
     }

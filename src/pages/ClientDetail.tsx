@@ -5,38 +5,85 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Link2, BarChart3, Receipt, Archive, Loader2,
-  Calendar, FolderOpen, Activity,
+  Calendar, FolderOpen, Activity, Pencil,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
 import { useState, useEffect } from "react";
 import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
+import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
+import { EditClientModal } from "@/components/clients/EditClientModal";
+import { DropBoxReview } from "@/components/clients/DropBoxReview";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+
+const FREEMIUM_ARCHIVE_LIMIT = 3;
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [networks, setNetworks] = useState<ClientNetwork[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [slugEdit, setSlugEdit] = useState<string | null>(null);
+  const [savingSlug, setSavingSlug] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     Promise.all([fetchClient(id), fetchClientNetworks(id)])
-      .then(([c, n]) => { setClient(c); setNetworks(n); })
+      .then(([c, n]) => {
+        setClient(c);
+        setNetworks(n);
+        setSlugEdit(c.preview_slug ?? slugifyClientName(c.nom));
+      })
       .catch(() => toast.error("Client introuvable"))
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handleSaveSlug = async () => {
+    if (!client || slugEdit === null) return;
+    setSavingSlug(true);
+    try {
+      await updateClientSlug(client.id, slugEdit.trim());
+      setClient({ ...client, preview_slug: slugEdit.trim() || null });
+      toast.success("Slug mis à jour");
+    } catch {
+      toast.error("Erreur lors de la mise à jour du slug");
+    } finally {
+      setSavingSlug(false);
+    }
+  };
+
   const handleArchiveToggle = async () => {
-    if (!client) return;
+    if (!client || !user) return;
     try {
       if (client.statut === "actif") {
+        // Freemium: check archived clients limit
+        const { data: profile } = await supabase
+          .from("users")
+          .select("role, plan")
+          .eq("user_id", user.id)
+          .single();
+        const isFreemium = profile?.role === "freemium" && !profile?.plan;
+        if (isFreemium) {
+          const { count } = await supabase
+            .from("clients")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("statut", "archive");
+          if ((count ?? 0) >= FREEMIUM_ARCHIVE_LIMIT) {
+            toast.error(`Limite atteinte : les comptes Freemium peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients.`);
+            return;
+          }
+        }
         await archiveClient(client.id);
         setClient({ ...client, statut: "archive" });
         toast.success("Client archivé");
@@ -128,6 +175,9 @@ const ClientDetail = () => {
             <Button size="sm" variant="outline">
               <Receipt className="h-4 w-4" /> Facture
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setEditModalOpen(true)}>
+              <Pencil className="h-4 w-4" /> Modifier
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -167,14 +217,7 @@ const ClientDetail = () => {
           </TabsContent>
 
           <TabsContent value="fichiers" className="mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Fichiers</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground font-sans text-center py-12">
-                  La gestion de fichiers sera bientôt disponible ici.
-                </p>
-              </CardContent>
-            </Card>
+            <DropBoxReview clientId={client.id} />
           </TabsContent>
 
           <TabsContent value="factures" className="mt-4">
@@ -213,6 +256,33 @@ const ClientDetail = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Preview slug card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              Slug du lien de validation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-mono shrink-0">/preview/</span>
+              <Input
+                className="font-mono text-sm flex-1"
+                value={slugEdit ?? ""}
+                onChange={(e) => setSlugEdit(e.target.value.replace(/[^a-z0-9-]/g, "-").toLowerCase())}
+                placeholder={slugifyClientName(client.nom)}
+              />
+              <Button size="sm" onClick={handleSaveSlug} disabled={savingSlug}>
+                {savingSlug ? "..." : "Enregistrer"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground font-sans mt-2">
+              Ce slug apparaîtra dans l'URL du lien de validation partagé avec le client.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <GeneratePreviewLinkModal
@@ -220,6 +290,7 @@ const ClientDetail = () => {
         onOpenChange={setPreviewModalOpen}
         clientId={client.id}
         clientName={client.nom}
+        clientSlug={client.preview_slug}
       />
 
       <CreateKpiReportModal
@@ -233,6 +304,19 @@ const ClientDetail = () => {
           return info?.label ?? n.reseau;
         })}
         onCreated={() => {}}
+      />
+
+      <EditClientModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        client={client}
+        networks={networks}
+        onSuccess={() => {
+          if (!id) return;
+          Promise.all([fetchClient(id), fetchClientNetworks(id)])
+            .then(([c, n]) => { setClient(c); setNetworks(n); })
+            .catch(() => toast.error("Erreur lors du rechargement du client"));
+        }}
       />
     </DashboardLayout>
   );

@@ -14,12 +14,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import {
   User, Camera, Palette, FileText, Users as UsersIcon,
-  LayoutTemplate, CreditCard, Bell, Plus, Trash2, Upload, Crown,
+  LayoutTemplate, CreditCard, Bell, Plus, Trash2, Upload, Crown, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { RESEAUX } from "@/lib/clients";
+import type { Tables } from "@/integrations/supabase/types";
+import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush, getNotificationPermission } from "@/lib/push-notifications";
+
+type UserRow = Tables<"users">;
+type PostTemplateRow = Tables<"post_templates">;
 
 /* ──────────────────────── PROFILE TAB ──────────────────────── */
 function ProfileTab() {
@@ -41,9 +46,9 @@ function ProfileTab() {
         setPrenom(data.prenom);
         setNom(data.nom);
         setEmail(data.email);
-        setAgenceName((data as any).agence_nom ?? "");
-        setAvatarUrl((data as any).avatar_url ?? "");
-        setLogoUrl((data as any).logo_url ?? "");
+        setAgenceName(data.agence_nom ?? "");
+        setAvatarUrl(data.avatar_url ?? "");
+        setLogoUrl(data.logo_url ?? "");
       }
     });
   }, [user]);
@@ -162,7 +167,139 @@ function ProfileTab() {
           </Button>
         </CardContent>
       </Card>
+
+      <PreviewSettingsCard />
+      <PushNotificationsCard />
     </div>
+  );
+}
+
+/* ──────────────────────── PREVIEW SETTINGS CARD ──────────────────────── */
+function PreviewSettingsCard() {
+  const { user } = useAuth();
+  const [defaultPeriod, setDefaultPeriod] = useState("semaine_courante");
+  const [saving, setSaving] = useState(false);
+
+  const PERIOD_LABELS: Record<string, string> = {
+    semaine_courante: "Semaine en cours",
+    mois_courant: "Mois en cours",
+    semaine_suivante: "Semaine suivante",
+    mois_suivant: "Mois suivant",
+  };
+
+  useEffect(() => {
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "preview_default_period")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setDefaultPeriod(data.value);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", "preview_default_period")
+        .maybeSingle();
+      if (existing) {
+        await supabase.from("site_settings").update({ value: defaultPeriod }).eq("key", "preview_default_period");
+      } else {
+        await supabase.from("site_settings").insert({ key: "preview_default_period", value: defaultPeriod, created_by: user.id });
+      }
+      toast.success("Période par défaut enregistrée");
+    } catch {
+      toast.error("Erreur lors de l'enregistrement");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif flex items-center gap-2">
+          <FileText className="h-4 w-4" /> Lien de validation
+        </CardTitle>
+        <CardDescription className="font-sans">Période sélectionnée par défaut lors de la génération d'un lien.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label>Période par défaut</Label>
+          <Select value={defaultPeriod} onValueChange={setDefaultPeriod}>
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(PERIOD_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={handleSave} disabled={saving} size="sm">
+          {saving ? "Enregistrement..." : "Enregistrer"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ──────────────────────── PUSH NOTIFICATIONS CARD ──────────────────────── */
+function PushNotificationsCard() {
+  const { user } = useAuth();
+  const [subscribed, setSubscribed] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isPushSupported()) { setSubscribed(false); return; }
+    isPushSubscribed().then(setSubscribed);
+  }, []);
+
+  const toggle = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      if (subscribed) {
+        await unsubscribeFromPush(user.id);
+        setSubscribed(false);
+        toast.success("Notifications désactivées");
+      } else {
+        const ok = await subscribeToPush(user.id);
+        if (ok) { setSubscribed(true); toast.success("Notifications activées"); }
+        else if (getNotificationPermission() === "denied") {
+          toast.error("Permission refusée. Modifiez les paramètres de votre navigateur.");
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isPushSupported()) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif flex items-center gap-2">
+          <Bell className="h-4 w-4" /> Notifications push
+        </CardTitle>
+        <CardDescription className="font-sans">Recevez des alertes natives (expiration de licence, validations client) même lorsque l'app est fermée.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between">
+        <span className="text-sm font-sans text-muted-foreground">
+          {subscribed === null ? "Vérification…" : subscribed ? "Activées" : "Désactivées"}
+        </span>
+        <Switch
+          checked={!!subscribed}
+          onCheckedChange={toggle}
+          disabled={loading || subscribed === null}
+        />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -178,9 +315,14 @@ function BillingSettingsTab() {
     wave: true, yas: false, orange_money: true, virement: false, cash: true,
   });
   const [saving, setSaving] = useState(false);
+  const [tamponsUrl, setTamponsUrl] = useState<string>("");
+  const [signatureUrl, setSignatureUrl] = useState<string>("");
+  const [uploadingTampon, setUploadingTampon] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+    // Load global billing settings
     supabase.from("site_settings").select("*").in("key", [
       "billing_sigle", "billing_brs", "billing_tva", "billing_header",
       "billing_footer", "billing_payment_methods",
@@ -192,10 +334,18 @@ function BillingSettingsTab() {
           case "billing_tva": setTvaEnabled(s.value === "true"); break;
           case "billing_header": setHeaderText(s.value); break;
           case "billing_footer": setFooterText(s.value); break;
-          case "billing_payment_methods": try { setPaymentMethods(JSON.parse(s.value)); } catch {} break;
+          case "billing_payment_methods": try { setPaymentMethods(JSON.parse(s.value)); } catch { /* intentional silent fail */ } break;
         }
       });
     });
+    // Load per-user tampon + signature from users table
+    supabase.from("users").select("tampon_url, signature_url").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setTamponsUrl(data.tampon_url ?? "");
+          setSignatureUrl(data.signature_url ?? "");
+        }
+      });
   }, [user]);
 
   const saveSetting = async (key: string, value: string) => {
@@ -226,6 +376,26 @@ function BillingSettingsTab() {
     setPaymentMethods((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
   };
 
+  const uploadStampFile = async (file: File, field: "tampon" | "signature") => {
+    if (!user) return;
+    const setter = field === "tampon" ? setUploadingTampon : setUploadingSignature;
+    setter(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${field}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, file, { upsert: true });
+      if (upErr) { toast.error("Erreur d'upload"); return; }
+      const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
+      // Save URL to users table
+      const col = field === "tampon" ? { tampon_url: publicUrl } : { signature_url: publicUrl };
+      await supabase.from("users").update(col).eq("user_id", user.id);
+      if (field === "tampon") { setTamponsUrl(publicUrl); toast.success("Tampon mis à jour"); }
+      else { setSignatureUrl(publicUrl); toast.success("Signature mise à jour"); }
+    } finally {
+      setter(false);
+    }
+  };
+
   const paymentLabels: Record<string, string> = {
     wave: "Wave", yas: "YAS", orange_money: "Orange Money", virement: "Virement bancaire", cash: "Cash",
   };
@@ -250,7 +420,80 @@ function BillingSettingsTab() {
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">DEV-</span>
               <Input value={sigle} onChange={(e) => setSigle(e.target.value.toUpperCase())} placeholder="DGL" className="w-24" maxLength={5} />
-              <span className="text-sm text-muted-foreground">-YYYY-001</span>
+              <span className="text-sm text-muted-foreground">-YYYY-0001</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tampon + Signature */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif flex items-center gap-2">
+            <Upload className="h-5 w-5" /> Tampon & Signature
+          </CardTitle>
+          <CardDescription className="font-sans">
+            Images PNG à fond transparent — appliquées automatiquement en bas de vos devis et factures.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tampon */}
+          <div className="space-y-2">
+            <Label>Tampon / Cachet</Label>
+            <div className="flex items-start gap-4">
+              <label className="flex flex-col items-center justify-center gap-1 w-32 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-muted/30 shrink-0">
+                {uploadingTampon ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-sans text-center px-1">
+                      {tamponsUrl ? "Remplacer" : "Importer PNG"}
+                    </span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStampFile(f, "tampon"); }}
+                />
+              </label>
+              {tamponsUrl && (
+                <div className="border border-border rounded-lg p-2 bg-checkerboard">
+                  <img src={tamponsUrl} alt="Tampon" className="h-20 max-w-[160px] object-contain" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Signature */}
+          <div className="space-y-2">
+            <Label>Signature</Label>
+            <div className="flex items-start gap-4">
+              <label className="flex flex-col items-center justify-center gap-1 w-32 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors bg-muted/30 shrink-0">
+                {uploadingSignature ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-sans text-center px-1">
+                      {signatureUrl ? "Remplacer" : "Importer PNG"}
+                    </span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStampFile(f, "signature"); }}
+                />
+              </label>
+              {signatureUrl && (
+                <div className="border border-border rounded-lg p-2 bg-checkerboard">
+                  <img src={signatureUrl} alt="Signature" className="h-20 max-w-[160px] object-contain" />
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -310,8 +553,8 @@ function TeamTab() {
   const { user } = useAuth();
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("cm");
-  const [profile, setProfile] = useState<any>(null);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [profile, setProfile] = useState<UserRow | null>(null);
+  const [teamMembers, setTeamMembers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -474,7 +717,7 @@ function TeamTab() {
 /* ──────────────────────── TEMPLATES TAB ──────────────────────── */
 function TemplatesTab() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<PostTemplateRow[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [titre, setTitre] = useState("");
   const [texte, setTexte] = useState("");
@@ -491,8 +734,16 @@ function TemplatesTab() {
 
   useEffect(() => { load(); }, [user]);
 
+  const FREEMIUM_TEMPLATE_LIMIT = 3;
+
   const handleCreate = async () => {
     if (!user || !titre) return;
+    // Freemium: enforce template limit
+    const { data: profile } = await supabase.from("users").select("role, plan").eq("user_id", user.id).single();
+    if (profile?.role === "freemium" && !profile?.plan && templates.length >= FREEMIUM_TEMPLATE_LIMIT) {
+      toast.error(`Limite atteinte : les comptes Freemium peuvent créer au maximum ${FREEMIUM_TEMPLATE_LIMIT} modèles.`);
+      return;
+    }
     const { error } = await supabase.from("post_templates").insert({ user_id: user.id, titre, texte, reseau, format });
     if (error) { toast.error("Erreur"); return; }
     toast.success("Modèle créé");
@@ -583,14 +834,73 @@ function TemplatesTab() {
 }
 
 /* ──────────────────────── LICENSE TAB ──────────────────────── */
+const PLAN_LABELS: Record<string, string> = {
+  freemium: "Freemium",
+  solo: "Solo Standard",
+  agence_standard: "Agence Standard",
+  agence_pro: "Agence Pro",
+  dm: "Directeur Marketing",
+  cm: "Community Manager",
+  createur: "Créateur de contenu",
+  owner: "Owner",
+  admin: "Admin",
+};
+
 function LicenseTab() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserRow | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [history, setHistory] = useState<{ key_code: string; type: string; duration_months: number; used_at: string }[]>([]);
+
+  const loadProfile = () => {
+    if (!user) return;
+    supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => setProfile(data));
+  };
+
+  const loadHistory = (profileId?: string) => {
+    if (!profileId) return;
+    supabase.from("license_keys")
+      .select("key_code, type, duration_months, used_at")
+      .eq("used_by", profileId)
+      .order("used_at", { ascending: false })
+      .then(({ data }) => setHistory(data ?? []));
+  };
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => setProfile(data));
-  }, [user]);
+    supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      setProfile(data);
+      if (data?.id) loadHistory(data.id);
+    });
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleActivate = async () => {
+    const key = keyInput.trim().toUpperCase();
+    if (!key) { toast.error("Saisissez une clé de licence"); return; }
+    if (!user) return;
+
+    setActivating(true);
+    try {
+      const { data: result, error } = await supabase.rpc("activate_license_key", { p_key_code: key });
+      if (error) throw error;
+
+      const res = result as { error?: string; success?: boolean; type?: string; expires_at?: string };
+      if (res.error) { toast.error(res.error); return; }
+
+      const expiresDate = res.expires_at ? new Date(res.expires_at).toLocaleDateString("fr-FR") : "";
+      toast.success(`Licence activée — plan ${PLAN_LABELS[res.type ?? ""] ?? res.type} jusqu'au ${expiresDate}`);
+      setKeyInput("");
+      supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+        setProfile(data);
+        if (data?.id) loadHistory(data.id);
+      });
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de l'activation");
+    } finally {
+      setActivating(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -601,7 +911,7 @@ function LicenseTab() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm">Plan actuel</span>
-            <Badge>{profile?.role ?? "freemium"}</Badge>
+            <Badge>{PLAN_LABELS[profile?.role ?? "freemium"] ?? profile?.role ?? "Freemium"}</Badge>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Expiration</span>
@@ -612,15 +922,25 @@ function LicenseTab() {
             </span>
           </div>
           <Separator />
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={() => toast.info("Demande envoyée à l'administrateur")}>
-              <Crown className="h-4 w-4 mr-1" /> Ajouter une licence
-            </Button>
-            {profile?.role === "solo_standard" && (
-              <Button size="sm" onClick={() => toast.info("Demande de passage en Agence envoyée")}>
-                Passer en mode Agence
+          <div>
+            <Label className="font-sans mb-1 block flex items-center gap-1">
+              <Crown className="h-4 w-4" /> Activer une clé de licence
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={keyInput}
+                onChange={(e) => setKeyInput(e.target.value)}
+                placeholder="DIGAL-SOLO-XXXXXX"
+                className="font-mono"
+                onKeyDown={(e) => e.key === "Enter" && handleActivate()}
+              />
+              <Button onClick={handleActivate} disabled={activating || !keyInput.trim()}>
+                {activating ? "..." : "Activer"}
               </Button>
-            )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              La durée s'ajoute à votre licence actuelle si elle n'est pas expirée.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -630,7 +950,32 @@ function LicenseTab() {
           <CardTitle className="font-serif">Historique des licences</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8 text-sm">Aucun historique disponible</p>
+          {history.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8 text-sm">Aucun historique disponible</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Clé</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Durée</TableHead>
+                  <TableHead>Activée le</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((h) => (
+                  <TableRow key={h.key_code}>
+                    <TableCell className="font-mono text-xs">{h.key_code}</TableCell>
+                    <TableCell><Badge variant="outline">{PLAN_LABELS[h.type] ?? h.type}</Badge></TableCell>
+                    <TableCell className="text-sm">{h.duration_months} mois</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {h.used_at ? new Date(h.used_at).toLocaleDateString("fr-FR") : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

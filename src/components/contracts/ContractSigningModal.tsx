@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SignatureCanvas } from "./SignatureCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 import { Loader2, FileText, ShieldCheck } from "lucide-react";
 import digalLogo from "@/assets/digal-logo.png";
 
@@ -92,7 +93,7 @@ export function ContractSigningModal({
         plan_nom: planNom,
         prix_mensuel: prixMensuel,
         duree_mois: 6,
-        clauses: clauses as any,
+        clauses: clauses as unknown as Json,
         prenom: prenom || "",
         nom: nomParts.join(" ") || "",
         email: userEmail,
@@ -103,14 +104,14 @@ export function ContractSigningModal({
         statut: "signe",
         type_contrat: typeContrat,
         ancien_plan: ancienPlan || null,
-      } as any);
+      });
 
       if (error) throw error;
       toast.success("Contrat signé avec succès !");
       onSigned();
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la signature");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de la signature");
     } finally {
       setSaving(false);
     }

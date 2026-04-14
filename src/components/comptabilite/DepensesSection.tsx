@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +10,17 @@ import { Plus, Trash2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Depense, CATEGORIE_LABELS, CATEGORIE_COLORS, createDepense, deleteDepense } from "@/lib/comptabilite";
+import { Depense, CATEGORIE_LABELS, CATEGORIE_COLORS, BOOST_RESEAU_LABELS, createDepense, deleteDepense } from "@/lib/comptabilite";
 import { formatFCFA } from "@/lib/facturation";
 
 interface Props {
   depenses: Depense[];
   onRefresh: () => void;
+}
+
+interface Client {
+  id: string;
+  nom: string;
 }
 
 export function DepensesSection({ depenses, onRefresh }: Props) {
@@ -28,6 +33,16 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [catFilter, setCatFilter] = useState("all");
+  // Boost fields (visible only when categorie === "publicite")
+  const [boostClientId, setBoostClientId] = useState("");
+  const [boostReseau, setBoostReseau] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("clients").select("id, nom").eq("user_id", user.id).eq("statut", "actif")
+      .order("nom").then(({ data }) => setClients(data ?? []));
+  }, [user]);
 
   const filtered = catFilter === "all" ? depenses : depenses.filter((d) => d.categorie === catFilter);
   const totalDepenses = filtered.reduce((s, d) => s + d.montant, 0);
@@ -52,15 +67,19 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
         categorie,
         date_depense: dateDepense,
         piece_jointe_url: pieceUrl,
+        client_id: categorie === "publicite" && boostClientId ? boostClientId : null,
+        reseau: categorie === "publicite" && boostReseau ? boostReseau : null,
       });
       toast.success("Dépense ajoutée");
       setOpen(false);
       setLibelle("");
       setMontant(0);
       setFile(null);
+      setBoostClientId("");
+      setBoostReseau("");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -71,8 +90,8 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
       await deleteDepense(id);
       toast.success("Dépense supprimée");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   };
 
@@ -114,12 +133,20 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
               {filtered.map((d) => (
                 <TableRow key={d.id}>
                   <TableCell>{d.date_depense}</TableCell>
-                  <TableCell className="flex items-center gap-2">
-                    {d.libelle}
-                    {d.piece_jointe_url && (
-                      <a href={d.piece_jointe_url} target="_blank" rel="noopener noreferrer">
-                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                      </a>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {d.libelle}
+                      {d.piece_jointe_url && (
+                        <a href={d.piece_jointe_url} target="_blank" rel="noopener noreferrer">
+                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                        </a>
+                      )}
+                    </div>
+                    {d.categorie === "publicite" && d.reseau && (
+                      <p className="text-[10px] text-purple-600 font-sans mt-0.5">
+                        {BOOST_RESEAU_LABELS[d.reseau] ?? d.reseau}
+                        {d.inclure_facture && <span className="ml-1 text-emerald-600">· Inclus en facture</span>}
+                      </p>
                     )}
                   </TableCell>
                   <TableCell>
@@ -167,6 +194,28 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
                 </Select>
               </div>
             </div>
+            {categorie === "publicite" && (
+              <div className="col-span-2 grid grid-cols-2 gap-4 p-3 rounded-lg bg-purple-50 border border-purple-100">
+                <div>
+                  <Label className="font-sans text-purple-800">Client affecté</Label>
+                  <Select value={boostClientId} onValueChange={setBoostClientId}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Client (optionnel)" /></SelectTrigger>
+                    <SelectContent>
+                      {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.nom}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="font-sans text-purple-800">Réseau publicitaire</Label>
+                  <Select value={boostReseau} onValueChange={setBoostReseau}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Réseau (optionnel)" /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(BOOST_RESEAU_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <div>
               <Label>Date</Label>
               <Input type="date" value={dateDepense} onChange={(e) => setDateDepense(e.target.value)} />

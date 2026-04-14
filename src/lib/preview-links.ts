@@ -11,6 +11,7 @@ export interface PreviewLink {
   created_at: string;
   expires_at: string;
   statut: string;
+  welcome_message: string | null;
 }
 
 export interface PreviewAction {
@@ -49,16 +50,20 @@ export function getPeriodDates(period: PeriodOption): { start: Date; end: Date }
   }
 }
 
-function generateSlug(): string {
+function generateSlug(clientSlug?: string | null): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let slug = "";
-  for (let i = 0; i < 12; i++) slug += chars[Math.floor(Math.random() * chars.length)];
-  return slug;
+  const random = () => Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return clientSlug ? `${clientSlug}-${random()}` : random() + random();
 }
 
-export async function createPreviewLink(clientId: string, userId: string, period: PeriodOption) {
+export async function createPreviewLink(
+  clientId: string,
+  userId: string,
+  period: PeriodOption,
+  options?: { clientSlug?: string | null; welcomeMessage?: string }
+) {
   const { start, end } = getPeriodDates(period);
-  const slug = generateSlug();
+  const slug = generateSlug(options?.clientSlug);
 
   const { data, error } = await supabase
     .from("preview_links")
@@ -68,6 +73,7 @@ export async function createPreviewLink(clientId: string, userId: string, period
       slug,
       periode_debut: start.toISOString(),
       periode_fin: end.toISOString(),
+      welcome_message: options?.welcomeMessage || null,
     })
     .select()
     .single();
