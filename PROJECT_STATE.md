@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : 11 — Phase 4 Polish & Production (PWA + Tests + Docs)_
+_Prompt courant : 12 — Migration Supabase personnel_
 
 ---
 
@@ -10,6 +10,17 @@ _Prompt courant : 11 — Phase 4 Polish & Production (PWA + Tests + Docs)_
 **Digal** est un SaaS B2B de gestion pour agences de communication digitale et freelances (marché sénégalais). Il couvre la gestion de clients, le calendrier éditorial, la facturation (FCFA), la comptabilité, les rapports KPI et la gestion d'équipe.
 
 **Version : 1.0.0** — Production-ready.
+
+### Supabase
+
+| | Ancien (Lovable) | Nouveau (Personnel) |
+|-|-----------------|---------------------|
+| Project ID | `bfzapmhvgnoicgbngpmi` | `quvtfhwcwxijizsiqzpd` |
+| URL | `https://bfzapmhvgnoicgbngpmi.supabase.co` | `https://quvtfhwcwxijizsiqzpd.supabase.co` |
+| `.env` | ✅ Mis à jour | ✅ Actif |
+| `config.toml` | — | ✅ Mis à jour |
+| Migrations SQL | — | ✅ Bundle `supabase/MIGRATION_BUNDLE.sql` (39 migrations) |
+| Edge functions | — | ⏳ À déployer via CLI (voir MIGRATION_GUIDE.md) |
 
 ---
 
@@ -292,3 +303,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 09 | Phase 3A : export CSV + onglet financier admin, clé promo, emails trigger, ProUpgradeModal, limites freemium | 2026-04-14 |
 | 10 | Phase 3B : preview améliorations, landing page complète (mockups, /privacy, /cgu) | 2026-04-14 |
 | 11 | Phase 4 : PWA (Workbox + Web Push), tests ×5 (137 total), documentation v1.0.0 | 2026-04-14 |
+| 12 | Migration Supabase Lovable → personnel (quvtfhwcwxijizsiqzpd), .env + config.toml + bundle SQL 39 migrations | 2026-04-14 |
