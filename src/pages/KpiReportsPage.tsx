@@ -73,9 +73,9 @@ const KpiReportsPage = () => {
     setPreviewOpen(true);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!previewData) return;
-    const pdf = generateKpiPdf(
+    const pdf = await generateKpiPdf(
       previewData.report,
       previewData.clientName,
       previewData.clientLogoUrl,

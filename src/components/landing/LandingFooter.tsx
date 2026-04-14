@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import digalLogo from "@/assets/digal-logo.png";
 
 export function LandingFooter() {
   return (
@@ -7,9 +6,13 @@ export function LandingFooter() {
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <img src={digalLogo} alt="Digal" className="h-6 w-6" loading="lazy" width={24} height={24} />
-            <span className="text-lg font-bold font-serif text-foreground">Digal</span>
+          <div className="flex items-center">
+            <img
+              src="/logos/Logo%20Digal_iconorange_ettext_enblanc.svg"
+              alt="Digal"
+              className="h-7 w-auto"
+              loading="lazy"
+            />
           </div>
 
           {/* Links */}

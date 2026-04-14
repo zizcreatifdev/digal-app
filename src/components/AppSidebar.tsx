@@ -8,7 +8,6 @@ import { UsersRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
-import digalLogo from "@/assets/digal-logo.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,10 +76,19 @@ export function AppSidebar() {
       <Sidebar collapsible="icon" className="border-r-0">
         <SidebarContent className="pt-6">
           {/* Logo */}
-          <div className={cn("px-4 mb-8 flex items-center gap-2", collapsed && "px-2 justify-center")}>
-            <img src={digalLogo} alt="Digal" className={cn("transition-all", collapsed ? "h-7 w-7" : "h-8 w-8")} />
-            {!collapsed && (
-              <h1 className="font-serif font-bold text-sidebar-foreground text-2xl">Digal</h1>
+          <div className={cn("px-4 mb-8 flex items-center", collapsed && "px-2 justify-center")}>
+            {collapsed ? (
+              <img
+                src="/logos/Logo%20Digal-icon_blanc_sansbaseline.svg"
+                alt="Digal"
+                className="h-7 w-7 transition-all"
+              />
+            ) : (
+              <img
+                src="/logos/Logo%20Digal_iconblanc_ettext_enblanc.svg"
+                alt="Digal"
+                className="h-8 w-auto transition-all"
+              />
             )}
           </div>
 

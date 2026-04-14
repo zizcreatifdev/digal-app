@@ -147,7 +147,7 @@ export function CreateKpiReportModal({
 
   const handleDownloadFromPreview = async () => {
     if (!previewData) return;
-    const pdf = generateKpiPdf(
+    const pdf = await generateKpiPdf(
       previewData.report,
       previewData.clientName,
       previewData.clientLogoUrl,
@@ -172,7 +172,7 @@ export function CreateKpiReportModal({
         objectifs,
       });
 
-      const pdf = generateKpiPdf(
+      const pdf = await generateKpiPdf(
         { ...data.report, id: reportId },
         clientName,
         clientLogoUrl,

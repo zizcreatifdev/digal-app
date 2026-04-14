@@ -23,7 +23,7 @@ const NETWORK_COLORS: Record<string, [number, number, number]> = {
   tiktok: [0, 0, 0],
 };
 
-export function generateKpiPdf(
+export async function generateKpiPdf(
   report: KpiReport,
   clientName: string,
   clientLogoUrl: string | null,
@@ -185,20 +185,48 @@ export function generateKpiPdf(
   }
 
   // ─── FOOTER ─────────────────────────────────────────────────
+  // Pre-load Digal logo for footer
+  let digalLogoPng: string | null = null;
+  try {
+    const response = await fetch("/logos/Logo%20Digal-iconorange_avec_baseline_noir.svg");
+    const svgText = await response.text();
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const objectUrl = URL.createObjectURL(blob);
+    digalLogoPng = await new Promise<string | null>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 200; canvas.height = 96;
+        canvas.getContext("2d")?.drawImage(img, 0, 0, 200, 96);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
+      img.src = objectUrl;
+    });
+  } catch { /* silent fail — use text fallback */ }
+
   const addFooter = (p: jsPDF) => {
     const fY = pageH - 10;
     p.setFontSize(7);
     p.setTextColor(180, 180, 180);
     p.text(`Rapport généré par ${cmName} via Digal`, 15, fY);
-    // Digal mini logo
-    p.setFillColor(...accent);
-    p.roundedRect(pageW - 30, fY - 4, 5, 5, 1, 1, "F");
-    p.setFontSize(5);
-    p.setTextColor(255, 255, 255);
-    p.text("D", pageW - 27.5, fY - 0.5, { align: "center" });
-    p.setTextColor(180, 180, 180);
-    p.setFontSize(7);
-    p.text("digal.sn", pageW - 23, fY);
+    if (digalLogoPng) {
+      try {
+        p.addImage(digalLogoPng, "PNG", pageW - 35, fY - 7, 20, 9.6);
+      } catch {
+        p.text("digal.sn", pageW - 23, fY);
+      }
+    } else {
+      p.setFillColor(...accent);
+      p.roundedRect(pageW - 30, fY - 4, 5, 5, 1, 1, "F");
+      p.setFontSize(5);
+      p.setTextColor(255, 255, 255);
+      p.text("D", pageW - 27.5, fY - 0.5, { align: "center" });
+      p.setTextColor(180, 180, 180);
+      p.setFontSize(7);
+      p.text("digal.sn", pageW - 23, fY);
+    }
   };
 
   const pageCount = pdf.getNumberOfPages();

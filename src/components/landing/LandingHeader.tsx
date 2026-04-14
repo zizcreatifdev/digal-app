@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import digalLogo from "@/assets/digal-logo.png";
 
 export function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -10,9 +9,12 @@ export function LandingHeader() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <div className="flex items-center gap-2">
-          <img src={digalLogo} alt="Digal" className="h-8 w-8" width={32} height={32} />
-          <span className="text-2xl font-bold font-serif text-foreground">Digal</span>
+        <div className="flex items-center">
+          <img
+            src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
+            alt="Digal"
+            className="h-8 w-auto"
+          />
         </div>
 
         {/* Desktop nav */}
