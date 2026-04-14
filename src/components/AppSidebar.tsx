@@ -43,7 +43,9 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [upgradeModal, setUpgradeModal] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+
+  interface SidebarProfile { prenom: string; nom: string; role: string; plan: string | null; avatar_url: string | null; }
+  const [profile, setProfile] = useState<SidebarProfile | null>(null);
 
   useEffect(() => {
     if (!user) return;

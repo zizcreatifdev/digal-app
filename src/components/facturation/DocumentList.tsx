@@ -82,8 +82,8 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
 
       const pdf = await generateDocumentPdf(doc, lines, payments, clientInfo, userProfile);
       pdf.save(`${doc.numero}.pdf`);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   };
 
@@ -93,8 +93,8 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
       await convertDevisToFacture(devisId, user.id);
       toast.success("Devis converti en facture");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   };
 
@@ -103,8 +103,8 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
       await updateDocumentStatut(docId, "annule");
       toast.success("Document annulé");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   };
 
@@ -116,8 +116,8 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
       toast.success("Paiement enregistré");
       setPaymentModal(null);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setPayLoading(false);
     }

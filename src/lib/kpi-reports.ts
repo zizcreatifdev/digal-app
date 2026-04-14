@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface NetworkMetrics {
   [key: string]: number | undefined;
@@ -111,7 +112,7 @@ export async function saveKpiReport(report: {
     const { error } = await supabase
       .from("kpi_reports")
       .update({
-        metriques: report.metriques as any,
+        metriques: report.metriques as unknown as Json,
         points_forts: report.points_forts,
         axes_amelioration: report.axes_amelioration,
         objectifs: report.objectifs,
@@ -126,7 +127,7 @@ export async function saveKpiReport(report: {
         user_id: report.user_id,
         client_id: report.client_id,
         mois: report.mois,
-        metriques: report.metriques as any,
+        metriques: report.metriques as unknown as Json,
         points_forts: report.points_forts,
         axes_amelioration: report.axes_amelioration,
         objectifs: report.objectifs,

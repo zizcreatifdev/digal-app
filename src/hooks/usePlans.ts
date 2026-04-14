@@ -28,9 +28,9 @@ export function usePlans() {
         .eq("actif", true)
         .order("ordre");
       if (error) throw error;
-      return (data ?? []).map((p: any) => ({
+      return (data ?? []).map((p) => ({
         ...p,
-        features: Array.isArray(p.features) ? p.features : JSON.parse(p.features || "[]"),
+        features: Array.isArray(p.features) ? p.features as string[] : JSON.parse(typeof p.features === "string" ? p.features : "[]") as string[],
       }));
     },
     staleTime: 60_000,
@@ -46,9 +46,9 @@ export function useAllPlans() {
         .select("*")
         .order("ordre");
       if (error) throw error;
-      return (data ?? []).map((p: any) => ({
+      return (data ?? []).map((p) => ({
         ...p,
-        features: Array.isArray(p.features) ? p.features : JSON.parse(p.features || "[]"),
+        features: Array.isArray(p.features) ? p.features as string[] : JSON.parse(typeof p.features === "string" ? p.features : "[]") as string[],
       }));
     },
     staleTime: 30_000,

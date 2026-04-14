@@ -93,7 +93,7 @@ export function CreateKpiReportModal({
     setMetriques((prev) => ({
       ...prev,
       [network]: {
-        ...((prev as any)[network] ?? {}),
+        ...(prev[network as keyof KpiMetriques] ?? {}),
         [field]: num,
       },
     }));
@@ -173,8 +173,8 @@ export function CreateKpiReportModal({
       logKpiAction(user.id, "Rapport KPI généré", `${clientName} — ${mois}`, reportId);
       onCreated();
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -220,7 +220,7 @@ export function CreateKpiReportModal({
                           type="number"
                           min={0}
                           placeholder="—"
-                          value={(metriques as any)?.[netKey]?.[field.key] ?? ""}
+                          value={(metriques[netKey as keyof KpiMetriques])?.[field.key] ?? ""}
                           onChange={(e) => updateMetric(netKey, field.key, e.target.value)}
                         />
                       </div>

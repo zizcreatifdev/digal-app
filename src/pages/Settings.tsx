@@ -20,6 +20,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { RESEAUX } from "@/lib/clients";
+import type { Tables } from "@/integrations/supabase/types";
+
+type UserRow = Tables<"users">;
+type PostTemplateRow = Tables<"post_templates">;
 
 /* ──────────────────────── PROFILE TAB ──────────────────────── */
 function ProfileTab() {
@@ -41,9 +45,9 @@ function ProfileTab() {
         setPrenom(data.prenom);
         setNom(data.nom);
         setEmail(data.email);
-        setAgenceName((data as any).agence_nom ?? "");
-        setAvatarUrl((data as any).avatar_url ?? "");
-        setLogoUrl((data as any).logo_url ?? "");
+        setAgenceName(data.agence_nom ?? "");
+        setAvatarUrl(data.avatar_url ?? "");
+        setLogoUrl(data.logo_url ?? "");
       }
     });
   }, [user]);
@@ -192,7 +196,7 @@ function BillingSettingsTab() {
           case "billing_tva": setTvaEnabled(s.value === "true"); break;
           case "billing_header": setHeaderText(s.value); break;
           case "billing_footer": setFooterText(s.value); break;
-          case "billing_payment_methods": try { setPaymentMethods(JSON.parse(s.value)); } catch {} break;
+          case "billing_payment_methods": try { setPaymentMethods(JSON.parse(s.value)); } catch { /* intentional silent fail */ } break;
         }
       });
     });
@@ -310,8 +314,8 @@ function TeamTab() {
   const { user } = useAuth();
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("cm");
-  const [profile, setProfile] = useState<any>(null);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [profile, setProfile] = useState<UserRow | null>(null);
+  const [teamMembers, setTeamMembers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -474,7 +478,7 @@ function TeamTab() {
 /* ──────────────────────── TEMPLATES TAB ──────────────────────── */
 function TemplatesTab() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<PostTemplateRow[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [titre, setTitre] = useState("");
   const [texte, setTexte] = useState("");
@@ -585,7 +589,7 @@ function TemplatesTab() {
 /* ──────────────────────── LICENSE TAB ──────────────────────── */
 function LicenseTab() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserRow | null>(null);
 
   useEffect(() => {
     if (!user) return;

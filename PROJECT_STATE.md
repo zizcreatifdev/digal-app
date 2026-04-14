@@ -244,8 +244,20 @@ _Prompt courant : Initialisation mémoire_
 
 ---
 
+## Qualité du code
+
+| Métrique | État |
+|----------|------|
+| Erreurs ESLint | ✅ 0 erreur (était 66) |
+| Warnings ESLint | 15 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Tests unitaires | ✅ 1/1 passent |
+| TypeScript strict | Amélioré — `any` éliminés, types précis ajoutés |
+
+---
+
 ## Historique des prompts
 
 | Prompt | Description | Date |
 |--------|-------------|------|
 | init | Création des fichiers de mémoire (ARCHITECTURE, CLAUDE, TEST_AGENT, PROJECT_STATE) | 2026-04-14 |
+| 01 | Correction 66 erreurs ESLint → 0 erreur | 2026-04-14 |

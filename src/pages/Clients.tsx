@@ -55,7 +55,7 @@ const ClientsPage = () => {
           .select("client_id, reseau")
           .in("client_id", allIds);
         const map: Record<string, string[]> = {};
-        (nets ?? []).forEach((n: any) => {
+        (nets ?? []).forEach((n: { client_id: string; reseau: string }) => {
           if (!map[n.client_id]) map[n.client_id] = [];
           map[n.client_id].push(n.reseau);
         });

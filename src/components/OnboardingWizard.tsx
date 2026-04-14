@@ -10,8 +10,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+interface UserProfileData {
+  role?: string;
+  prenom?: string;
+  nom?: string;
+  agence_nom?: string | null;
+  avatar_url?: string | null;
+  logo_url?: string | null;
+}
+
 interface OnboardingWizardProps {
-  profile: any;
+  profile: UserProfileData;
   onComplete: () => void;
 }
 

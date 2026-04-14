@@ -59,8 +59,8 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
       setMontant(0);
       setFile(null);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -71,8 +71,8 @@ export function DepensesSection({ depenses, onRefresh }: Props) {
       await deleteDepense(id);
       toast.success("Dépense supprimée");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   };
 

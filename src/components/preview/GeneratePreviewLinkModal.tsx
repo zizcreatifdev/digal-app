@@ -38,8 +38,8 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
       setGeneratedUrl(getPreviewUrl(link.slug));
       toast.success("Lien de validation créé");
       logPreviewAction(user.id, "Lien de validation généré", clientName, link.id);
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la création du lien");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de la création du lien");
     } finally {
       setLoading(false);
     }

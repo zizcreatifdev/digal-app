@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SignatureCanvas } from "@/components/contracts/SignatureCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 import {
   FileText, Plus, Trash2, Save, Loader2, Upload, Eye,
   ShieldCheck, PenTool,
@@ -85,7 +86,7 @@ export default function AdminContrats() {
     setSaving(true);
     const { id, ...rest } = editTemplate;
     const { error } = await supabase.from("contract_templates")
-      .update({ ...rest, updated_at: new Date().toISOString() } as any)
+      .update({ ...rest, clauses: rest.clauses as unknown as Json, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) toast.error("Erreur de sauvegarde");
     else {
@@ -127,7 +128,7 @@ export default function AdminContrats() {
       const { data } = supabase.storage.from("contracts").getPublicUrl(path);
       
       await supabase.from("contract_templates")
-        .update({ owner_signature_url: data.publicUrl } as any)
+        .update({ owner_signature_url: data.publicUrl })
         .eq("id", editTemplate.id);
       
       setEditTemplate({ ...editTemplate, owner_signature_url: data.publicUrl });
@@ -149,7 +150,7 @@ export default function AdminContrats() {
       const { data } = supabase.storage.from("contracts").getPublicUrl(path);
       
       await supabase.from("contract_templates")
-        .update({ owner_cachet_url: data.publicUrl } as any)
+        .update({ owner_cachet_url: data.publicUrl })
         .eq("id", editTemplate.id);
       
       setEditTemplate({ ...editTemplate, owner_cachet_url: data.publicUrl });

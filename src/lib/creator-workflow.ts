@@ -16,7 +16,7 @@ export async function fetchAssignedTasks(creatorUserId: string) {
     .in("statut", ["en_production", "refuse"])
     .order("date_publication", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((p: any) => ({
+  return (data ?? []).map((p) => ({
     ...p,
     client_nom: p.clients?.nom,
     client_couleur: p.clients?.couleur_marque,
@@ -119,8 +119,8 @@ export async function getTeamMemberStats(userId: string) {
 
   const posts = assigned ?? [];
   const total = posts.length;
-  const completed = posts.filter((p: any) => ["valide", "publie", "en_attente_validation"].includes(p.statut)).length;
-  const rejected = posts.filter((p: any) => p.statut === "refuse").length;
+  const completed = posts.filter((p) => ["valide", "publie", "en_attente_validation"].includes(p.statut)).length;
+  const rejected = posts.filter((p) => p.statut === "refuse").length;
 
   return { total, completed, rejected };
 }

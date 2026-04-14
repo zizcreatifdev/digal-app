@@ -76,7 +76,7 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
 
   const totals = calculateTotals(lines, tauxBrs, tauxTva);
 
-  const updateLine = (index: number, field: keyof DocumentLine, value: any) => {
+  const updateLine = (index: number, field: keyof DocumentLine, value: DocumentLine[keyof DocumentLine]) => {
     setLines((prev) =>
       prev.map((l, i) => (i === index ? { ...l, [field]: value } : l))
     );
@@ -118,8 +118,8 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
       logDocumentAction(user.id, `${type === "devis" ? "Devis" : "Facture"} créé(e)`, numero);
       onCreated();
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }

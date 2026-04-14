@@ -91,7 +91,7 @@ const AdminEmails = () => {
       date_envoi: form.date_envoi || null,
       statut,
       nb_destinataires: nb,
-    } as any);
+    });
 
     if (error) { toast.error("Erreur lors de la sauvegarde"); return; }
     toast.success("Email créé");
@@ -107,7 +107,7 @@ const AdminEmails = () => {
       destinataires: email.destinataires,
       statut: "brouillon",
       nb_destinataires: email.nb_destinataires,
-    } as any);
+    });
     toast.success("Email dupliqué");
     fetchEmails();
   };

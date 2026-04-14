@@ -39,8 +39,8 @@ const CreatorDashboard = () => {
       await submitCreatorUpload(task.id, user.id, file, task.user_id);
       toast.success("Fichier soumis pour validation");
       await loadTasks();
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de l'upload");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Erreur lors de l'upload");
     } finally {
       setUploading(null);
     }

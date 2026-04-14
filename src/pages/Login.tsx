@@ -38,7 +38,7 @@ const Login = () => {
         detail,
         user_agent: navigator.userAgent,
       });
-    } catch {}
+    } catch { /* intentional silent fail */ }
   };
 
   const handleLogin = async (e: React.FormEvent) => {

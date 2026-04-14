@@ -25,7 +25,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [upgradeModal, setUpgradeModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   useEffect(() => {

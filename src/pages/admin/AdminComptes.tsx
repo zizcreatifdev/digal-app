@@ -52,7 +52,7 @@ export default function AdminComptes() {
   });
 
   const updateUser = useMutation({
-    mutationFn: async (updates: { id: string; [key: string]: any }) => {
+    mutationFn: async (updates: { id: string } & Partial<Omit<UserProfile, "id">>) => {
       const { id, ...rest } = updates;
       const { error } = await supabase.from("users").update(rest).eq("id", id);
       if (error) throw error;

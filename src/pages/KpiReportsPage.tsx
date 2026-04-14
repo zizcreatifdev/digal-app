@@ -24,7 +24,7 @@ const KpiReportsPage = () => {
   const { user } = useAuth();
   const [clients, setClients] = useState<{ id: string; nom: string; logo_url: string | null }[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<KpiReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -64,7 +64,7 @@ const KpiReportsPage = () => {
 
   const handlePreview = (report: KpiReport) => {
     const prevMonth = getPrevMonth(report.mois);
-    const prevReport = reports.find((r: any) => r.mois === prevMonth) ?? null;
+    const prevReport = reports.find((r) => r.mois === prevMonth) ?? null;
     setPreviewData({
       report,
       clientName: selectedClientData?.nom ?? "",

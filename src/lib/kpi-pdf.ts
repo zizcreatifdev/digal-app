@@ -147,7 +147,7 @@ export function generateKpiPdf(
       },
     });
 
-    y = (pdf as any).lastAutoTable?.finalY + 12 || y + 30;
+    y = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY + 12 || y + 30;
   }
 
   // ─── TEXT SECTIONS ──────────────────────────────────────────
