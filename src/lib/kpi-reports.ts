@@ -141,7 +141,7 @@ export async function saveKpiReport(report: {
 
 export function hasMetrics(metriques: KpiMetriques): boolean {
   return Object.values(metriques).some(
-    (net) => net && Object.values(net).some((v) => v !== undefined && v !== 0)
+    (net) => net && Object.values(net).some((v) => v !== undefined && v !== null && v !== 0)
   );
 }
 

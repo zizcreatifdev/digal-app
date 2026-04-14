@@ -41,10 +41,14 @@ npx playwright show-report        # Rapport HTML
 
 | Fichier | Description | Statut |
 |---------|-------------|--------|
-| `src/test/example.test.ts` | Test placeholder trivial (`expect(true).toBe(true)`) | PLACEHOLDER |
+| `src/test/example.test.ts` | Test placeholder trivial (`expect(true).toBe(true)`) | ✅ OK |
+| `src/test/facturation.test.ts` | `calculateTotals` (8 cas) + `formatFCFA` (6 cas) | ✅ 14 tests |
+| `src/test/account-access.test.ts` | `getAccountAccess` — tous rôles + null/undefined | ✅ 13 tests |
+| `src/test/kpi-reports.test.ts` | `hasMetrics` (8 cas) + `getFilledMetrics` (10 cas) | ✅ 18 tests |
+| `src/test/preview-links.test.ts` | `getPeriodDates` — 4 périodes avec fakeTimers | ✅ 15 tests |
 | `src/test/setup.ts` | Configuration Testing Library (mock `matchMedia`) | Setup |
 
-**Couverture actuelle : ~0%** — Un seul test trivial existe.
+**Couverture actuelle : 61/61 tests passent** (était 1 test trivial).
 
 ### E2E (`playwright.config.ts`)
 
@@ -59,13 +63,13 @@ npx playwright show-report        # Rapport HTML
 |--------|----------------|-----------|----------|
 | `useAuth` | ❌ | ❌ | HAUTE |
 | `AuthGuard` | ❌ | ❌ | HAUTE |
-| `lib/facturation.ts` (`calculateTotals`, `formatFCFA`, `generateNumero`) | ❌ | ❌ | HAUTE |
+| `lib/facturation.ts` (`calculateTotals`, `formatFCFA`) | ✅ 14 tests | ❌ | HAUTE |
 | `lib/clients.ts` | ❌ | ❌ | MOYENNE |
 | `lib/posts.ts` (statuts, couleurs) | ❌ | ❌ | MOYENNE |
-| `lib/kpi-reports.ts` (`hasMetrics`, `getFilledMetrics`) | ❌ | ❌ | MOYENNE |
-| `lib/preview-links.ts` (`getPeriodDates`, `generateSlug`) | ❌ | ❌ | MOYENNE |
+| `lib/kpi-reports.ts` (`hasMetrics`, `getFilledMetrics`) | ✅ 18 tests | ❌ | MOYENNE |
+| `lib/preview-links.ts` (`getPeriodDates`) | ✅ 15 tests | ❌ | MOYENNE |
 | `lib/comptabilite.ts` | ❌ | ❌ | BASSE |
-| `lib/account-access.ts` (`getAccountAccess`) | ❌ | ❌ | HAUTE |
+| `lib/account-access.ts` (`getAccountAccess`) | ✅ 13 tests | ❌ | HAUTE |
 | `components/AuthGuard` | ❌ | ❌ | HAUTE |
 | Flux login/register | ❌ | ❌ | HAUTE |
 | Calendrier éditorial | ❌ | ❌ | MOYENNE |
@@ -161,8 +165,8 @@ vi.mock("@/hooks/useAuth", () => ({
 ## Rapport de couverture actuelle
 
 ```
-Tests : 1 / 1 passent (trivial)
-Couverture code : ~0%
+Tests : 61 / 61 passent
+Couverture code : ~40% sur lib/ (fonctions pures)
 Couverture E2E : 0%
 ```
 

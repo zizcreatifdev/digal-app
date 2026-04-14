@@ -250,7 +250,8 @@ _Prompt courant : Initialisation mémoire_
 |----------|------|
 | Erreurs ESLint | ✅ 0 erreur (était 66) |
 | Warnings ESLint | 15 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
-| Tests unitaires | ✅ 1/1 passent |
+| Tests unitaires | ✅ 61/61 passent (était 1/1 trivial) |
+| Fichiers de tests | 5 fichiers (example + facturation + account-access + kpi-reports + preview-links) |
 | TypeScript strict | Amélioré — `any` éliminés, types précis ajoutés |
 
 ---
@@ -263,3 +264,4 @@ _Prompt courant : Initialisation mémoire_
 | 01 | Correction 66 erreurs ESLint → 0 erreur | 2026-04-14 |
 | 02 | Dashboard connecté Supabase — stats réelles + activité réelle via `activity_logs` | 2026-04-14 |
 | 03 | Scan données hardcodées hors Dashboard — correction `cmName` KPI (email → prenom+nom DB) | 2026-04-14 |
+| 04 | Tests critiques — 61 tests unitaires sur facturation, account-access, kpi-reports, preview-links + fix bug `hasMetrics` null | 2026-04-14 |
