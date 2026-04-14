@@ -8,9 +8,9 @@ export function LandingFooter() {
           {/* Logo */}
           <div className="flex items-center">
             <img
-              src="/logos/Logo%20Digal_iconorange_ettext_enblanc.svg"
+              src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
               alt="Digal"
-              className="h-7 w-auto"
+              className="h-9 w-auto"
               loading="lazy"
             />
           </div>
