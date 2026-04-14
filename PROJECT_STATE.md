@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-14_
-_Prompt courant : 06 — Phase 1 fondations critiques_
+_Prompt courant : 07 — Phase 2A core_
 
 ---
 
@@ -24,6 +24,7 @@ _Prompt courant : 06 — Phase 1 fondations critiques_
 | **Protection routes par profileRole** | ✅ Complet (prompt-06) | `allowedProfileRoles` dans AuthGuard |
 | TOTP 2FA pour admin | ✅ Complet | `AdminTotpGate` |
 | Onboarding wizard | ✅ Complet | 4 étapes, skip possible |
+| **Checklist onboarding 5 étapes** | ✅ Complet (prompt-07) | `OnboardingChecklist` floating, badges, localStorage |
 | Waitlist | ✅ Complet | Page publique |
 | **Tests** | ❌ Aucun | Priorité haute |
 
@@ -45,7 +46,7 @@ _Prompt courant : 06 — Phase 1 fondations critiques_
 
 ---
 
-### Module CALENDRIER ÉDITORIAL — 80% ✅
+### Module CALENDRIER ÉDITORIAL — 85% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Vue calendrier mensuelle | ✅ Complet | `EditorialCalendar` |
@@ -53,6 +54,7 @@ _Prompt courant : 06 — Phase 1 fondations critiques_
 | Modifier un post | ✅ Complet | `EditPostModal` |
 | Workflow statuts | ✅ Complet | idee→en_production→validation→publie |
 | Upload média post | ✅ Complet | Supabase Storage `post-media` |
+| **Blocs périodes de production** | ✅ Complet (prompt-07) | 4 types colorés, shooting/montage/livraison/custom |
 | Filtres par client/réseau | ⚠️ Partiel | À vérifier |
 | Templates de posts | ⚠️ Partiel | Table existe, UI à confirmer |
 | Assignation à créateur | ✅ Complet | `assigne_a` field |
@@ -122,16 +124,17 @@ _Prompt courant : 06 — Phase 1 fondations critiques_
 
 ---
 
-### Module CRÉATEUR (workflow) — 75% ⚠️
+### Module CRÉATEUR (workflow) — 85% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Dashboard créateur | ✅ Complet | `CreatorDashboard` |
-| Tâches assignées | ✅ Complet | `fetchAssignedTasks()` |
+| Dashboard créateur | ✅ Complet | `CreatorDashboard` (tabs: Tâches / Boîte de dépôt) |
+| Tâches assignées | ✅ Complet | Mode 1 — `fetchAssignedTasks()` |
 | Upload média créateur | ✅ Complet | → statut `en_attente_validation` |
 | Validation CM | ✅ Complet | `validateCreatorUpload()` |
 | Rejet CM + commentaire | ✅ Complet | Suppression média, notif créateur |
 | Stats membre d'équipe | ✅ Complet | `getTeamMemberStats()` |
 | **Route /createur restreinte** | ✅ Complet (prompt-06) | Rôle createur uniquement |
+| **Mode 2 boîte de dépôt** | ✅ Complet (prompt-07) | `DropBoxUpload` + `DropBoxReview` + migration |
 | Notifications push | ⚠️ In-app only | Pas de push browser |
 | **Tests** | ❌ Aucun | |
 
@@ -274,9 +277,12 @@ _Prompt courant : 06 — Phase 1 fondations critiques_
 4. ~~**Route protection par profileRole**~~ → **Résolu prompt-06**
 5. ~~**Système licences réel (clés DIGAL)**~~ → **Résolu prompt-06**
 6. ~~**Service email (Resend + edge function)**~~ → **Résolu prompt-06**
-7. **Onboarding 5 étapes + badges** (§6 CDC) — 4 étapes seulement
-8. **Blocs périodes de production** dans calendrier (§9 CDC)
-9. **Boîte de dépôt Mode 2** créateur (§10 CDC)
+7. ~~**Onboarding 5 étapes + badges**~~ → **Résolu prompt-07** (checklist floating)
+8. ~~**Blocs périodes de production**~~ → **Résolu prompt-07**
+9. ~~**Boîte de dépôt Mode 2**~~ → **Résolu prompt-07**
+10. **Export CSV** comptabilité (§14)
+11. **Tampon + Signature** PDF (§13/§16)
+12. **SIGLE dans generateNumero()** (§13)
 
 ---
 
@@ -305,3 +311,4 @@ _Prompt courant : 06 — Phase 1 fondations critiques_
 | 05B | Audit CDC sections 6-10 → AUDIT_B.md | 2026-04-14 |
 | 05C | Audit CDC sections 11-17 → AUDIT_C.md | 2026-04-14 |
 | 06 | Phase 1 fondations critiques : licences DIGAL, service email Resend, routes par rôle, EditClientModal | 2026-04-14 |
+| 07 | Phase 2A core : onboarding checklist 5 étapes, blocs périodes production, boîte dépôt Mode 2 | 2026-04-14 |

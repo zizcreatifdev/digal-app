@@ -2,17 +2,21 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays } from "lucide-react";
 import { Post, fetchPosts, RESEAU_LABELS } from "@/lib/posts";
 import { PostCard } from "@/components/calendar/PostCard";
 import { CreatePostModal } from "@/components/calendar/CreatePostModal";
 import { EditPostModal } from "@/components/calendar/EditPostModal";
+import { ProductionPeriodModal } from "@/components/calendar/ProductionPeriodModal";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   eachDayOfInterval, format, addWeeks, subWeeks, addMonths, subMonths,
-  isSameDay, isToday,
+  isSameDay, isToday, parseISO,
 } from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  ProductionPeriod, getPeriodStyle, fetchProductionPeriods,
+} from "@/lib/production-periods";
 
 interface EditorialCalendarProps {
   clientId: string;
@@ -30,12 +34,19 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
   const [modalDate, setModalDate] = useState<Date | undefined>();
   const [editPost, setEditPost] = useState<Post | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [periods, setPeriods] = useState<ProductionPeriod[]>([]);
+  const [periodModalOpen, setPeriodModalOpen] = useState(false);
+  const [editPeriod, setEditPeriod] = useState<ProductionPeriod | null>(null);
 
   const loadPosts = () => {
     fetchPosts(clientId).then(setPosts).catch(() => {});
   };
 
-  useEffect(() => { loadPosts(); }, [clientId]);
+  const loadPeriods = () => {
+    fetchProductionPeriods(clientId).then(setPeriods).catch(() => {});
+  };
+
+  useEffect(() => { loadPosts(); loadPeriods(); }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredPosts = useMemo(() => {
     if (!filterReseau) return posts;
@@ -66,6 +77,20 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
 
   const postsForDay = (day: Date) =>
     filteredPosts.filter((p) => isSameDay(new Date(p.date_publication), day));
+
+  const periodsForDay = (day: Date) =>
+    periods.filter((p) => {
+      const start = parseISO(p.date_debut);
+      const end = parseISO(p.date_fin);
+      return day >= start && day <= end;
+    });
+
+  const isFirstDayOfPeriodInView = (day: Date, period: ProductionPeriod) => {
+    const periodStart = parseISO(period.date_debut);
+    if (isSameDay(day, periodStart)) return true;
+    // Also show label on first day of current view range
+    return isSameDay(day, days[0]) && day > periodStart;
+  };
 
   const handleDayClick = (day: Date) => {
     setModalDate(day);
@@ -145,6 +170,9 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
           <Button size="sm" onClick={() => { setModalDate(undefined); setModalOpen(true); }}>
             <Plus className="h-3.5 w-3.5" /> Post
           </Button>
+          <Button size="sm" variant="outline" onClick={() => { setEditPeriod(null); setPeriodModalOpen(true); }}>
+            <CalendarDays className="h-3.5 w-3.5" /> Période
+          </Button>
         </div>
       </div>
 
@@ -168,6 +196,20 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
                 </p>
               </div>
               <div className="p-1.5 space-y-1.5 min-h-[120px]">
+                {/* Production periods */}
+                {periodsForDay(day).map((period) => {
+                  const style = getPeriodStyle(period.type);
+                  return (
+                    <div
+                      key={period.id}
+                      className={`text-[10px] font-sans px-1.5 py-0.5 rounded border cursor-pointer truncate ${style.bg} ${style.color}`}
+                      onClick={(e) => { e.stopPropagation(); setEditPeriod(period); setPeriodModalOpen(true); }}
+                      title={period.titre}
+                    >
+                      {isFirstDayOfPeriodInView(day, period) ? period.titre : "·"}
+                    </div>
+                  );
+                })}
                 {postsForDay(day).map((post) => (
                   <PostCard key={post.id} post={post} onClick={handlePostClick} />
                 ))}
@@ -201,11 +243,25 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
                     {format(day, "d")}
                   </p>
                   <div className="space-y-0.5">
-                    {dayPosts.slice(0, 3).map((post) => (
+                    {/* Production periods */}
+                    {periodsForDay(day).map((period) => {
+                      const style = getPeriodStyle(period.type);
+                      return (
+                        <div
+                          key={period.id}
+                          className={`text-[9px] font-sans px-1 py-px rounded border cursor-pointer truncate ${style.bg} ${style.color}`}
+                          onClick={(e) => { e.stopPropagation(); setEditPeriod(period); setPeriodModalOpen(true); }}
+                          title={period.titre}
+                        >
+                          {isFirstDayOfPeriodInView(day, period) ? period.titre : "·"}
+                        </div>
+                      );
+                    })}
+                    {dayPosts.slice(0, 2).map((post) => (
                       <PostCard key={post.id} post={post} compact onClick={handlePostClick} />
                     ))}
-                    {dayPosts.length > 3 && (
-                      <p className="text-[9px] text-muted-foreground font-sans">+{dayPosts.length - 3} autres</p>
+                    {dayPosts.length > 2 && (
+                      <p className="text-[9px] text-muted-foreground font-sans">+{dayPosts.length - 2} autres</p>
                     )}
                   </div>
                 </div>
@@ -230,6 +286,14 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
         post={editPost}
         activeNetworks={activeNetworks}
         onSuccess={loadPosts}
+      />
+
+      <ProductionPeriodModal
+        open={periodModalOpen}
+        onOpenChange={setPeriodModalOpen}
+        clientId={clientId}
+        period={editPeriod}
+        onSuccess={loadPeriods}
       />
     </div>
   );

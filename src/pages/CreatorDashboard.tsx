@@ -2,14 +2,17 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AssignedTask, fetchAssignedTasks, submitCreatorUpload } from "@/lib/creator-workflow";
 import { POST_STATUTS, RESEAU_LABELS } from "@/lib/posts";
-import { Loader2, Upload, Image, Video, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, Upload, Image, Video, AlertTriangle, CheckCircle, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { DropBoxUpload } from "@/components/creator/DropBoxUpload";
 
 const CreatorDashboard = () => {
   const { user } = useAuth();
@@ -49,64 +52,131 @@ const CreatorDashboard = () => {
   const pendingTasks = tasks.filter((t) => t.statut === "en_production" && !t.review_comment);
   const rejectedTasks = tasks.filter((t) => t.statut === "en_production" && t.review_comment);
 
+  // Unique clients from assigned tasks (for Mode 2)
+  const clientOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return tasks.reduce<{ clientId: string; clientName: string; ownerId: string }[]>((acc, t) => {
+      if (t.client_id && !seen.has(t.client_id)) {
+        seen.add(t.client_id);
+        acc.push({ clientId: t.client_id, clientName: t.client_nom ?? t.client_id, ownerId: t.user_id });
+      }
+      return acc;
+    }, []);
+  }, [tasks]);
+
+  const [dropBoxClientId, setDropBoxClientId] = useState<string>("");
+  const selectedClientOption = clientOptions.find(c => c.clientId === dropBoxClientId);
+
   return (
-    <DashboardLayout pageTitle="Mes tâches">
+    <DashboardLayout pageTitle="Mes missions">
       <div className="animate-fade-in space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mes tâches</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Mes missions</h1>
           <p className="text-muted-foreground font-sans mt-1">
-            {tasks.length} tâche{tasks.length !== 1 ? "s" : ""} assignée{tasks.length !== 1 ? "s" : ""}
+            Tâches assignées et boîte de dépôt
           </p>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="text-center py-16">
-            <CheckCircle className="h-12 w-12 text-success/40 mx-auto mb-3" />
-            <p className="text-muted-foreground font-sans">Aucune tâche en cours. Bravo !</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Rejected tasks first */}
-            {rejectedTasks.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-sm font-semibold font-sans text-destructive flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  À refaire ({rejectedTasks.length})
-                </h2>
-                {rejectedTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    uploading={uploading === task.id}
-                    onUpload={(file) => handleUpload(task, file)}
-                    isRejected
-                  />
-                ))}
-              </div>
-            )}
+        <Tabs defaultValue="taches">
+          <TabsList>
+            <TabsTrigger value="taches" className="font-sans">
+              Tâches assignées
+              {(pendingTasks.length + rejectedTasks.length) > 0 && (
+                <span className="ml-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+                  {pendingTasks.length + rejectedTasks.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="depot" className="font-sans">
+              <Inbox className="h-3.5 w-3.5 mr-1" /> Boîte de dépôt
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Pending tasks */}
-            {pendingTasks.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-sm font-semibold font-sans text-muted-foreground">
-                  À faire ({pendingTasks.length})
-                </h2>
-                {pendingTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    uploading={uploading === task.id}
-                    onUpload={(file) => handleUpload(task, file)}
-                  />
-                ))}
+          {/* Mode 1 — Assigned tasks */}
+          <TabsContent value="taches" className="mt-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-16">
+                <CheckCircle className="h-12 w-12 text-success/40 mx-auto mb-3" />
+                <p className="text-muted-foreground font-sans">Aucune tâche en cours. Bravo !</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {rejectedTasks.length > 0 && (
+                  <div className="space-y-3">
+                    <h2 className="text-sm font-semibold font-sans text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      À refaire ({rejectedTasks.length})
+                    </h2>
+                    {rejectedTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        uploading={uploading === task.id}
+                        onUpload={(file) => handleUpload(task, file)}
+                        isRejected
+                      />
+                    ))}
+                  </div>
+                )}
+                {pendingTasks.length > 0 && (
+                  <div className="space-y-3">
+                    <h2 className="text-sm font-semibold font-sans text-muted-foreground">
+                      À faire ({pendingTasks.length})
+                    </h2>
+                    {pendingTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        uploading={uploading === task.id}
+                        onUpload={(file) => handleUpload(task, file)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
+          </TabsContent>
+
+          {/* Mode 2 — Drop box */}
+          <TabsContent value="depot" className="mt-4">
+            {clientOptions.length === 0 ? (
+              <div className="text-center py-16">
+                <Inbox className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground font-sans text-sm">
+                  Aucun client disponible. Le CM doit d'abord vous assigner une tâche.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="max-w-xs">
+                  <Select value={dropBoxClientId} onValueChange={setDropBoxClientId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un client..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientOptions.map(c => (
+                        <SelectItem key={c.clientId} value={c.clientId}>{c.clientName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {dropBoxClientId && selectedClientOption ? (
+                  <DropBoxUpload
+                    ownerId={selectedClientOption.ownerId}
+                    clientId={selectedClientOption.clientId}
+                    clientName={selectedClientOption.clientName}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground font-sans">Sélectionnez un client pour déposer un fichier.</p>
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

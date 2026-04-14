@@ -14,6 +14,7 @@ import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLi
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
 import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
 import { EditClientModal } from "@/components/clients/EditClientModal";
+import { DropBoxReview } from "@/components/clients/DropBoxReview";
 import { toast } from "sonner";
 
 const ClientDetail = () => {
@@ -172,14 +173,7 @@ const ClientDetail = () => {
           </TabsContent>
 
           <TabsContent value="fichiers" className="mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Fichiers</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground font-sans text-center py-12">
-                  La gestion de fichiers sera bientôt disponible ici.
-                </p>
-              </CardContent>
-            </Card>
+            <DropBoxReview clientId={client.id} />
           </TabsContent>
 
           <TabsContent value="factures" className="mt-4">

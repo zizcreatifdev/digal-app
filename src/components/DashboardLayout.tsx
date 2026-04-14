@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { NotificationPanel, useNotificationCount } from "@/components/NotificationPanel";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
         </div>
       </div>
       <NotificationPanel open={notifOpen} onOpenChange={setNotifOpen} />
+      <OnboardingChecklist />
     </SidebarProvider>
   );
 }
