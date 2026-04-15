@@ -54,8 +54,10 @@ interface UserProfile {
 
 interface AccountDetail {
   clients: { id: string; nom: string; statut: string }[];
+  clientsActifs: number;
   postsCount: number;
-  documentsCount: number;
+  previewLinksCount: number;
+  facturesMoisTotal: number;
   lastActivity: string | null;
 }
 
@@ -145,7 +147,7 @@ export default function AdminComptes() {
         .from("activity_logs")
         .select("user_id, created_at")
         .eq("type_action", "auth")
-        .eq("action", "Connexion")
+        .eq("action", "login_success")
         .order("created_at", { ascending: false })
         .limit(5000);
       const map: Record<string, Date> = {};
@@ -192,16 +194,22 @@ export default function AdminComptes() {
     setDetail(null);
     setFinancial(null);
     try {
-      const [clientsRes, postsRes, docsRes, logsRes] = await Promise.all([
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const [clientsRes, postsRes, previewRes, facturesRes, logsRes] = await Promise.all([
         supabase.from("clients").select("id, nom, statut").eq("user_id", u.user_id),
         supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", u.user_id),
-        supabase.from("documents").select("id", { count: "exact", head: true }).eq("user_id", u.user_id),
+        supabase.from("preview_links").select("id", { count: "exact", head: true }).eq("user_id", u.user_id),
+        supabase.from("documents").select("total").eq("user_id", u.user_id).eq("type", "facture").gte("created_at", monthStart),
         supabase.from("activity_logs").select("created_at").eq("user_id", u.user_id).order("created_at", { ascending: false }).limit(1),
       ]);
+      const allClients = (clientsRes.data ?? []) as { id: string; nom: string; statut: string }[];
       setDetail({
-        clients: (clientsRes.data ?? []) as { id: string; nom: string; statut: string }[],
+        clients: allClients,
+        clientsActifs: allClients.filter((c) => c.statut === "actif").length,
         postsCount: postsRes.count ?? 0,
-        documentsCount: docsRes.count ?? 0,
+        previewLinksCount: previewRes.count ?? 0,
+        facturesMoisTotal: (facturesRes.data ?? []).reduce((s, d) => s + (d.total ?? 0), 0),
         lastActivity: logsRes.data?.[0]?.created_at ?? null,
       });
     } catch {
@@ -506,12 +514,36 @@ export default function AdminComptes() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDetail(null); } }}>
+        <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDetail(null); setFinancial(null); } }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-serif flex items-center gap-2">
-                {selected?.prenom} {selected?.nom}
-                {selected && getRoleBadge(selected.role)}
+              <DialogTitle asChild>
+                <div className="flex items-center gap-3">
+                  {selected && (
+                    <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                      selected.role === "owner" || selected.role === "dm" ? "bg-primary text-primary-foreground" :
+                      selected.role === "solo" ? "bg-blue-600 text-white" :
+                      selected.role === "agence_standard" ? "bg-purple-600 text-white" :
+                      selected.role === "agence_pro" ? "bg-indigo-700 text-white" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {(selected.prenom?.[0] ?? "").toUpperCase()}{(selected.nom?.[0] ?? "").toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-serif text-lg font-bold">{selected?.prenom} {selected?.nom}</span>
+                      {selected && getRoleBadge(selected.role)}
+                    </div>
+                    <p className="text-xs text-muted-foreground font-sans font-normal truncate">{selected?.email}</p>
+                    <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground font-sans font-normal">
+                      <span>Inscrit le {selected ? new Date(selected.created_at).toLocaleDateString("fr-FR") : ""}</span>
+                      {selected && lastLoginMap && (
+                        <span>· {formatRelativeTime(lastLoginMap[selected.user_id] ?? null).text}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </DialogTitle>
             </DialogHeader>
             {selected && (
@@ -533,9 +565,7 @@ export default function AdminComptes() {
 
                 <TabsContent value="apercu" className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-3 text-sm font-sans">
-                    <div><span className="text-muted-foreground">Email</span><p className="font-medium">{selected.email}</p></div>
                     <div><span className="text-muted-foreground">Plan</span><p className="font-medium">{selected.role}</p></div>
-                    <div><span className="text-muted-foreground">Inscription</span><p className="font-medium">{new Date(selected.created_at).toLocaleDateString("fr-FR")}</p></div>
                     <div><span className="text-muted-foreground">Expiration</span><p className="font-medium">{selected.licence_expiration ? new Date(selected.licence_expiration).toLocaleDateString("fr-FR") : "-"}</p></div>
                     {selected.agence_nom && <div className="col-span-2"><span className="text-muted-foreground">Agence</span><p className="font-medium">{selected.agence_nom}</p></div>}
                   </div>
@@ -543,26 +573,33 @@ export default function AdminComptes() {
                   {loadingDetail ? (
                     <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                   ) : detail && (
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <Card>
                         <CardContent className="pt-4 pb-3 text-center">
                           <Users className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xl font-bold font-serif">{detail.clients.length}</p>
-                          <p className="text-[10px] text-muted-foreground">Clients</p>
+                          <p className="text-xl font-bold font-serif">{detail.clientsActifs}</p>
+                          <p className="text-[10px] text-muted-foreground">Clients actifs</p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardContent className="pt-4 pb-3 text-center">
                           <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
                           <p className="text-xl font-bold font-serif">{detail.postsCount}</p>
-                          <p className="text-[10px] text-muted-foreground">Posts</p>
+                          <p className="text-[10px] text-muted-foreground">Posts créés</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="pt-4 pb-3 text-center">
+                          <Activity className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xl font-bold font-serif">{detail.previewLinksCount}</p>
+                          <p className="text-[10px] text-muted-foreground">Liens générés</p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardContent className="pt-4 pb-3 text-center">
                           <FileText className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xl font-bold font-serif">{detail.documentsCount}</p>
-                          <p className="text-[10px] text-muted-foreground">Documents</p>
+                          <p className="text-xl font-bold font-serif">{detail.facturesMoisTotal > 0 ? (detail.facturesMoisTotal / 1000).toFixed(0) + "k" : "0"}</p>
+                          <p className="text-[10px] text-muted-foreground">Facturé ce mois (FCFA)</p>
                         </CardContent>
                       </Card>
                     </div>
