@@ -88,7 +88,7 @@ export async function fetchClientNetworks(clientId: string) {
 }
 
 export async function createClient(
-  client: Omit<Client, "id" | "created_at" | "updated_at">,
+  client: Omit<Client, "id" | "created_at" | "updated_at" | "preview_slug">,
   networks: { reseau: string; formats: string[]; frequence_posts: number; notes_editoriales: string }[]
 ) {
   const { data, error } = await supabase

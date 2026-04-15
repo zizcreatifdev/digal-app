@@ -23,6 +23,7 @@ const ClientsPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -34,7 +35,10 @@ const ClientsPage = () => {
       .select("role, plan")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setProfile(data ?? null));
+      .then(({ data, error }) => {
+      if (!error) setProfile(data ?? null);
+      setProfileLoaded(true);
+    });
   }, [user]);
 
   const { isFreemium } = getAccountAccess(profile);
@@ -74,7 +78,8 @@ const ClientsPage = () => {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleAddClick = () => {
-    if (isFreemium && activeClients.length >= maxClients) {
+    // Only block if the profile has finished loading AND user is confirmed freemium
+    if (profileLoaded && isFreemium && activeClients.length >= maxClients) {
       setLimitModalOpen(true);
     } else {
       setModalOpen(true);
