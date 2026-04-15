@@ -12,7 +12,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@3";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const FROM = "Digal <noreply@digal.app>";
+const FROM = "Digal <onboarding@resend.dev>";
 const APP_URL = "https://digal.vercel.app";
 
 function wrapHtml(body: string): string {

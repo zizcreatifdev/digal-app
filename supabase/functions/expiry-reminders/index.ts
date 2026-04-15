@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const FROM = "Digal <noreply@digal.app>";
+const FROM = "Digal <onboarding@resend.dev>";
 const APP_URL = "https://digal.vercel.app";
 
 // ─── Shared layout ────────────────────────────────────────────────────────────
