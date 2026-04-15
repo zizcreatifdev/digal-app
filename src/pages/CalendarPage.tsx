@@ -11,22 +11,39 @@ const CalendarPage = () => {
   const [networks, setNetworks] = useState<string[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileRole, setProfileRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
-      .from("clients")
-      .select("id, nom, couleur_marque")
+      .from("users")
+      .select("role")
       .eq("user_id", user.id)
-      .eq("statut", "actif")
-      .order("nom")
-      .then(({ data }) => {
-        const list = data ?? [];
-        setClients(list);
-        if (list.length > 0) setSelectedClient(list[0].id);
-        setLoading(false);
-      });
+      .maybeSingle()
+      .then(({ data }) => setProfileRole(data?.role ?? null));
   }, [user]);
+
+  useEffect(() => {
+    if (!user || profileRole === undefined) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query = (supabase.from("clients") as any)
+      .select("id, nom, couleur_marque")
+      .eq("statut", "actif")
+      .order("nom");
+
+    if (profileRole === "cm") {
+      query = query.or(`user_id.eq.${user.id},assigned_cm.eq.${user.id}`);
+    } else {
+      query = query.eq("user_id", user.id);
+    }
+
+    query.then(({ data }: { data: { id: string; nom: string; couleur_marque: string | null }[] | null }) => {
+      const list = data ?? [];
+      setClients(list);
+      if (list.length > 0) setSelectedClient(list[0].id);
+      setLoading(false);
+    });
+  }, [user, profileRole]);
 
   useEffect(() => {
     if (!selectedClient) return;

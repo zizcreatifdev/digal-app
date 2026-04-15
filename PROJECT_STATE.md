@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 25 — Licences complètes + numérotation_
+_Prompt courant : 26 — Sécurité rôles + limites Freemium_
 
 ---
 
@@ -202,6 +202,19 @@ _Prompt courant : 25 — Licences complètes + numérotation_
 | Modèles de posts | ✅ Complet | Limite 3 freemium |
 | Période preview par défaut | ✅ Complet (prompt-10) | |
 | Notifications push | ✅ Complet (prompt-11) | Toggle Web Push |
+
+---
+
+### Module AUTH — 100% ✅ (prompt-26)
+| Fonctionnalité | État | Notes |
+|----------------|------|-------|
+| Guards routes avec toast "Accès non autorisé" | ✅ Complet (prompt-26) | AuthGuard useEffect + toast.error |
+| `/dashboard/calendrier` restreint (no createur) | ✅ Complet (prompt-26) | allowedProfileRoles sans createur |
+| Filtrage clients par rôle CM | ✅ Complet (prompt-26) | fetchClients({ role }) + assigned_cm |
+| Freemium limit clients → FreemiumLimitModal | ✅ Complet (prompt-26) | Bouton → /parametres?tab=licence |
+| Freemium limit archives → FreemiumLimitModal | ✅ Complet (prompt-26) | ClientDetail |
+| Freemium limit templates → FreemiumLimitModal | ✅ Complet (prompt-26) | Settings TemplatesTab |
+| Settings deep-link ?tab=licence | ✅ Complet (prompt-26) | useSearchParams |
 
 ---
 

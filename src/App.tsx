@@ -121,7 +121,7 @@ const App = () => (
             <Route
               path="/dashboard/calendrier"
               element={
-                <AuthGuard>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro", "freemium", "cm"]}>
                   <CalendarPage />
                 </AuthGuard>
               }

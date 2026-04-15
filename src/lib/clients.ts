@@ -43,17 +43,29 @@ export const PAYMENT_MODES = [
   { id: "cash", label: "Cash" },
 ] as const;
 
-export async function fetchClients(statut: "actif" | "archive" = "actif") {
+export async function fetchClients(
+  statut: "actif" | "archive" = "actif",
+  opts?: { role?: string | null }
+) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
-  const { data, error } = await supabase
-    .from("clients")
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query = (supabase.from("clients") as any)
     .select("*")
-    .eq("user_id", user.id)
     .eq("statut", statut)
     .order("created_at", { ascending: false });
+
+  if (opts?.role === "cm") {
+    // CM sees: clients they created OR clients where they are the assigned CM
+    query = query.or(`user_id.eq.${user.id},assigned_cm.eq.${user.id}`);
+  } else {
+    query = query.eq("user_id", user.id);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
-  return data as Client[];
+  return (data ?? []) as Client[];
 }
 
 export async function fetchClient(id: string) {

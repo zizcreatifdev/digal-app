@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import { toast } from "@/components/ui/sonner";
 import { RESEAUX } from "@/lib/clients";
 import type { Tables } from "@/integrations/supabase/types";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush, getNotificationPermission } from "@/lib/push-notifications";
+import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 
 type UserRow = Tables<"users">;
 type PostTemplateRow = Tables<"post_templates">;
@@ -715,10 +717,13 @@ function TeamTab() {
 }
 
 /* ──────────────────────── TEMPLATES TAB ──────────────────────── */
+const FREEMIUM_TEMPLATE_LIMIT = 3;
+
 function TemplatesTab() {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<PostTemplateRow[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [templateLimitModalOpen, setTemplateLimitModalOpen] = useState(false);
   const [titre, setTitre] = useState("");
   const [texte, setTexte] = useState("");
   const [reseau, setReseau] = useState("instagram");
@@ -732,16 +737,13 @@ function TemplatesTab() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
-
-  const FREEMIUM_TEMPLATE_LIMIT = 3;
+  useEffect(() => { load(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = async () => {
     if (!user || !titre) return;
-    // Freemium: enforce template limit
     const { data: profile } = await supabase.from("users").select("role, plan").eq("user_id", user.id).single();
     if (profile?.role === "freemium" && !profile?.plan && templates.length >= FREEMIUM_TEMPLATE_LIMIT) {
-      toast.error(`Limite atteinte : les comptes Freemium peuvent créer au maximum ${FREEMIUM_TEMPLATE_LIMIT} modèles.`);
+      setTemplateLimitModalOpen(true);
       return;
     }
     const { error } = await supabase.from("post_templates").insert({ user_id: user.id, titre, texte, reseau, format });
@@ -829,6 +831,12 @@ function TemplatesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FreemiumLimitModal
+        open={templateLimitModalOpen}
+        onOpenChange={setTemplateLimitModalOpen}
+        description={`Les comptes Freemium peuvent créer au maximum ${FREEMIUM_TEMPLATE_LIMIT} modèles de posts. Activez une licence pour en créer sans limite.`}
+      />
     </div>
   );
 }
@@ -1041,12 +1049,20 @@ function NotificationsTab() {
   );
 }
 
+const VALID_TABS = ["profil", "facturation", "equipe", "modeles", "licence", "notifications"] as const;
+type SettingsTab = typeof VALID_TABS[number];
+
 /* ──────────────────────── MAIN SETTINGS PAGE ──────────────────────── */
 export default function Settings() {
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab: SettingsTab = VALID_TABS.includes(tabParam as SettingsTab) ? (tabParam as SettingsTab) : "profil";
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+
   return (
     <DashboardLayout pageTitle="Paramètres">
       <div className="max-w-4xl mx-auto">
-        <Tabs defaultValue="profil" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SettingsTab)} className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
             <TabsTrigger value="profil" className="text-xs"><User className="h-3.5 w-3.5 mr-1" /> Profil</TabsTrigger>
             <TabsTrigger value="facturation" className="text-xs"><FileText className="h-3.5 w-3.5 mr-1" /> Facturation</TabsTrigger>

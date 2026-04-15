@@ -1,6 +1,8 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -20,6 +22,23 @@ const Spinner = () => (
 export function AuthGuard({ children, requiredRole, allowedProfileRoles }: AuthGuardProps) {
   const { session, userRole, profileRole, profileRoleLoaded, loading } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  // Compute role denial before conditional returns (hooks must be unconditional)
+  const isRoleDenied =
+    !loading &&
+    profileRoleLoaded &&
+    !!session &&
+    !!allowedProfileRoles &&
+    allowedProfileRoles.length > 0 &&
+    (profileRole === null || !allowedProfileRoles.includes(profileRole));
+
+  useEffect(() => {
+    if (isRoleDenied) {
+      toast.error("Accès non autorisé");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isRoleDenied, navigate]);
 
   if (loading) return <Spinner />;
 
@@ -45,11 +64,8 @@ export function AuthGuard({ children, requiredRole, allowedProfileRoles }: AuthG
     return <Navigate to="/admin" replace />;
   }
 
-  if (allowedProfileRoles && allowedProfileRoles.length > 0) {
-    if (!profileRoleLoaded) return <Spinner />;
-    const allowed = profileRole !== null && allowedProfileRoles.includes(profileRole);
-    if (!allowed) return <Navigate to="/dashboard" replace />;
-  }
+  // Role denied: show spinner while useEffect redirects with toast
+  if (isRoleDenied) return <Spinner />;
 
   return <>{children}</>;
 }
