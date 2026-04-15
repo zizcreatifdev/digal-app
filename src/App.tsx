@@ -33,7 +33,6 @@ import AdminLicences from "./pages/admin/AdminLicences";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminEmails from "./pages/admin/AdminEmails";
 import AdminFacturation from "./pages/admin/AdminFacturation";
-import AdminPlaceholder from "./pages/admin/AdminPlaceholder";
 import AdminSetup from "./pages/admin/AdminSetup";
 import AdminGuides from "./pages/admin/AdminGuides";
 import AdminPlans from "./pages/admin/AdminPlans";
@@ -256,15 +255,6 @@ const App = () => (
                 <AuthGuard requiredRole="admin">
                   <AdminTotpGate>
                     <AdminFacturation />
-                  </AdminTotpGate>
-                </AuthGuard>
-              }
-            />
-            <Route
-              element={
-                <AuthGuard requiredRole="admin">
-                  <AdminTotpGate>
-                    <AdminPlaceholder title="Section admin" />
                   </AdminTotpGate>
                 </AuthGuard>
               }
