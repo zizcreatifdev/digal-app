@@ -94,10 +94,17 @@ const Dashboard = () => {
         const expiry = new Date(prof.licence_expiration);
         const now = new Date();
         const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        const dismissedAt = sessionStorage.getItem(LICENSE_EXPIRY_POPUP_KEY);
-        if (daysLeft <= 30 && !dismissedAt) {
-          setExpiryDaysLeft(daysLeft);
-          setShowExpiryPopup(true);
+
+        if (daysLeft <= 0) {
+          // Licence expired — revert to freemium in DB
+          await supabase.from("users").update({ role: "freemium", updated_at: new Date().toISOString() }).eq("user_id", user.id);
+          setProfile((prev) => prev ? { ...prev, role: "freemium" } : prev);
+        } else {
+          const dismissedAt = sessionStorage.getItem(LICENSE_EXPIRY_POPUP_KEY);
+          if (daysLeft <= 30 && !dismissedAt) {
+            setExpiryDaysLeft(daysLeft);
+            setShowExpiryPopup(true);
+          }
         }
       }
 

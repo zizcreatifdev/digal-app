@@ -878,6 +878,8 @@ function LicenseTab() {
   const handleActivate = async () => {
     const key = keyInput.trim().toUpperCase();
     if (!key) { toast.error("Saisissez une clé de licence"); return; }
+    const KEY_REGEX = /^DIGAL-(SOLO|STD|PRO)-[A-Z0-9]{6}$/;
+    if (!KEY_REGEX.test(key)) { toast.error("Format de clé invalide (ex: DIGAL-SOLO-AB12CD)"); return; }
     if (!user) return;
 
     setActivating(true);

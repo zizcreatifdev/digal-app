@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 23 — Dashboard Owner enrichi KPIs_
+_Prompt courant : 25 — Licences complètes + numérotation_
 
 ---
 
@@ -154,6 +154,9 @@ _Prompt courant : 23 — Dashboard Owner enrichi KPIs_
 | Activation côté utilisateur | ✅ Complet | RPC `activate_license_key` |
 | Extension cumulative expiration | ✅ Complet | |
 | Popup expiration J-30 | ✅ Complet | |
+| Retour freemium auto si expirée | ✅ Complet (prompt-25) | Dashboard.tsx `check()` — UPDATE DB |
+| Validation format clé (regex) | ✅ Complet (prompt-25) | `DIGAL-(SOLO\|STD\|PRO)-[A-Z0-9]{6}` |
+| Messages RPC distincts | ✅ Complet (prompt-25) | "Clé introuvable" vs "déjà utilisée" |
 | Clé promo (-30%) | ✅ Complet (prompt-09) | |
 | Prolongation manuelle (N mois) | ✅ Complet (prompt-09) | |
 | Rappels J-30/15/7 (cron) | ✅ Complet (prompt-09) | Edge fn + pg_cron |
