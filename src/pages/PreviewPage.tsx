@@ -74,61 +74,53 @@ const PreviewPage = () => {
     return Math.round((reviewed / posts.length) * 100);
   }, [posts, actions]);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!slug) return;
-    loadData();
-  }, [slug]);
-
-  const loadData = async () => {
     setLoading(true);
+
+    // Timeout: if any Supabase query hangs more than 15s, bail out
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 15000)
+    );
+
     try {
-      const linkData = await fetchPreviewLinkBySlug(slug!);
+      const linkData = await Promise.race([fetchPreviewLinkBySlug(slug), timeout]);
       setLink(linkData);
 
       if (linkData.statut === "termine") {
         setSubmitted(true);
-        setLoading(false);
         return;
       }
 
       if (linkData.statut !== "actif" || new Date(linkData.expires_at) < new Date()) {
         setExpired(true);
-        setLoading(false);
         return;
       }
 
-      const { data: clientData } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("id", linkData.client_id)
-        .single();
-      setClient(clientData as Client);
+      const [clientResult, cmResult, postsResult, actionsData] = await Promise.race([
+        Promise.all([
+          supabase.from("clients").select("*").eq("id", linkData.client_id).single(),
+          supabase.from("users").select("nom, prenom, agence_nom, logo_url").eq("user_id", linkData.user_id).maybeSingle(),
+          supabase.from("posts").select("*").eq("client_id", linkData.client_id).gte("date_publication", linkData.periode_debut).lte("date_publication", linkData.periode_fin).order("date_publication", { ascending: true }),
+          fetchPreviewActions(linkData.id).catch(() => [] as PreviewAction[]),
+        ]),
+        timeout,
+      ]);
 
-      // Fetch CM (prestataire) info
-      const { data: cmData } = await supabase
-        .from("users")
-        .select("nom, prenom, agence_nom, logo_url")
-        .eq("user_id", linkData.user_id)
-        .single();
-      setCmUser(cmData);
-
-      const { data: postsData } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("client_id", linkData.client_id)
-        .gte("date_publication", linkData.periode_debut)
-        .lte("date_publication", linkData.periode_fin)
-        .order("date_publication", { ascending: true });
-      setPosts((postsData ?? []) as Post[]);
-
-      const actionsData = await fetchPreviewActions(linkData.id);
+      setClient(clientResult.data as Client);
+      setCmUser(cmResult.data);
+      setPosts((postsResult.data ?? []) as Post[]);
       setActions(actionsData);
     } catch {
       setExpired(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getPostAction = useCallback((postId: string) =>
     actions.find((a) => a.post_id === postId), [actions]);
