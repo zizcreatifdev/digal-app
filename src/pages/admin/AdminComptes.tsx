@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,7 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
-  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus,
+  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
@@ -65,8 +66,31 @@ interface AccountFinancial {
   masseSalariale: number;
 }
 
+function formatRelativeTime(date: Date | null): { text: string; isOld: boolean } {
+  if (!date) return { text: "Jamais", isOld: true };
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  let text: string;
+  if (diffHours < 1) text = "Il y a moins d'1h";
+  else if (diffHours < 24) text = `Il y a ${diffHours}h`;
+  else if (diffDays === 1) text = "Il y a 1 jour";
+  else text = `Il y a ${diffDays} jours`;
+  return { text, isOld: diffDays >= 30 };
+}
+
+const FILTER_LABELS: Record<string, string> = {
+  inactive7: "Inactifs 7 jours",
+  inactive30: "Inactifs 30 jours",
+  never: "Jamais connectés",
+  hot: "Prospects chauds",
+};
+
 export default function AdminComptes() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filterParam = searchParams.get("filter");
   const [selected, setSelected] = useState<UserProfile | null>(null);
   const [detail, setDetail] = useState<AccountDetail | null>(null);
   const [financial, setFinancial] = useState<AccountFinancial | null>(null);
@@ -112,6 +136,43 @@ export default function AdminComptes() {
       return data as UserProfile[];
     },
   });
+
+  // Last login map (shared query key with AdminDashboard)
+  const { data: lastLoginMap } = useQuery({
+    queryKey: ["admin-last-logins"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("user_id, created_at")
+        .eq("type_action", "auth")
+        .eq("action", "Connexion")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      const map: Record<string, Date> = {};
+      for (const log of data ?? []) {
+        if (!map[log.user_id]) map[log.user_id] = new Date(log.created_at);
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  // Filtered users based on URL param
+  const filteredUsers = (() => {
+    if (!users || !filterParam || !lastLoginMap) return users;
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return users.filter((u) => {
+      const lastLogin = lastLoginMap[u.user_id] ?? null;
+      const activationDate = new Date(u.created_at);
+      if (filterParam === "inactive7") return lastLogin ? lastLogin < sevenDaysAgo : false;
+      if (filterParam === "inactive30") return lastLogin ? lastLogin < thirtyDaysAgo : false;
+      if (filterParam === "never") return !lastLogin;
+      if (filterParam === "hot") return u.role === "freemium" && activationDate < thirtyDaysAgo && !!lastLogin;
+      return true;
+    });
+  })();
 
   const updateUser = useMutation({
     mutationFn: async (updates: { id: string } & Partial<Omit<UserProfile, "id">>) => {
@@ -258,9 +319,22 @@ export default function AdminComptes() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Comptes utilisateurs</h1>
-            <p className="text-muted-foreground font-sans mt-1">
-              {users?.length ?? 0} comptes enregistrés, cliquez sur un compte pour voir son activité
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-muted-foreground font-sans">
+                {filteredUsers?.length ?? 0} compte(s) affiché(s)
+                {filterParam && ` · filtre : ${FILTER_LABELS[filterParam] ?? filterParam}`}
+              </p>
+              {filterParam && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs font-sans gap-1"
+                  onClick={() => setSearchParams({})}
+                >
+                  <X className="h-3 w-3" /> Retirer le filtre
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => setCreateOpen(true)} className="font-sans">
@@ -286,31 +360,39 @@ export default function AdminComptes() {
                     <TableHead>Statut licence</TableHead>
                     <TableHead>Expiration</TableHead>
                     <TableHead>Inscription</TableHead>
+                    <TableHead>Dernière connexion</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users?.map((u) => (
-                    <TableRow key={u.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(u)}>
-                      <TableCell className="font-medium">{u.prenom} {u.nom}</TableCell>
-                      <TableCell className="text-sm">{u.email}</TableCell>
-                      <TableCell>{getRoleBadge(u.role)}</TableCell>
-                      <TableCell>{getStatusBadge(u)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(u.created_at).toLocaleDateString("fr-FR")}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openDetail(u); }}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {users?.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-12">Aucun compte</TableCell></TableRow>
+                  {filteredUsers?.map((u) => {
+                    const lastLoginDate = lastLoginMap ? (lastLoginMap[u.user_id] ?? null) : null;
+                    const { text: lastLoginText, isOld } = formatRelativeTime(lastLoginDate);
+                    return (
+                      <TableRow key={u.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(u)}>
+                        <TableCell className="font-medium">{u.prenom} {u.nom}</TableCell>
+                        <TableCell className="text-sm">{u.email}</TableCell>
+                        <TableCell>{getRoleBadge(u.role)}</TableCell>
+                        <TableCell>{getStatusBadge(u)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                        </TableCell>
+                        <TableCell className={`text-xs ${isOld ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+                          {lastLoginMap ? lastLoginText : <Loader2 className="h-3 w-3 animate-spin" />}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openDetail(u); }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredUsers?.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Aucun compte</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

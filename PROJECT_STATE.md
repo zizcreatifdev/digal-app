@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-14_
-_Prompt courant : 12 — Migration Supabase personnel_
+_Dernière mise à jour : 2026-04-15_
+_Prompt courant : 23 — Dashboard Owner enrichi KPIs_
 
 ---
 
