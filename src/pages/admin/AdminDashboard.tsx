@@ -136,6 +136,7 @@ async function fetchKpis(planPrices: Record<string, number>): Promise<KpiData> {
 
 async function fetchHealthData(users: UserRow[]): Promise<HealthAndAlerts> {
   const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -145,7 +146,7 @@ async function fetchHealthData(users: UserRow[]): Promise<HealthAndAlerts> {
     .from("activity_logs")
     .select("user_id, created_at")
     .eq("type_action", "auth")
-    .eq("action", "Connexion")
+    .eq("action", "login_success")
     .order("created_at", { ascending: false })
     .limit(5000);
 
@@ -169,9 +170,9 @@ async function fetchHealthData(users: UserRow[]): Promise<HealthAndAlerts> {
     const licenceExp = user.licence_expiration ? new Date(user.licence_expiration) : null;
 
     // Health widgets
-    if (!lastLogin) {
+    if (!lastLogin && activationDate < oneHourAgo) {
       neverConnected++;
-    } else {
+    } else if (lastLogin) {
       if (lastLogin < sevenDaysAgo) inactive7++;
       if (lastLogin < thirtyDaysAgo) inactive30++;
     }
@@ -215,8 +216,8 @@ async function fetchHealthData(users: UserRow[]): Promise<HealthAndAlerts> {
       });
     }
 
-    // INFO: Never connected after activation
-    if (!lastLogin) {
+    // INFO: Never connected after activation (exclude accounts < 1 hour old)
+    if (!lastLogin && activationDate < oneHourAgo) {
       const days = Math.floor((now.getTime() - activationDate.getTime()) / (24 * 60 * 60 * 1000));
       alerts.push({
         priority: "info",

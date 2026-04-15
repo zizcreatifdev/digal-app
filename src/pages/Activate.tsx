@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity-logs";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,11 @@ export default function Activate() {
       });
 
       if (signInError) throw signInError;
+
+      const { data: { user: newUser } } = await supabase.auth.getUser();
+      if (newUser) {
+        await logActivity(newUser.id, "login_success", "auth", "Première connexion via activation");
+      }
 
       setPageState("success");
       setTimeout(() => navigate("/dashboard"), 2500);
