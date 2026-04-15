@@ -1,4 +1,4 @@
-// Supabase Edge Function — expiry-reminders
+// Supabase Edge Function: expiry-reminders
 // Scheduled daily via pg_cron. Sends licence expiry warning emails at J-30, J-15, J-7.
 // Required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
 
@@ -20,14 +20,14 @@ const TEMPLATES: Record<string, { subject: string; body: (name: string, exp: str
       `<h2>Bonjour ${name},</h2><p>Votre licence <strong>${plan}</strong> expire le <strong>${exp}</strong>.</p><p>Pour continuer à bénéficier de toutes les fonctionnalités, renouvelez votre licence dans <strong>Paramètres → Ma licence</strong>.</p><p>L'équipe Digal</p>`,
   },
   "15": {
-    subject: "Plus que 15 jours — renouvelez votre licence Digal",
+    subject: "Plus que 15 jours : renouvelez votre licence Digal",
     body: (name, exp, plan) =>
       `<h2>Bonjour ${name},</h2><p>Il ne reste que <strong>15 jours</strong> avant l'expiration de votre licence <strong>${plan}</strong> (${exp}).</p><p>Contactez votre gestionnaire de compte pour obtenir une clé de renouvellement.</p><p>L'équipe Digal</p>`,
   },
   "7": {
     subject: "⚠️ Urgence : 7 jours avant expiration de votre licence Digal",
     body: (name, exp, plan) =>
-      `<h2>Bonjour ${name},</h2><p><strong>Attention</strong> — votre licence <strong>${plan}</strong> expire dans 7 jours (${exp}).</p><p>Sans renouvellement, votre compte basculera en mode Freemium et certaines fonctionnalités seront désactivées.</p><p>L'équipe Digal</p>`,
+      `<h2>Bonjour ${name},</h2><p><strong>Attention</strong> : votre licence <strong>${plan}</strong> expire dans 7 jours (${exp}).</p><p>Sans renouvellement, votre compte basculera en mode Freemium et certaines fonctionnalités seront désactivées.</p><p>L'équipe Digal</p>`,
   },
 };
 
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         .not("role", "in", "(freemium,owner,dm)");
 
       if (error) {
-        results.push(`J-${days}: query error — ${error.message}`);
+        results.push(`J-${days}: query error: ${error.message}`);
         continue;
       }
 

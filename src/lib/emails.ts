@@ -18,7 +18,7 @@ interface SendEmailOptions {
 
 /**
  * Sends a transactional email via the `send-email` Supabase Edge Function.
- * Errors are logged silently — email failures must never crash the app.
+ * Errors are logged silently; email failures must never crash the app.
  */
 export async function sendEmail(options: SendEmailOptions): Promise<void> {
   try {

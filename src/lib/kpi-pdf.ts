@@ -110,7 +110,7 @@ export async function generateKpiPdf(
           const pct = Math.round((diff / (prevVal as number)) * 100);
           row.push(`${pct > 0 ? "+" : ""}${pct}%`);
         } else {
-          row.push("—");
+          row.push("-");
         }
       }
       return row;
@@ -204,7 +204,7 @@ export async function generateKpiPdf(
       img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
       img.src = objectUrl;
     });
-  } catch { /* silent fail — use text fallback */ }
+  } catch { /* silent fail: use text fallback */ }
 
   const addFooter = (p: jsPDF) => {
     const fY = pageH - 10;

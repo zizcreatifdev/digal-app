@@ -194,7 +194,7 @@ const AdminEmails = () => {
                     <TableCell className="font-sans text-sm">
                       {email.date_envoi
                         ? format(new Date(email.date_envoi), "dd MMM yyyy HH:mm", { locale: fr })
-                        : "—"}
+                        : "-"}
                     </TableCell>
                     <TableCell>
                       <Badge className={statutColors[email.statut] ?? "bg-muted"}>

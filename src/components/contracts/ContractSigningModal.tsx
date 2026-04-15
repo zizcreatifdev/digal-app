@@ -198,7 +198,7 @@ export function ContractSigningModal({
                 {clauses.map((clause, i) => (
                   <div key={i} className="space-y-1">
                     <h4 className="font-sans font-semibold text-sm">
-                      Article {i + 1} — {clause.titre}
+                      Article {i + 1} · {clause.titre}
                     </h4>
                     <p className="text-sm text-muted-foreground font-sans leading-relaxed">
                       {clause.contenu}

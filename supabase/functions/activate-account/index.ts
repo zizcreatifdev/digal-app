@@ -1,6 +1,6 @@
-// Supabase Edge Function — activate-account
+// Supabase Edge Function: activate-account
 // Validates an activation token and creates the user account.
-// No auth required — the token itself acts as the credential.
+// No auth required: the token itself acts as the credential.
 // Requires: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     const { email, type_compte } = tokenRow;
 
-    // 2. Create Auth user (confirmed — no email verification needed)
+    // 2. Create Auth user (confirmed: no email verification needed)
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,

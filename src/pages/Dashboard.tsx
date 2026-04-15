@@ -153,7 +153,7 @@ const Dashboard = () => {
           unpaidTotal: invoices.reduce((sum, d) => sum + Number(d.total ?? 0), 0),
         });
       } catch {
-        // Silent fail — dashboard stats should never block the UI
+        // Silent fail: dashboard stats should never block the UI
       } finally {
         setStatsLoading(false);
       }
@@ -321,7 +321,7 @@ const Dashboard = () => {
             <CardContent>
               {isFreemium ? (
                 <div className="space-y-1">
-                  <div className="text-2xl font-bold font-serif text-muted-foreground">—</div>
+                  <div className="text-2xl font-bold font-serif text-muted-foreground">-</div>
                   <Badge variant="outline" className="text-[10px]">
                     <Lock className="h-2.5 w-2.5 mr-1" />
                     Pro uniquement

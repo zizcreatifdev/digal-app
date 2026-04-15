@@ -57,7 +57,7 @@ export default function Changelog() {
           <Card>
             <CardContent className="py-16 text-center">
               <Sparkles className="h-10 w-10 mx-auto text-primary mb-4" />
-              <h2 className="text-lg font-serif font-bold mb-2">v1.0.0 — Lancement MVP</h2>
+              <h2 className="text-lg font-serif font-bold mb-2">v1.0.0 · Lancement MVP</h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
                 Première version de Digal : gestion de clients, calendrier éditorial, lien de prévisualisation,
                 facturation FCFA, comptabilité, rapports KPI, journal d'activité, et notifications in-app.

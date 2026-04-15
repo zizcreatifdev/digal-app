@@ -212,7 +212,7 @@ export async function generateDocumentPdf(
       l.description,
       String(l.quantite),
       formatFCFA(l.prix_unitaire),
-      l.brs_applicable ? "Oui" : "—",
+      l.brs_applicable ? "Oui" : "-",
       formatFCFA(l.quantite * l.prix_unitaire),
     ]),
     headStyles: {

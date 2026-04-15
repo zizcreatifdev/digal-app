@@ -64,13 +64,13 @@ describe("generateNumero", () => {
     expect(num).toBe(`FAC-${year}-0001`);
   });
 
-  it("incrémente correctement — 5 existants → 0006", async () => {
+  it("incrémente correctement · 5 existants → 0006", async () => {
     mockGenerateNumero("DIG", 5);
     const num = await generateNumero("devis", "user-456");
     expect(num).toBe(`DEV-DIG-${year}-0006`);
   });
 
-  it("pad à 4 chiffres — 99 existants → 0100", async () => {
+  it("pad à 4 chiffres · 99 existants → 0100", async () => {
     mockGenerateNumero("AGC", 99);
     const num = await generateNumero("facture", "user-789");
     expect(num).toBe(`FAC-AGC-${year}-0100`);
@@ -101,7 +101,7 @@ describe("generateNumero", () => {
 });
 
 // ─── Client slug ──────────────────────────────────────────────────────────────
-// Pure function — no Supabase needed
+// Pure function: no Supabase needed
 
 import { slugifyClientName } from "@/lib/clients";
 

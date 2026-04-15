@@ -187,7 +187,7 @@ export default function AdminComptes() {
         `"${u.email}"`,
         `"${u.role}"`,
         `"${new Date(u.created_at).toLocaleDateString("fr-FR")}"`,
-        `"${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}"`,
+        `"${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}"`,
         `"${statut}"`,
       ].join(",");
     }).join("\n");
@@ -259,7 +259,7 @@ export default function AdminComptes() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Comptes utilisateurs</h1>
             <p className="text-muted-foreground font-sans mt-1">
-              {users?.length ?? 0} comptes enregistrés — cliquez sur un compte pour voir son activité
+              {users?.length ?? 0} comptes enregistrés, cliquez sur un compte pour voir son activité
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ export default function AdminComptes() {
                       <TableCell>{getRoleBadge(u.role)}</TableCell>
                       <TableCell>{getStatusBadge(u)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}
+                        {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(u.created_at).toLocaleDateString("fr-FR")}
@@ -402,7 +402,7 @@ export default function AdminComptes() {
                   </SelectContent>
                 </Select>
                 {createForm.watch("plan") !== "freemium" && (
-                  <p className="text-xs text-muted-foreground">Licence active — expiration dans 6 mois</p>
+                  <p className="text-xs text-muted-foreground">Licence active, expiration dans 6 mois</p>
                 )}
               </div>
 
@@ -454,7 +454,7 @@ export default function AdminComptes() {
                     <div><span className="text-muted-foreground">Email</span><p className="font-medium">{selected.email}</p></div>
                     <div><span className="text-muted-foreground">Plan</span><p className="font-medium">{selected.role}</p></div>
                     <div><span className="text-muted-foreground">Inscription</span><p className="font-medium">{new Date(selected.created_at).toLocaleDateString("fr-FR")}</p></div>
-                    <div><span className="text-muted-foreground">Expiration</span><p className="font-medium">{selected.licence_expiration ? new Date(selected.licence_expiration).toLocaleDateString("fr-FR") : "—"}</p></div>
+                    <div><span className="text-muted-foreground">Expiration</span><p className="font-medium">{selected.licence_expiration ? new Date(selected.licence_expiration).toLocaleDateString("fr-FR") : "-"}</p></div>
                     {selected.agence_nom && <div className="col-span-2"><span className="text-muted-foreground">Agence</span><p className="font-medium">{selected.agence_nom}</p></div>}
                   </div>
 

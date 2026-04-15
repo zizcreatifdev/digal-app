@@ -77,7 +77,7 @@ export function CreatePostModal({
       });
 
       toast.success("Post créé");
-      logPostAction(user.id, "Post créé", `${reseau} — ${format}`);
+      logPostAction(user.id, "Post créé", `${reseau} · ${format}`);
       resetForm();
       onOpenChange(false);
       onSuccess();

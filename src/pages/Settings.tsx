@@ -433,7 +433,7 @@ function BillingSettingsTab() {
             <Upload className="h-5 w-5" /> Tampon & Signature
           </CardTitle>
           <CardDescription className="font-sans">
-            Images PNG à fond transparent — appliquées automatiquement en bas de vos devis et factures.
+            Images PNG à fond transparent, appliquées automatiquement en bas de vos devis et factures.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -889,7 +889,7 @@ function LicenseTab() {
       if (res.error) { toast.error(res.error); return; }
 
       const expiresDate = res.expires_at ? new Date(res.expires_at).toLocaleDateString("fr-FR") : "";
-      toast.success(`Licence activée — plan ${PLAN_LABELS[res.type ?? ""] ?? res.type} jusqu'au ${expiresDate}`);
+      toast.success(`Licence activée : plan ${PLAN_LABELS[res.type ?? ""] ?? res.type} jusqu'au ${expiresDate}`);
       setKeyInput("");
       supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         setProfile(data);
@@ -918,7 +918,7 @@ function LicenseTab() {
             <span className="text-sm text-muted-foreground">
               {profile?.licence_expiration
                 ? new Date(profile.licence_expiration).toLocaleDateString("fr-FR")
-                : "—"}
+                : "-"}
             </span>
           </div>
           <Separator />
@@ -969,7 +969,7 @@ function LicenseTab() {
                     <TableCell><Badge variant="outline">{PLAN_LABELS[h.type] ?? h.type}</Badge></TableCell>
                     <TableCell className="text-sm">{h.duration_months} mois</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {h.used_at ? new Date(h.used_at).toLocaleDateString("fr-FR") : "—"}
+                      {h.used_at ? new Date(h.used_at).toLocaleDateString("fr-FR") : "-"}
                     </TableCell>
                   </TableRow>
                 ))}

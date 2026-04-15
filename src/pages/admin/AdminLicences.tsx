@@ -156,7 +156,7 @@ export default function AdminLicences() {
     if (!licensedUsers.length) return;
     const header = "Nom,Email,Plan,Expiration\n";
     const rows = licensedUsers.map(u =>
-      `"${u.prenom} ${u.nom}","${u.email}","${u.role}","${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}"`
+      `"${u.prenom} ${u.nom}","${u.email}","${u.role}","${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}"`
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -212,7 +212,7 @@ export default function AdminLicences() {
                           }
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}
+                          {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -263,7 +263,7 @@ export default function AdminLicences() {
                         }
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {k.used_at ? new Date(k.used_at).toLocaleDateString("fr-FR") : "—"}
+                        {k.used_at ? new Date(k.used_at).toLocaleDateString("fr-FR") : "-"}
                       </TableCell>
                     </TableRow>
                   ))}

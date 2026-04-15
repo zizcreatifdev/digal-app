@@ -1,7 +1,7 @@
 {
   "name": "Digal",
   "short_name": "Digal",
-  "description": "La plateforme des Community Managers sérieux — Planification, validation, facturation, comptabilité.",
+  "description": "La plateforme des Community Managers sérieux : planification, validation, facturation, comptabilité.",
   "start_url": "/login",
   "display": "standalone",
   "background_color": "#F5F0EB",

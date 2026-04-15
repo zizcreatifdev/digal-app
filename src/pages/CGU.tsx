@@ -121,7 +121,7 @@ export default function CGU() {
             <p className="text-muted-foreground leading-relaxed">
               Pour toute question concernant les présentes CGU :<br />
               Email : <a href={`mailto:${EMAIL}`} className="text-primary underline">{EMAIL}</a><br />
-              {COMPANY} — Dakar, Sénégal
+              {COMPANY} · Dakar, Sénégal
             </p>
           </section>
 

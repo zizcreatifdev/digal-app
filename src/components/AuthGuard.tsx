@@ -36,7 +36,7 @@ export function AuthGuard({ children, requiredRole, allowedProfileRoles }: AuthG
     return <Spinner />;
   }
 
-  // Owner and admin profile roles must use the admin panel — never the dashboard.
+  // Owner and admin profile roles must use the admin panel, never the dashboard.
   if (
     profileRoleLoaded &&
     pathname.startsWith("/dashboard") &&

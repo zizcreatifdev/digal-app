@@ -40,9 +40,9 @@ const FEATURES = [
     mockup: (
       <div className="p-3 space-y-2">
         {[
-          { label: "Post Instagram — Lundi 14 avr.", status: "✅ Validé", cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-          { label: "Post Facebook — Mardi 15 avr.", status: "❌ Refusé", cls: "bg-red-50 text-red-700 border-red-100" },
-          { label: "Post TikTok — Mercredi 16 avr.", status: "⏳ En attente", cls: "bg-amber-50 text-amber-700 border-amber-100" },
+          { label: "Post Instagram · Lundi 14 avr.", status: "✅ Validé", cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
+          { label: "Post Facebook · Mardi 15 avr.", status: "❌ Refusé", cls: "bg-red-50 text-red-700 border-red-100" },
+          { label: "Post TikTok · Mercredi 16 avr.", status: "⏳ En attente", cls: "bg-amber-50 text-amber-700 border-amber-100" },
         ].map((row) => (
           <div key={row.label} className={`rounded-lg border px-2 py-1.5 ${row.cls}`}>
             <p className="text-[9px] font-sans font-medium">{row.label}</p>
@@ -119,7 +119,7 @@ export function MockupsSection() {
             <span className="text-primary">au même endroit</span>
           </h2>
           <p className="text-muted-foreground font-sans max-w-xl mx-auto">
-            De la planification à la facturation — Digal couvre l'intégralité de votre workflow éditorial.
+            De la planification à la facturation, Digal couvre l'intégralité de votre workflow éditorial.
           </p>
         </div>
 
@@ -154,7 +154,7 @@ export function MockupsSection() {
           <div className="inline-flex items-center gap-3 bg-white border border-border rounded-full px-6 py-3 shadow-sm">
             <Users className="h-4 w-4 text-primary" />
             <span className="text-sm font-sans text-foreground">
-              Conçu pour les CM sénégalais — <span className="font-semibold text-primary">100% en FCFA</span>
+              Conçu pour les Digital Managers et Community Managers sénégalais(e)s · <span className="font-semibold text-primary">100% en FCFA</span>
             </span>
           </div>
         </div>

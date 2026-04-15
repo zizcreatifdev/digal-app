@@ -74,7 +74,7 @@ const Waitlist = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left — Branding */}
+      {/* Left : Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-foreground items-center justify-center p-12">
         <div className="max-w-md text-center space-y-6 animate-fade-in">
           <h1 className="text-5xl font-bold font-serif text-primary-foreground">Digal</h1>
@@ -84,7 +84,7 @@ const Waitlist = () => {
         </div>
       </div>
 
-      {/* Right — Form */}
+      {/* Right : Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md border-0 shadow-none bg-transparent">
           <CardHeader className="space-y-2 text-center lg:text-left">

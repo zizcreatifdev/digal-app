@@ -103,7 +103,7 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
   };
 
   const title = view === "semaine"
-    ? `Semaine du ${format(days[0], "d MMM", { locale: fr })} — ${format(days[6], "d MMM yyyy", { locale: fr })}`
+    ? `Semaine du ${format(days[0], "d MMM", { locale: fr })} au ${format(days[6], "d MMM yyyy", { locale: fr })}`
     : format(currentDate, "MMMM yyyy", { locale: fr });
 
   return (

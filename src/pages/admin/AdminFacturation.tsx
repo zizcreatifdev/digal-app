@@ -201,7 +201,7 @@ const AdminFacturation = () => {
     };
   };
 
-  // PDF receipt — matches preview exactly
+  // PDF receipt: matches preview exactly
   const downloadPDF = (p: OwnerPayment) => {
     const receiptData = getReceiptData(p);
     const doc = new jsPDF();
@@ -276,7 +276,7 @@ const AdminFacturation = () => {
     doc.text(p.compte_nom, margin + 8, infoY + 5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 100, 100);
-    doc.text(p.compte_email ?? "—", col2X, infoY + 5);
+    doc.text(p.compte_email ?? "-", col2X, infoY + 5);
 
     // Row 2: Formule + Méthode
     const row2Y = infoY + 14;
@@ -511,7 +511,7 @@ const AdminFacturation = () => {
                   <SelectContent>
                     {accounts.map(a => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.prenom} {a.nom} — {a.email}
+                        {a.prenom} {a.nom} · {a.email}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -529,7 +529,7 @@ const AdminFacturation = () => {
                     <p><span className="font-medium">Formule actuelle :</span> {planLabels[currentPlanSlug] || currentPlanSlug}</p>
                     {planChanged && (
                       <div className="mt-2 p-2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                        ⚠️ Changement de formule détecté — Ancien plan : <strong>{planLabels[lastPlan] || lastPlan}</strong> → Nouveau : <strong>{planLabels[currentPlanSlug] || currentPlanSlug}</strong>
+                        ⚠️ Changement de formule détecté, ancien plan : <strong>{planLabels[lastPlan] || lastPlan}</strong> → Nouveau : <strong>{planLabels[currentPlanSlug] || currentPlanSlug}</strong>
                       </div>
                     )}
                   </div>
@@ -543,7 +543,7 @@ const AdminFacturation = () => {
                     <SelectContent>
                       {paidPlans.map(p => (
                         <SelectItem key={p.slug} value={p.slug}>
-                          {p.nom} — {(planPrices[p.slug] || 0).toLocaleString("fr-FR")} FCFA
+                          {p.nom} · {(planPrices[p.slug] || 0).toLocaleString("fr-FR")} FCFA
                         </SelectItem>
                       ))}
                     </SelectContent>

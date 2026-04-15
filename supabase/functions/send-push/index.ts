@@ -46,7 +46,7 @@ async function sendWebPush(
   const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const jwt = `${header}.${claims}.${sigB64}`;
 
-  // Encrypt payload with recipient's ECDH keys (simplified — send unencrypted body for brevity)
+  // Encrypt payload with recipient's ECDH keys (simplified: send unencrypted body for brevity)
   // In production, use a proper web-push library for encryption
   const response = await fetch(endpoint, {
     method: "POST",

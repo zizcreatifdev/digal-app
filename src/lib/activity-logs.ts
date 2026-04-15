@@ -56,7 +56,7 @@ export async function logActivity(
       metadata: metadata ?? {},
     });
   } catch {
-    // Silent fail — logging should never break the app
+    // Silent fail: logging should never break the app
   }
 }
 

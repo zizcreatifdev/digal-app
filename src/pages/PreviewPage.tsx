@@ -310,7 +310,7 @@ const PreviewPage = () => {
   }
 
   const periodLabel = link
-    ? `${format(new Date(link.periode_debut), "d MMMM", { locale: fr })} — ${format(new Date(link.periode_fin), "d MMMM yyyy", { locale: fr })}`
+    ? `${format(new Date(link.periode_debut), "d MMMM", { locale: fr })} au ${format(new Date(link.periode_fin), "d MMMM yyyy", { locale: fr })}`
     : "";
 
   const pendingPosts = posts.filter((p) => !getPostAction(p.id));

@@ -44,7 +44,7 @@ export function DropBoxReview({ clientId }: DropBoxReviewProps) {
     setProcessing(true);
     try {
       await validateDropBoxFile(file.id, file.uploaded_by);
-      toast.success("Fichier validé — disponible dans la médiathèque");
+      toast.success("Fichier validé, disponible dans la médiathèque");
       load();
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erreur");

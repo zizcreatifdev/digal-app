@@ -85,7 +85,7 @@ export default function AdminWaitlist() {
       queryClient.invalidateQueries({ queryKey: ["admin-waitlist"] });
       queryClient.invalidateQueries({ queryKey: ["admin-activation-tokens"] });
       if (variables.statut === "approuve") {
-        toast.success("Approuvé — copiez le message d'activation");
+        toast.success("Approuvé, copiez le message d'activation");
       } else {
         toast.success("Statut mis à jour");
       }
@@ -101,7 +101,7 @@ export default function AdminWaitlist() {
         "",
         `Votre accès Digal a été approuvé ! 🎉`,
         "",
-        `Vous avez été sélectionné(e) parmi nos premiers utilisateurs — bienvenue dans la communauté.`,
+        `Vous avez été sélectionné(e) parmi nos premiers utilisateurs, bienvenue dans la communauté.`,
         "",
         `Compte : ${typeLabel}`,
         `Lien d'activation (valable 48h) :`,
@@ -143,7 +143,7 @@ export default function AdminWaitlist() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-activation-tokens"] });
-      toast.success("Nouveau lien généré — copiez le message");
+      toast.success("Nouveau lien généré, copiez le message");
     },
     onError: () => {
       toast.error("Erreur lors de la génération du lien");

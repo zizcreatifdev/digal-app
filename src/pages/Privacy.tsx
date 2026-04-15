@@ -67,7 +67,7 @@ export default function Privacy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold font-serif mb-3">5. Accès aux données — Dashboard Owner</h2>
+            <h2 className="text-xl font-bold font-serif mb-3">5. Accès aux données · Dashboard Owner</h2>
             <p className="text-muted-foreground leading-relaxed">
               Conformément aux Conditions Générales d'Utilisation, l'administrateur de la plateforme (Owner) dispose d'un accès en <strong>lecture seule</strong> aux données financières agrégées des comptes (CA facturé, dépenses totales, masse salariale). Cet accès est nécessaire à la gestion de la plateforme et est clairement mentionné dans les CGU.
             </p>
@@ -86,8 +86,8 @@ export default function Privacy() {
               Vos données ne sont jamais vendues à des tiers. Elles peuvent être partagées avec :
             </p>
             <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-2 mt-3">
-              <li><strong>Supabase</strong> — hébergement et base de données (serveurs en Europe)</li>
-              <li><strong>Resend</strong> — envoi des emails transactionnels</li>
+              <li><strong>Supabase</strong> : hébergement et base de données (serveurs en Europe)</li>
+              <li><strong>Resend</strong> : envoi des emails transactionnels</li>
               <li>Les autorités compétentes en {COUNTRY}, sur demande légale</li>
             </ul>
           </section>
@@ -135,7 +135,7 @@ export default function Privacy() {
             <p className="text-muted-foreground leading-relaxed">
               Pour toute question relative à cette politique ou à vos données personnelles :<br />
               Email : <a href={`mailto:${EMAIL}`} className="text-primary underline">{EMAIL}</a><br />
-              {COMPANY} — {COUNTRY}
+              {COMPANY} · {COUNTRY}
             </p>
           </section>
         </div>

@@ -80,7 +80,7 @@ const ClientsPage = () => {
           <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
             <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-semibold font-sans">Limite atteinte — {maxClients}/{maxClients} clients actifs</p>
+              <p className="text-sm font-semibold font-sans">Limite atteinte : {maxClients}/{maxClients} clients actifs</p>
               <p className="text-xs text-muted-foreground font-sans">Passez en Solo Standard pour gérer des clients illimités.</p>
             </div>
             <Button size="sm">Passer en Solo</Button>

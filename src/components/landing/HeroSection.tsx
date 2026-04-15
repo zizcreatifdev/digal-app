@@ -15,7 +15,7 @@ export function HeroSection() {
         {/* Badge */}
         <Badge variant="outline" className="mb-6 px-4 py-1.5 text-xs font-sans border-primary/30 text-primary gap-1.5">
           <Sparkles className="h-3 w-3" />
-          Lancement imminent — Places limitées
+          Lancement imminent · Places limitées
         </Badge>
 
         {/* Title */}
@@ -27,7 +27,7 @@ export function HeroSection() {
 
         {/* Subtitle */}
         <p className="text-lg md:text-xl text-muted-foreground font-sans max-w-2xl mx-auto mb-8 leading-relaxed">
-          Planification, validation client, facturation et comptabilité — tout en un seul outil pensé pour le marché sénégalais.
+          Planification, validation client, facturation et comptabilité : tout en un seul outil pensé pour le marché sénégalais.
         </p>
 
         {/* CTAs */}
@@ -50,7 +50,7 @@ export function HeroSection() {
               <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-6 py-3">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-serif font-bold text-foreground">
-                  Digal est lancé — rejoignez-nous
+                  Digal est lancé, rejoignez-nous
                 </span>
               </div>
             ) : (

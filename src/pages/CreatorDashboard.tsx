@@ -92,7 +92,7 @@ const CreatorDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Mode 1 — Assigned tasks */}
+          {/* Mode 1 : Assigned tasks */}
           <TabsContent value="taches" className="mt-4">
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -141,7 +141,7 @@ const CreatorDashboard = () => {
             )}
           </TabsContent>
 
-          {/* Mode 2 — Drop box */}
+          {/* Mode 2 : Drop box */}
           <TabsContent value="depot" className="mt-4">
             {clientOptions.length === 0 ? (
               <div className="text-center py-16">

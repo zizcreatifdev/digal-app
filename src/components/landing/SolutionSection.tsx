@@ -10,7 +10,7 @@ const features = [
   {
     icon: Link,
     title: "Lien de validation client",
-    description: "Envoyez un lien unique à votre client pour approuver les publications. Un clic suffit — plus de screenshots WhatsApp.",
+    description: "Envoyez un lien unique à votre client pour approuver les publications. Un clic suffit, plus de screenshots WhatsApp.",
   },
   {
     icon: Receipt,

@@ -1,4 +1,4 @@
-// Supabase Edge Function — create-user
+// Supabase Edge Function: create-user
 // Creates a new user account from the Admin panel.
 // Requires SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 
