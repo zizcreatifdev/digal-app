@@ -13,7 +13,8 @@ const DIGAL_LOGO_HTML = `<img src="data:image/svg+xml;base64,${DIGAL_LOGO_B64}" 
 
 interface EmailPayload {
   type: "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement"
-    | "rejet_createur" | "waitlist_approuve" | "preview_expire" | "activation";
+    | "rejet_createur" | "waitlist_approuve" | "preview_expire" | "activation"
+    | "relance_freemium";
   to: string;
   prenom?: string;
   expiration_date?: string;
@@ -21,6 +22,7 @@ interface EmailPayload {
   commentaire?: string;        // rejet_createur
   lien_preview?: string;       // waitlist_approuve / preview_expire
   nom_client?: string;         // preview_expire
+  client_id?: string;          // preview_expire (for CTA link)
   activation_link?: string;    // activation
   type_compte_label?: string;  // activation
 }
@@ -113,13 +115,40 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
           <p>L'équipe Digal</p>
         `),
       };
-    case "preview_expire":
+    case "preview_expire": {
+      const clientUrl = payload.client_id
+        ? `https://digal.vercel.app/dashboard/clients/${payload.client_id}`
+        : "https://digal.vercel.app/dashboard/clients";
       return {
-        subject: "Le lien de prévisualisation a expiré",
+        subject: "Lien de validation expiré sans réponse",
         html: wrapHtml(`
           <h2>Bonjour ${name},</h2>
-          <p>Le lien de prévisualisation partagé avec <strong>${payload.nom_client ?? "votre client"}</strong> a expiré.</p>
-          <p>Vous pouvez en générer un nouveau depuis la fiche client dans Digal.</p>
+          <p>Le lien de validation partagé avec <strong>${payload.nom_client ?? "votre client"}</strong> a expiré sans réponse.</p>
+          <p>Vous pouvez en générer un nouveau depuis la fiche client.</p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="${clientUrl}" style="background:#c4522a;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Générer un nouveau lien →</a>
+          </p>
+          <p>L'équipe Digal</p>
+        `),
+      };
+    }
+    case "relance_freemium":
+      return {
+        subject: "On ne vous a pas vu depuis un moment...",
+        html: wrapHtml(`
+          <h2>On ne vous a pas vu depuis un moment...</h2>
+          <p>Bonjour ${name},</p>
+          <p>Cela fait plus de 30 jours que vous n'avez pas utilisé Digal. Voici un rappel de ce qui vous attend :</p>
+          <ul style="color:#f5f0eb;line-height:1.8;">
+            <li>📅 <strong>Calendrier éditorial</strong> — planifiez et validez vos contenus</li>
+            <li>🔗 <strong>Liens de validation client</strong> — partagez en un clic</li>
+            <li>📊 <strong>Rapports KPI</strong> — analysez vos performances</li>
+            <li>🗂️ <strong>Facturation FCFA</strong> — devis et factures pro</li>
+          </ul>
+          <p>Tout cela disponible gratuitement sur votre compte Freemium.</p>
+          <p style="text-align:center;margin:24px 0;">
+            <a href="https://digal.vercel.app/dashboard" style="background:#c4522a;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Reprendre sur Digal →</a>
+          </p>
           <p>L'équipe Digal</p>
         `),
       };

@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 29 — Onboarding 5 étapes (DB) + KPI métriques complètes_
+_Prompt courant : 30 — Emails automatiques branchés (expiry-reminders, scheduled-cleanup, relance freemium)_
 
 ---
 
@@ -177,14 +177,20 @@ _Prompt courant : 29 — Onboarding 5 étapes (DB) + KPI métriques complètes_
 
 ---
 
-### Module EMAIL — 90% ✅
+### Module EMAIL — 100% ✅ (prompt-30)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Edge function `send-email` | ✅ Complet | Deno + Resend |
-| `lib/emails.ts` | ✅ Complet | 5 types |
+| `lib/emails.ts` | ✅ Complet | 10 types dont relance_freemium |
 | Rejet créateur câblé | ✅ Complet (prompt-09) | |
 | Approbation waitlist câblée | ✅ Complet (prompt-09) | |
-| Cron J-30/15/7 | ✅ Complet (prompt-09) | |
+| Cron J-30/15/7 (09h UTC) | ✅ Complet (prompt-30) | Reschedule à 09:00 UTC |
+| Templates emails améliorés | ✅ Complet (prompt-30) | Sujets corrects + CTA button |
+| Lien expiré sans réponse → CM | ✅ Complet (prompt-30) | `scheduled-cleanup` + `expiry_notified` flag |
+| Relance freemium inactif 30j | ✅ Complet (prompt-30) | `expiry-reminders` + `relance_sent` flag |
+| RPC `get_inactive_freemium_users` | ✅ Complet (prompt-30) | SECURITY DEFINER, join auth.users |
+| Migration `expiry_notified` | ✅ Complet (prompt-30) | `preview_links.expiry_notified` BOOLEAN |
+| Migration `relance_sent` | ✅ Complet (prompt-30) | `users.relance_sent` BOOLEAN |
 | Clé RESEND_API_KEY | ❌ À configurer | Variable env Supabase |
 
 ---
@@ -341,3 +347,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 27 | Calendrier : couleur custom périodes, carrousel 10 médias, compression images, drag&drop | 2026-04-15 |
 | 28 | Boîte dépôt (déjà existante) + historique liens validation (PreviewLinksHistory) | 2026-04-15 |
 | 29 | Onboarding 5 étapes (DB persistence + badge modal) + KPI métriques complètes + périodes trimestrielle/personnalisée | 2026-04-15 |
+| 30 | Emails automatiques : relance freemium, expiry reminders améliorés, notification lien expiré CM, migrations expiry_notified + relance_sent | 2026-04-15 |
