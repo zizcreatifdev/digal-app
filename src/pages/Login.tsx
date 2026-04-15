@@ -76,13 +76,13 @@ const Login = () => {
     attemptsRef.current = 0;
     await logSecurityEvent("login_success", true);
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
-      .maybeSingle();
+    const userId = (await supabase.auth.getUser()).data.user?.id ?? "";
+    const [{ data: roleData }, { data: profileData }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+      supabase.from("users").select("role").eq("user_id", userId).maybeSingle(),
+    ]);
 
-    if (roleData?.role === "admin") {
+    if (roleData?.role === "admin" || profileData?.role === "owner") {
       navigate("/admin");
     } else {
       navigate("/dashboard");
