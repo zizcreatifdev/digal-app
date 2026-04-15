@@ -85,7 +85,7 @@ const AdminPlans = () => {
         <div>
           <h1 className="text-2xl font-bold font-serif tracking-tight">Formules & Tarifs</h1>
           <p className="text-muted-foreground font-sans text-sm mt-1">
-            Modifiez les formules et promotions — les changements s'appliquent partout instantanément.
+            Modifiez les formules et promotions ; les changements s'appliquent partout instantanément.
           </p>
         </div>
 
@@ -157,7 +157,7 @@ const AdminPlans = () => {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-serif">Modifier — {editing?.nom}</DialogTitle>
+            <DialogTitle className="font-serif">Modifier · {editing?.nom}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-14_
-_Prompt courant : 12 — Migration Supabase personnel_
+_Dernière mise à jour : 2026-04-15_
+_Prompt courant : 27 — Calendrier amélioré (périodes + carrousel + compression)_
 
 ---
 
@@ -61,7 +61,7 @@ _Prompt courant : 12 — Migration Supabase personnel_
 
 ---
 
-### Module CALENDRIER ÉDITORIAL — 85% ✅
+### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-27)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Vue calendrier mensuelle | ✅ Complet | `EditorialCalendar` |
@@ -70,10 +70,16 @@ _Prompt courant : 12 — Migration Supabase personnel_
 | Workflow statuts | ✅ Complet | idee→en_production→validation→publie |
 | Upload média post | ✅ Complet | Supabase Storage `post-media` |
 | Blocs périodes de production | ✅ Complet (prompt-07) | 4 types colorés |
-| Filtres par client/réseau | ⚠️ Partiel | À vérifier |
+| Filtres par client/réseau | ✅ Complet | |
 | Templates de posts | ✅ Complet | Limite 3 en Freemium (prompt-09) |
 | Assignation à créateur | ✅ Complet | `assigne_a` field |
 | Review par CM | ✅ Complet | `ReviewPostModal` |
+| Blocs périodes production | ✅ Complet (prompt-27) | Shooting/montage/livraison/custom |
+| Couleur libre période custom | ✅ Complet (prompt-27) | Color picker + migration 000014 |
+| Carrousel 10 médias par post | ✅ Complet (prompt-27) | CreatePost + EditPost multi-file |
+| Compression images auto | ✅ Complet (prompt-27) | browser-image-compression → 2 Mo |
+| Drag & drop ordre médias | ✅ Complet (prompt-27) | Reorder dans les 2 modaux |
+| Validation formats par réseau | ✅ Complet (prompt-27) | TikTok MP4 only, etc. |
 
 ---
 
@@ -154,6 +160,9 @@ _Prompt courant : 12 — Migration Supabase personnel_
 | Activation côté utilisateur | ✅ Complet | RPC `activate_license_key` |
 | Extension cumulative expiration | ✅ Complet | |
 | Popup expiration J-30 | ✅ Complet | |
+| Retour freemium auto si expirée | ✅ Complet (prompt-25) | Dashboard.tsx `check()` — UPDATE DB |
+| Validation format clé (regex) | ✅ Complet (prompt-25) | `DIGAL-(SOLO\|STD\|PRO)-[A-Z0-9]{6}` |
+| Messages RPC distincts | ✅ Complet (prompt-25) | "Clé introuvable" vs "déjà utilisée" |
 | Clé promo (-30%) | ✅ Complet (prompt-09) | |
 | Prolongation manuelle (N mois) | ✅ Complet (prompt-09) | |
 | Rappels J-30/15/7 (cron) | ✅ Complet (prompt-09) | Edge fn + pg_cron |
@@ -202,6 +211,19 @@ _Prompt courant : 12 — Migration Supabase personnel_
 
 ---
 
+### Module AUTH — 100% ✅ (prompt-26)
+| Fonctionnalité | État | Notes |
+|----------------|------|-------|
+| Guards routes avec toast "Accès non autorisé" | ✅ Complet (prompt-26) | AuthGuard useEffect + toast.error |
+| `/dashboard/calendrier` restreint (no createur) | ✅ Complet (prompt-26) | allowedProfileRoles sans createur |
+| Filtrage clients par rôle CM | ✅ Complet (prompt-26) | fetchClients({ role }) + assigned_cm |
+| Freemium limit clients → FreemiumLimitModal | ✅ Complet (prompt-26) | Bouton → /parametres?tab=licence |
+| Freemium limit archives → FreemiumLimitModal | ✅ Complet (prompt-26) | ClientDetail |
+| Freemium limit templates → FreemiumLimitModal | ✅ Complet (prompt-26) | Settings TemplatesTab |
+| Settings deep-link ?tab=licence | ✅ Complet (prompt-26) | useSearchParams |
+
+---
+
 ### Module ADMIN — 95% ✅
 | Page admin | État | Notes |
 |------------|------|-------|
@@ -209,7 +231,7 @@ _Prompt courant : 12 — Migration Supabase personnel_
 | Gestion comptes + Export CSV | ✅ Complet (prompt-09) | |
 | Onglet Financier par compte | ✅ Complet (prompt-09) | CA, dépenses, salaires |
 | Génération clés + promo + prolongation | ✅ Complet | |
-| Gestion waitlist | ✅ Complet | Email approbation câblé |
+| Gestion waitlist | ✅ Complet (prompt-19) | Copie manuelle message activation, badge statut, regénération lien |
 | Gestion plans tarifaires | ✅ Complet | |
 | Gestion contrats | ✅ Complet | |
 | Campagnes emails | ✅ Complet | |
@@ -304,3 +326,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 10 | Phase 3B : preview améliorations, landing page complète (mockups, /privacy, /cgu) | 2026-04-14 |
 | 11 | Phase 4 : PWA (Workbox + Web Push), tests ×5 (137 total), documentation v1.0.0 | 2026-04-14 |
 | 12 | Migration Supabase Lovable → personnel (quvtfhwcwxijizsiqzpd), .env + config.toml + bundle SQL 39 migrations | 2026-04-14 |
+| 13-17 | CI deploy edge fns, VAPID, vercel.json SPA, create-user admin modal, logos SVG intégration | 2026-04-14 |
+| 18 | Activation compte par lien unique (activation_tokens, edge fn, page /activate/:token) | 2026-04-14 |
+| 19 | Copie manuelle message activation (suppression email auto, bouton copy, badge statut, regénération) | 2026-04-14 |

@@ -147,7 +147,7 @@ export function CreateKpiReportModal({
 
   const handleDownloadFromPreview = async () => {
     if (!previewData) return;
-    const pdf = generateKpiPdf(
+    const pdf = await generateKpiPdf(
       previewData.report,
       previewData.clientName,
       previewData.clientLogoUrl,
@@ -172,7 +172,7 @@ export function CreateKpiReportModal({
         objectifs,
       });
 
-      const pdf = generateKpiPdf(
+      const pdf = await generateKpiPdf(
         { ...data.report, id: reportId },
         clientName,
         clientLogoUrl,
@@ -182,7 +182,7 @@ export function CreateKpiReportModal({
 
       pdf.save(`KPI-${clientName}-${mois}.pdf`);
       toast.success("Rapport KPI généré et téléchargé");
-      logKpiAction(user.id, "Rapport KPI généré", `${clientName} — ${mois}`, reportId);
+      logKpiAction(user.id, "Rapport KPI généré", `${clientName} · ${mois}`, reportId);
       onCreated();
       onOpenChange(false);
     } catch (err: unknown) {
@@ -198,7 +198,7 @@ export function CreateKpiReportModal({
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">
-              Rapport KPI — {clientName}
+              Rapport KPI · {clientName}
             </DialogTitle>
           </DialogHeader>
 
@@ -231,7 +231,7 @@ export function CreateKpiReportModal({
                         <Input
                           type="number"
                           min={0}
-                          placeholder="—"
+                          placeholder=""
                           value={(metriques[netKey as keyof KpiMetriques])?.[field.key] ?? ""}
                           onChange={(e) => updateMetric(netKey, field.key, e.target.value)}
                         />

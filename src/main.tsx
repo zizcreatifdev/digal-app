@@ -6,7 +6,7 @@ import { registerSW } from "virtual:pwa-register";
 // Register service worker with auto-update
 registerSW({
   onNeedRefresh() {
-    // New content available — auto-reload in background
+    // New content available: auto-reload in background
     // (the SW uses autoUpdate so this fires after the new SW activates)
     window.location.reload();
   },

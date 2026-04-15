@@ -94,10 +94,17 @@ const Dashboard = () => {
         const expiry = new Date(prof.licence_expiration);
         const now = new Date();
         const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        const dismissedAt = sessionStorage.getItem(LICENSE_EXPIRY_POPUP_KEY);
-        if (daysLeft <= 30 && !dismissedAt) {
-          setExpiryDaysLeft(daysLeft);
-          setShowExpiryPopup(true);
+
+        if (daysLeft <= 0) {
+          // Licence expired — revert to freemium in DB
+          await supabase.from("users").update({ role: "freemium", updated_at: new Date().toISOString() }).eq("user_id", user.id);
+          setProfile((prev) => prev ? { ...prev, role: "freemium" } : prev);
+        } else {
+          const dismissedAt = sessionStorage.getItem(LICENSE_EXPIRY_POPUP_KEY);
+          if (daysLeft <= 30 && !dismissedAt) {
+            setExpiryDaysLeft(daysLeft);
+            setShowExpiryPopup(true);
+          }
         }
       }
 
@@ -153,7 +160,7 @@ const Dashboard = () => {
           unpaidTotal: invoices.reduce((sum, d) => sum + Number(d.total ?? 0), 0),
         });
       } catch {
-        // Silent fail — dashboard stats should never block the UI
+        // Silent fail: dashboard stats should never block the UI
       } finally {
         setStatsLoading(false);
       }
@@ -321,7 +328,7 @@ const Dashboard = () => {
             <CardContent>
               {isFreemium ? (
                 <div className="space-y-1">
-                  <div className="text-2xl font-bold font-serif text-muted-foreground">—</div>
+                  <div className="text-2xl font-bold font-serif text-muted-foreground">-</div>
                   <Badge variant="outline" className="text-[10px]">
                     <Lock className="h-2.5 w-2.5 mr-1" />
                     Pro uniquement

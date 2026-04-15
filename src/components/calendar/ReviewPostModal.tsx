@@ -48,7 +48,7 @@ export function ReviewPostModal({ open, onOpenChange, post, onSuccess }: ReviewP
     setLoading(true);
     try {
       await rejectCreatorUpload(post.id, post.assigne_a, comment.trim(), post.media_url);
-      toast.success("Fichier rejeté — le créateur a été notifié");
+      toast.success("Fichier rejeté, le créateur a été notifié");
       setRejecting(false);
       setComment("");
       onOpenChange(false);

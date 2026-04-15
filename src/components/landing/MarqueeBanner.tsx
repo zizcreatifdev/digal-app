@@ -10,6 +10,7 @@ const items = [
   "X",
   "Facturation FCFA intégrée",
   "Stockage éphémère intelligent",
+  "3 rôles distincts · DM · CM · Créateur",
 ];
 
 export function MarqueeBanner() {

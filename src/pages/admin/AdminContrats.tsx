@@ -273,7 +273,7 @@ export default function AdminContrats() {
                             {c.prix_mensuel.toLocaleString("fr-FR")} FCFA
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground font-sans">
-                            {c.signed_at ? format(new Date(c.signed_at), "dd MMM yyyy", { locale: fr }) : "—"}
+                            {c.signed_at ? format(new Date(c.signed_at), "dd MMM yyyy", { locale: fr }) : "-"}
                           </TableCell>
                           <TableCell>
                             <Badge className={c.statut === "signe"
@@ -367,7 +367,7 @@ export default function AdminContrats() {
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1">
                             <Label className="text-[10px] text-muted-foreground font-sans">
-                              Article {idx + 1} — Titre
+                              Article {idx + 1} · Titre
                             </Label>
                             <Input value={clause.titre}
                               onChange={e => updateClause(idx, "titre", e.target.value)}
@@ -422,7 +422,7 @@ export default function AdminContrats() {
                   <div className="flex items-center gap-3">
                     <img src={digalLogo} alt="Digal" className="h-8 w-8" />
                     <div>
-                      <h3 className="font-serif font-bold">Contrat — {viewContract.plan_nom}</h3>
+                      <h3 className="font-serif font-bold">Contrat · {viewContract.plan_nom}</h3>
                       <p className="text-xs text-muted-foreground font-sans">{viewContract.email}</p>
                     </div>
                   </div>
@@ -447,7 +447,7 @@ export default function AdminContrats() {
                   <div>
                     <p className="text-muted-foreground text-xs">Date signature</p>
                     <p className="font-medium">
-                      {viewContract.signed_at ? format(new Date(viewContract.signed_at), "dd MMMM yyyy", { locale: fr }) : "—"}
+                      {viewContract.signed_at ? format(new Date(viewContract.signed_at), "dd MMMM yyyy", { locale: fr }) : "-"}
                     </p>
                   </div>
                 </div>
@@ -501,7 +501,7 @@ export default function AdminContrats() {
                   <div className="space-y-5">
                     {previewTemplate.clauses.map((clause, idx) => (
                       <div key={idx}>
-                        <h3 className="font-serif font-bold text-sm mb-1.5">Article {idx + 1} — {clause.titre}</h3>
+                        <h3 className="font-serif font-bold text-sm mb-1.5">Article {idx + 1} · {clause.titre}</h3>
                         <p className="text-sm font-sans text-muted-foreground whitespace-pre-line leading-relaxed">{clause.contenu}</p>
                       </div>
                     ))}

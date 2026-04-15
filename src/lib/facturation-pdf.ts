@@ -36,6 +36,31 @@ async function loadImage(url: string): Promise<string | null> {
   }
 }
 
+async function loadSvgAsPng(url: string, width: number, height: number): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    const svgText = await response.text();
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const objectUrl = URL.createObjectURL(blob);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
+      img.src = objectUrl;
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function generateDocumentPdf(
   doc: Document,
   lines: DocumentLine[],
@@ -187,7 +212,7 @@ export async function generateDocumentPdf(
       l.description,
       String(l.quantite),
       formatFCFA(l.prix_unitaire),
-      l.brs_applicable ? "Oui" : "—",
+      l.brs_applicable ? "Oui" : "-",
       formatFCFA(l.quantite * l.prix_unitaire),
     ]),
     headStyles: {
@@ -378,8 +403,22 @@ export async function generateDocumentPdf(
   pdf.text(footerName, 15, pageH - 12);
   pdf.text(userProfile.email, 15, pageH - 8);
 
-  pdf.setTextColor(180, 180, 180);
-  pdf.text("Généré avec Digal", pageW - 15, pageH - 10, { align: "right" });
+  // Digal logo in footer
+  const digalLogoData = await loadSvgAsPng(
+    "/logos/Logo%20Digal-iconorange_avec_baseline_noir.svg",
+    200, 96
+  );
+  if (digalLogoData) {
+    try {
+      pdf.addImage(digalLogoData, "PNG", pageW - 35, pageH - 16, 20, 9.6);
+    } catch {
+      pdf.setTextColor(180, 180, 180);
+      pdf.text("Généré avec Digal", pageW - 15, pageH - 10, { align: "right" });
+    }
+  } else {
+    pdf.setTextColor(180, 180, 180);
+    pdf.text("Généré avec Digal", pageW - 15, pageH - 10, { align: "right" });
+  }
 
   // Bottom accent bar
   pdf.setFillColor(...accent);

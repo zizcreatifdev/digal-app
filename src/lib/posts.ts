@@ -10,6 +10,7 @@ export interface Post {
   texte: string | null;
   hashtags: string | null;
   media_url: string | null;
+  media_urls: string[];
   statut: string;
   assigne_a: string | null;
   review_comment: string | null;
@@ -88,11 +89,16 @@ export async function deletePost(postId: string) {
 
 export async function uploadPostMedia(userId: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop();
-  const path = `${userId}/${Date.now()}.${ext}`;
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const { error } = await supabase.storage
     .from("post-media")
     .upload(path, file);
   if (error) throw error;
   const { data } = supabase.storage.from("post-media").getPublicUrl(path);
   return data.publicUrl;
+}
+
+/** Upload multiple files and return their public URLs (parallel). */
+export async function uploadPostMediaFiles(userId: string, files: File[]): Promise<string[]> {
+  return Promise.all(files.map((f) => uploadPostMedia(userId, f)));
 }

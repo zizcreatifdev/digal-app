@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Calque_1" data-name="Calque 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 191.83 184.89">
+  <defs>
+    <style>
+      .cls-1 {
+        fill-rule: evenodd;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-2 {
+        font-family: Outfit-Regular, Outfit;
+        font-size: 9.73px;
+        font-variation-settings: 'wght' 400;
+      }
+
+      .cls-4 {
+        letter-spacing: 0em;
+      }
+
+      .cls-5 {
+        letter-spacing: 0em;
+      }
+
+      .cls-6 {
+        letter-spacing: -.03em;
+      }
+
+      .cls-7 {
+        letter-spacing: -.02em;
+      }
+
+      .cls-8 {
+        letter-spacing: -.02em;
+      }
+
+      .cls-9 {
+        letter-spacing: -.01em;
+      }
+
+      .cls-10 {
+        letter-spacing: -.01em;
+      }
+
+      .cls-11 {
+        letter-spacing: -.02em;
+      }
+
+      .cls-12 {
+        letter-spacing: 0em;
+      }
+    </style>
+  </defs>
+  <g>
+    <g>
+      <polygon class="cls-3" points="139.09 76.63 139.09 112.02 133.87 112.02 133.87 119.85 146.91 119.85 146.91 76.63 139.09 76.63"/>
+      <polygon class="cls-3" points="122.55 76.63 122.55 125.94 117.33 125.94 117.33 133.77 130.39 133.77 130.39 76.63 122.55 76.63"/>
+      <polygon class="cls-3" points="106.02 76.63 106.02 140.15 79.55 140.15 79.55 147.98 113.86 147.98 113.86 76.63 106.02 76.63"/>
+      <polygon class="cls-3" points="55 109 55 48.5 60.22 48.5 60.22 40.67 47.18 40.67 47.18 109 55 109"/>
+      <polygon class="cls-3" points="71.54 109 71.54 34.29 76.76 34.29 76.76 26.46 63.71 26.46 63.71 109 71.54 109"/>
+      <polygon class="cls-3" points="81.28 34.29 110.67 34.29 110.67 39.22 118.79 39.22 118.79 26.46 81.28 26.46 81.28 34.29"/>
+      <polygon class="cls-3" points="81.28 50.82 124.87 50.82 124.87 55.75 132.71 55.75 132.71 42.7 81.28 42.7 81.28 50.82"/>
+      <polygon class="cls-3" points="81.28 67.35 139.09 67.35 139.09 72.28 146.91 72.28 146.91 59.52 81.28 59.52 81.28 67.35"/>
+    </g>
+    <path class="cls-1" d="M50.74,128.73h4.99v4.99h-4.99v-4.99ZM64.72,133.71v-4.99h4.99v4.99h-4.99ZM57.73,128.73h4.99v4.99h-4.99v-4.99ZM50.74,126.73v-4.99h4.99v4.99h-4.99ZM64.72,126.73v-4.99h4.99v4.99h-4.99ZM73.3,132.36v-3.1h3.08v5.81c0,1.78-.7,3.4-1.84,4.6v8.31l-6.23-6.23h-17.55c-3.68,0-6.68-3-6.68-6.68v-14.69c0-3.68,3-6.68,6.68-6.68h18.95c3.68,0,6.68,3,6.68,6.68v5.81h-3.08v-5.81c0-1.98-1.62-3.6-3.6-3.6h-2.86c.02.1.04.21.04.32v1.62c0,.73-.59,1.32-1.32,1.32s-1.32-.59-1.32-1.32v-1.62c0-.11.01-.22.04-.32h-8.1c.03.1.04.21.04.32v1.62c0,.73-.59,1.32-1.32,1.32s-1.32-.59-1.32-1.32v-1.62c0-.11.01-.22.04-.32h-2.86c-1.98,0-3.6,1.62-3.6,3.6v14.69c0,1.98,1.62,3.6,3.6,3.6h18.95c1.98,0,3.6-1.62,3.6-3.6v-2.71ZM57.73,126.73v-4.99h4.99v4.99h-4.99Z"/>
+  </g>
+  <text class="cls-2" transform="translate(79.55 159.54)"><tspan class="cls-7" x="0" y="0">L</tspan><tspan x="5.18" y="0">a pl</tspan><tspan class="cls-12" x="20.69" y="0">a</tspan><tspan class="cls-9" x="26.33" y="0">t</tspan><tspan class="cls-10" x="29.77" y="0">e</tspan><tspan class="cls-6" x="34.85" y="0">f</tspan><tspan x="38.47" y="0">o</tspan><tspan class="cls-11" x="43.97" y="0">r</tspan><tspan class="cls-5" x="47.89" y="0">me</tspan><tspan x="0" y="11.68">des CM sé</tspan><tspan class="cls-8" x="43.31" y="11.68">r</tspan><tspan class="cls-4" x="47.21" y="11.68">ieux.</tspan></text>
+</svg>

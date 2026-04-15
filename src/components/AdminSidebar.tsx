@@ -2,7 +2,6 @@ import {
   LayoutDashboard, Users, ClipboardList, KeyRound, Mail, Receipt,
   BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog,
 } from "lucide-react";
-import digalLogo from "@/assets/digal-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,13 +55,22 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarContent className="pt-6">
-        <div className={cn("px-4 mb-8 flex items-center gap-2", collapsed && "px-2 justify-center")}>
-          <img src={digalLogo} alt="Digal" className={cn("transition-all", collapsed ? "h-7 w-7" : "h-8 w-8")} />
-          {!collapsed && (
-            <div>
-              <h1 className="font-serif font-bold text-sidebar-foreground text-2xl">Digal</h1>
-              <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/50 font-sans">Admin</span>
-            </div>
+        <div className={cn("px-4 mb-8 flex flex-col items-start", collapsed && "px-2 items-center")}>
+          {collapsed ? (
+            <img
+              src="/logos/Logo%20Digal-icon_orange_sansbaseline.svg"
+              alt="Digal"
+              className="h-7 w-7 transition-all"
+            />
+          ) : (
+            <>
+              <img
+                src="/logos/Logo%20Digal_iconorange_ettext_enblanc.svg"
+                alt="Digal"
+                className="h-8 w-auto transition-all"
+              />
+              <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/50 font-sans mt-0.5">Admin</span>
+            </>
           )}
         </div>
 

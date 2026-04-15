@@ -37,7 +37,7 @@ const TeamJournal = () => {
         .single();
 
       if (!profile?.agence_id) {
-        // Solo user — show themselves
+        // Solo user: show themselves
         const stats = await getTeamMemberStats(user!.id);
         const { data: selfProfile } = await supabase.from("users").select("*").eq("user_id", user!.id).maybeSingle();
         if (selfProfile) {

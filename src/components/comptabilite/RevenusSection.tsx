@@ -76,7 +76,7 @@ export function RevenusSection({ documents }: Props) {
               {filtered.map((f) => (
                 <TableRow key={f.id}>
                   <TableCell className="font-mono text-sm">{f.numero}</TableCell>
-                  <TableCell>{f.clients?.nom ?? "—"}</TableCell>
+                  <TableCell>{f.clients?.nom ?? "-"}</TableCell>
                   <TableCell>{f.date_emission}</TableCell>
                   <TableCell className="font-semibold">{formatFCFA(f.total)}</TableCell>
                   <TableCell>

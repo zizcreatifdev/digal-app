@@ -58,7 +58,7 @@ export function MasseSalarialeSection({ salaires, mois, onRefresh }: Props) {
         mois,
         inclure_facture: true,
       });
-      toast.success("Votre ligne a été ajoutée — définissez votre salaire");
+      toast.success("Votre ligne a été ajoutée, définissez votre salaire");
       onRefresh();
     } catch (err: unknown) {
       toast.error((err as Error).message);
@@ -154,8 +154,8 @@ export function MasseSalarialeSection({ salaires, mois, onRefresh }: Props) {
                       {s.statut_paiement === "paye" ? "Payé" : "Non payé"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{s.date_paiement ?? "—"}</TableCell>
-                  <TableCell>{s.methode_paiement ? (METHODE_LABELS[s.methode_paiement] ?? s.methode_paiement) : "—"}</TableCell>
+                  <TableCell>{s.date_paiement ?? "-"}</TableCell>
+                  <TableCell>{s.methode_paiement ? (METHODE_LABELS[s.methode_paiement] ?? s.methode_paiement) : "-"}</TableCell>
                   <TableCell>{s.inclure_facture ? "Oui" : "Non"}</TableCell>
                   <TableCell className="text-right">
                     {s.statut_paiement !== "paye" && (

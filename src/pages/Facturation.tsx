@@ -74,7 +74,7 @@ export default function Facturation() {
           <TabsContent value="recurrent">
             <div className="text-center py-16 text-muted-foreground">
               <p className="text-lg font-serif font-semibold mb-2">Facturation récurrente</p>
-              <p className="text-sm">Bientôt disponible — Automatisez vos factures mensuelles.</p>
+              <p className="text-sm">Bientôt disponible : automatisez vos factures mensuelles.</p>
             </div>
           </TabsContent>
         </Tabs>

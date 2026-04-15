@@ -87,7 +87,7 @@ export async function uploadDropBoxFile(
       `/dashboard/clients/${clientId}`
     );
   } catch {
-    // Silent fail — notification must not block the upload
+    // Silent fail: notification must not block the upload
   }
 
   return data as DropBoxFile;
@@ -123,7 +123,7 @@ export async function rejectDropBoxFile(
     if (parts.length > 1) {
       await supabase.storage.from("post-media").remove([decodeURIComponent(parts[1])]);
     }
-  } catch { /* silent — don't block rejection */ }
+  } catch { /* silent: don't block rejection */ }
 
   const { error } = await supabase
     .from("drop_box_files")

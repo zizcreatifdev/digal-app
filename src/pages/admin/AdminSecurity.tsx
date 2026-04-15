@@ -62,7 +62,7 @@ export default function AdminSecurity() {
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(l.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </TableCell>
-                      <TableCell className="text-sm">{l.email ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{l.email ?? "-"}</TableCell>
                       <TableCell className="text-sm font-medium">{l.action}</TableCell>
                       <TableCell>
                         {l.success
@@ -70,8 +70,8 @@ export default function AdminSecurity() {
                           : <Badge className="bg-red-100 text-red-700"><ShieldAlert className="h-3 w-3 mr-1" /> Échec</Badge>
                         }
                       </TableCell>
-                      <TableCell className="text-xs font-mono text-muted-foreground">{l.ip_address ?? "—"}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{l.detail ?? "—"}</TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{l.ip_address ?? "-"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{l.detail ?? "-"}</TableCell>
                     </TableRow>
                   ))}
                   {filtered.length === 0 && (

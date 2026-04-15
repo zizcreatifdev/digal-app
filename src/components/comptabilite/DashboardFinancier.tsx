@@ -46,7 +46,7 @@ function StatCard({
               <Minus className="h-3.5 w-3.5 text-muted-foreground" />
             )}
             <span className={diff > 0 ? "text-emerald-600" : diff < 0 ? "text-red-500" : "text-muted-foreground"}>
-              {pct !== undefined ? `${pct > 0 ? "+" : ""}${pct}%` : "—"} vs mois précédent
+              {pct !== undefined ? `${pct > 0 ? "+" : ""}${pct}%` : "-"} vs mois précédent
             </span>
           </div>
         )}
@@ -149,7 +149,7 @@ export function DashboardFinancier({
       {/* Bar chart */}
       <Card>
         <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold font-serif mb-4">Revenus vs Charges — 6 derniers mois</h3>
+          <h3 className="text-sm font-semibold font-serif mb-4">Revenus vs Charges · 6 derniers mois</h3>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

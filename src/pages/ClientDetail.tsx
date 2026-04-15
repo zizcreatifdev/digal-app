@@ -15,6 +15,8 @@ import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
 import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
 import { EditClientModal } from "@/components/clients/EditClientModal";
 import { DropBoxReview } from "@/components/clients/DropBoxReview";
+import { PreviewLinksHistory } from "@/components/clients/PreviewLinksHistory";
+import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +34,7 @@ const ClientDetail = () => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [archiveLimitModalOpen, setArchiveLimitModalOpen] = useState(false);
   const [slugEdit, setSlugEdit] = useState<string | null>(null);
   const [savingSlug, setSavingSlug] = useState(false);
 
@@ -80,7 +83,7 @@ const ClientDetail = () => {
             .eq("user_id", user.id)
             .eq("statut", "archive");
           if ((count ?? 0) >= FREEMIUM_ARCHIVE_LIMIT) {
-            toast.error(`Limite atteinte : les comptes Freemium peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients.`);
+            setArchiveLimitModalOpen(true);
             return;
           }
         }
@@ -232,14 +235,7 @@ const ClientDetail = () => {
           </TabsContent>
 
           <TabsContent value="activite" className="mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Activité client</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground font-sans text-center py-12">
-                  L'historique d'activité sera bientôt disponible ici.
-                </p>
-              </CardContent>
-            </Card>
+            <PreviewLinksHistory clientId={client.id} />
           </TabsContent>
         </Tabs>
 
@@ -317,6 +313,12 @@ const ClientDetail = () => {
             .then(([c, n]) => { setClient(c); setNetworks(n); })
             .catch(() => toast.error("Erreur lors du rechargement du client"));
         }}
+      />
+
+      <FreemiumLimitModal
+        open={archiveLimitModalOpen}
+        onOpenChange={setArchiveLimitModalOpen}
+        description={`Les comptes Freemium peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients. Activez une licence pour archiver sans limite.`}
       />
     </DashboardLayout>
   );

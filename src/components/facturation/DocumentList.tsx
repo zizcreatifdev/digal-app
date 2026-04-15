@@ -166,7 +166,7 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
               {filtered.map((doc) => (
                 <TableRow key={doc.id}>
                   <TableCell className="font-mono text-sm">{doc.numero}</TableCell>
-                  <TableCell>{doc.clients?.nom ?? "—"}</TableCell>
+                  <TableCell>{doc.clients?.nom ?? "-"}</TableCell>
                   <TableCell>{doc.date_emission}</TableCell>
                   <TableCell className="font-semibold">{formatFCFA(doc.total)}</TableCell>
                   <TableCell>

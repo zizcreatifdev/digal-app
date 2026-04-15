@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-// Mock Supabase client — the module imports it at top level
+// Mock Supabase client: the module imports it at top level
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn(),

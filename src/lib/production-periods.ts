@@ -1,3 +1,4 @@
+import type React from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PeriodType = "shooting" | "montage" | "livraison" | "custom";
@@ -8,6 +9,7 @@ export interface ProductionPeriod {
   client_id: string;
   type: PeriodType;
   titre: string;
+  color: string | null;
   description: string | null;
   date_debut: string;
   date_fin: string;
@@ -25,6 +27,18 @@ export const PERIOD_TYPES: { id: PeriodType; label: string; color: string; bg: s
 
 export function getPeriodStyle(type: PeriodType) {
   return PERIOD_TYPES.find(p => p.id === type) ?? PERIOD_TYPES[3];
+}
+
+/** Returns an inline style object for custom periods with a free color. */
+export function getPeriodInlineStyle(period: ProductionPeriod): React.CSSProperties | undefined {
+  if (period.type === "custom" && period.color) {
+    return {
+      backgroundColor: period.color + "33", // 20% opacity
+      borderColor: period.color + "66",
+      color: period.color,
+    };
+  }
+  return undefined;
 }
 
 export async function fetchProductionPeriods(clientId: string): Promise<ProductionPeriod[]> {

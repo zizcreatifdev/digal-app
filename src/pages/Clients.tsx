@@ -2,14 +2,17 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { fetchClients, Client } from "@/lib/clients";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientCard } from "@/components/clients/ClientCard";
 import { AddClientModal } from "@/components/clients/AddClientModal";
+import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 import { useAuth } from "@/hooks/useAuth";
 import { getAccountAccess } from "@/lib/account-access";
+
+const FREEMIUM_CLIENT_LIMIT = 2;
 
 const ClientsPage = () => {
   const { user } = useAuth();
@@ -18,6 +21,7 @@ const ClientsPage = () => {
   const [networkMap, setNetworkMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
 
   useEffect(() => {
@@ -25,7 +29,6 @@ const ClientsPage = () => {
       setProfile(null);
       return;
     }
-
     supabase
       .from("users")
       .select("role, plan")
@@ -35,19 +38,19 @@ const ClientsPage = () => {
   }, [user]);
 
   const { isFreemium } = getAccountAccess(profile);
-  const maxClients = isFreemium ? 2 : Infinity;
+  const maxClients = isFreemium ? FREEMIUM_CLIENT_LIMIT : Infinity;
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      const role = profile?.role;
       const [active, archived] = await Promise.all([
-        fetchClients("actif"),
-        fetchClients("archive"),
+        fetchClients("actif", { role }),
+        fetchClients("archive", { role }),
       ]);
       setActiveClients(active);
       setArchivedClients(archived);
 
-      // Fetch networks for all clients
       const allIds = [...active, ...archived].map((c) => c.id);
       if (allIds.length > 0) {
         const { data: nets } = await supabase
@@ -66,27 +69,21 @@ const ClientsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const canAddClient = !isFreemium || activeClients.length < maxClients;
+  const handleAddClick = () => {
+    if (isFreemium && activeClients.length >= maxClients) {
+      setLimitModalOpen(true);
+    } else {
+      setModalOpen(true);
+    }
+  };
 
   return (
     <DashboardLayout pageTitle="Clients">
       <div className="animate-fade-in space-y-6">
-        {/* Freemium banner */}
-        {isFreemium && activeClients.length >= maxClients && (
-          <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
-            <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold font-sans">Limite atteinte — {maxClients}/{maxClients} clients actifs</p>
-              <p className="text-xs text-muted-foreground font-sans">Passez en Solo Standard pour gérer des clients illimités.</p>
-            </div>
-            <Button size="sm">Passer en Solo</Button>
-          </div>
-        )}
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -96,7 +93,7 @@ const ClientsPage = () => {
               {isFreemium && ` · ${maxClients} max`}
             </p>
           </div>
-          <Button onClick={() => setModalOpen(true)} disabled={!canAddClient}>
+          <Button onClick={handleAddClick}>
             <Plus className="h-4 w-4" />
             Ajouter un client
           </Button>
@@ -123,7 +120,7 @@ const ClientsPage = () => {
             ) : activeClients.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-muted-foreground font-sans">Aucun client pour le moment.</p>
-                <Button className="mt-4" onClick={() => setModalOpen(true)}>
+                <Button className="mt-4" onClick={handleAddClick}>
                   <Plus className="h-4 w-4" />
                   Ajouter votre premier client
                 </Button>
@@ -157,6 +154,12 @@ const ClientsPage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         onSuccess={loadData}
+      />
+
+      <FreemiumLimitModal
+        open={limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+        description={`Les comptes Freemium sont limités à ${FREEMIUM_CLIENT_LIMIT} clients actifs. Activez une licence pour gérer des clients illimités.`}
       />
     </DashboardLayout>
   );

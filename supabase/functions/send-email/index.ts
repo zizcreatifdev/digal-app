@@ -1,4 +1,4 @@
-// Supabase Edge Function — send-email
+// Supabase Edge Function: send-email
 // Uses Resend (https://resend.com) to send transactional emails.
 // Required env var: RESEND_API_KEY  (set in Supabase project secrets)
 
@@ -64,7 +64,7 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
       };
     case "expiration_15":
       return {
-        subject: "Plus que 15 jours — renouvelez votre licence Digal",
+        subject: "Plus que 15 jours : renouvelez votre licence Digal",
         html: wrapHtml(`
           <h2>Bonjour ${name},</h2>
           <p>Il ne reste que <strong>15 jours</strong> avant l'expiration de votre licence (${payload.expiration_date}).</p>
@@ -77,7 +77,7 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
         subject: "⚠️ Urgence : 7 jours avant expiration de votre licence Digal",
         html: wrapHtml(`
           <h2>Bonjour ${name},</h2>
-          <p><strong>Attention</strong> — votre licence expire dans 7 jours (${payload.expiration_date}).</p>
+          <p><strong>Attention</strong> : votre licence expire dans 7 jours (${payload.expiration_date}).</p>
           <p>Sans renouvellement, votre compte basculera en mode Freemium et certaines fonctionnalités seront désactivées.</p>
           <p>L'équipe Digal</p>
         `),

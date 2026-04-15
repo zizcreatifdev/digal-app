@@ -124,7 +124,7 @@ export default function DocsPage() {
       </header>
 
       <div className="max-w-7xl mx-auto flex">
-        {/* Table of Contents — Sidebar */}
+        {/* Table of Contents - Sidebar */}
         <aside
           className={`
             ${tocOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -173,7 +173,7 @@ export default function DocsPage() {
           <div className="max-w-2xl">
             <h1 className="text-3xl font-bold font-serif mb-2 text-foreground">{guide.titre}</h1>
             <p className="text-sm text-muted-foreground font-sans mb-10">
-              Guide {type === "solo" ? "Solo" : "Agence"} — Digal
+              Guide {type === "solo" ? "Solo" : "Agence"} · Digal
             </p>
 
             <div className="space-y-12">
@@ -192,7 +192,7 @@ export default function DocsPage() {
             </div>
 
             <div className="mt-16 pt-6 border-t border-border text-center text-xs text-muted-foreground font-sans">
-              Digal — Guide {type === "solo" ? "Solo" : "Agence"} · support@digal.sn
+              Digal · Guide {type === "solo" ? "Solo" : "Agence"} · support@digal.sn
             </div>
           </div>
         </main>

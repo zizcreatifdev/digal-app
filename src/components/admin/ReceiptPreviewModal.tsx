@@ -72,7 +72,7 @@ export function ReceiptPreviewModal({ open, onOpenChange, data, onDownload }: Re
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 mb-0.5">Email</p>
-                  <p className="text-gray-700">{data.compte_email ?? "—"}</p>
+                  <p className="text-gray-700">{data.compte_email ?? "-"}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 mb-0.5">Formule</p>

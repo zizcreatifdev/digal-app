@@ -1,9 +1,10 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell } from "lucide-react";
+import { Bell, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { NotificationPanel, useNotificationCount } from "@/components/NotificationPanel";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
@@ -15,6 +16,10 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const unreadCount = useNotificationCount();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isPWA = window.matchMedia("(display-mode: standalone)").matches;
+  const showBackButton = isPWA && pathname !== "/dashboard";
 
   return (
     <SidebarProvider>
@@ -23,6 +28,17 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center justify-between border-b border-border bg-card px-4 shrink-0">
             <div className="flex items-center gap-3">
+              {showBackButton && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate(-1)}
+                  aria-label="Retour"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              )}
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               {pageTitle && (
                 <h2 className="text-lg font-bold font-serif">{pageTitle}</h2>

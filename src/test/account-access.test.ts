@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-// account-access.ts has no external imports — no Supabase mock needed
+// account-access.ts has no external imports: no Supabase mock needed
 import { getAccountAccess } from "@/lib/account-access";
 
 describe("getAccountAccess", () => {

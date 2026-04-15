@@ -3,7 +3,7 @@ import { getAccountAccess } from "@/lib/account-access";
 
 // ─── Route protection via getAccountAccess ────────────────────────────────────
 
-describe("getAccountAccess — rôles", () => {
+describe("getAccountAccess · rôles", () => {
   it("retourne isFreemium=true pour un compte sans plan ni rôle spécial", () => {
     const access = getAccountAccess({ role: "freemium", plan: null });
     expect(access.isFreemium).toBe(true);

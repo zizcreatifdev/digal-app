@@ -92,6 +92,16 @@ export async function fetchPreviewLinkBySlug(slug: string) {
   return data as PreviewLink;
 }
 
+export async function fetchClientPreviewLinks(clientId: string): Promise<PreviewLink[]> {
+  const { data, error } = await supabase
+    .from("preview_links")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as PreviewLink[];
+}
+
 export async function fetchPreviewActions(linkId: string) {
   const { data, error } = await supabase
     .from("preview_actions")

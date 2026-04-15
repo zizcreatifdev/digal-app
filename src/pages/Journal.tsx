@@ -110,7 +110,7 @@ export default function Journal() {
                     </TableCell>
                     <TableCell className="font-medium text-sm">{log.action}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                      {log.detail ?? "—"}
+                      {log.detail ?? "-"}
                     </TableCell>
                   </TableRow>
                 ))}

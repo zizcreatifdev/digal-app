@@ -129,7 +129,7 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
       const boostLines: DocumentLine[] = boostDepenses
         .filter((d) => includedBoosts.has(d.id))
         .map((d, i) => ({
-          description: `Boost ${BOOST_RESEAU_LABELS[d.reseau ?? ""] ?? "Publicité"} — ${d.date_depense}`,
+          description: `Boost ${BOOST_RESEAU_LABELS[d.reseau ?? ""] ?? "Publicité"} · ${d.date_depense}`,
           quantite: 1,
           prix_unitaire: d.montant,
           brs_applicable: false,
@@ -286,7 +286,7 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-sans">
-                        {BOOST_RESEAU_LABELS[d.reseau ?? ""] ?? "Publicité"} — {d.date_depense}
+                        {BOOST_RESEAU_LABELS[d.reseau ?? ""] ?? "Publicité"} · {d.date_depense}
                       </p>
                       <p className="text-xs text-muted-foreground font-sans">{d.libelle}</p>
                     </div>

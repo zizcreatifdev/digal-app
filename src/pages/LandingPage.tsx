@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { MarqueeBanner } from "@/components/landing/MarqueeBanner";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
+import { TeamRolesSection } from "@/components/landing/TeamRolesSection";
 import { MockupsSection } from "@/components/landing/MockupsSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { CtaSection } from "@/components/landing/CtaSection";
@@ -16,6 +17,7 @@ const LandingPage = () => {
       <MarqueeBanner />
       <ProblemSection />
       <SolutionSection />
+      <TeamRolesSection />
       <MockupsSection />
       <PricingSection />
       <CtaSection />

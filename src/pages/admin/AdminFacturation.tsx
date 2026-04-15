@@ -17,6 +17,31 @@ import jsPDF from "jspdf";
 import { usePlans } from "@/hooks/usePlans";
 import { ReceiptPreviewModal } from "@/components/admin/ReceiptPreviewModal";
 
+async function loadSvgAsPng(url: string, width: number, height: number): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    const svgText = await response.text();
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const objectUrl = URL.createObjectURL(blob);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
+      img.src = objectUrl;
+    });
+  } catch {
+    return null;
+  }
+}
+
 type OwnerPayment = {
   id: string;
   compte_nom: string;
@@ -201,8 +226,14 @@ const AdminFacturation = () => {
     };
   };
 
-  // PDF receipt — matches preview exactly
-  const downloadPDF = (p: OwnerPayment) => {
+  // PDF receipt: matches preview exactly
+  const downloadPDF = async (p: OwnerPayment) => {
+    // Load Digal logo (SVG → PNG via canvas)
+    const digalLogoData = await loadSvgAsPng(
+      "/logos/Logo%20Digal-iconorange_avec_baseline_noir.svg",
+      400, 192
+    );
+
     const receiptData = getReceiptData(p);
     const doc = new jsPDF();
     const w = doc.internal.pageSize.getWidth();
@@ -221,18 +252,28 @@ const AdminFacturation = () => {
     doc.setFillColor(...accent);
     doc.rect(0, 0, w, 4, "F");
 
-    let y = 18;
+    // === Header: Digal logo (40×20mm) ===
+    if (digalLogoData) {
+      try {
+        doc.addImage(digalLogoData, "PNG", margin, 7, 40, 20);
+      } catch {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(20);
+        doc.setTextColor(...dark);
+        doc.text("Digal", margin, 18);
+      }
+    } else {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.setTextColor(...dark);
+      doc.text("Digal", margin, 18);
+    }
 
-    // === Header: Logo + Title ===
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.setTextColor(...dark);
-    doc.text("Digal", margin, y);
-    y += 5;
-    doc.setFontSize(8);
+    // Subtitle below logo
+    doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...gray);
-    doc.text("Plateforme SaaS pour Community Managers", margin, y);
+    doc.text("Plateforme SaaS pour Community Managers", margin, 30);
 
     // Right side: Receipt title + date
     doc.setTextColor(...accent);
@@ -245,7 +286,7 @@ const AdminFacturation = () => {
     const formattedDate = format(new Date(p.date_paiement), "dd MMMM yyyy", { locale: fr });
     doc.text(formattedDate, w - margin, 22, { align: "right" });
 
-    y += 6;
+    let y = 35;
 
     // === Divider ===
     doc.setDrawColor(240, 240, 240);
@@ -276,7 +317,7 @@ const AdminFacturation = () => {
     doc.text(p.compte_nom, margin + 8, infoY + 5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100, 100, 100);
-    doc.text(p.compte_email ?? "—", col2X, infoY + 5);
+    doc.text(p.compte_email ?? "-", col2X, infoY + 5);
 
     // Row 2: Formule + Méthode
     const row2Y = infoY + 14;
@@ -374,8 +415,21 @@ const AdminFacturation = () => {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(200, 200, 200);
     const ref = `DGL-${format(new Date(p.date_paiement), "yyyyMMdd")}-${p.id.substring(0, 4).toUpperCase()}`;
-    doc.text(`Réf : ${ref} • Dakar, Sénégal`, margin, y);
-    doc.text("digal.sn", w - margin, y, { align: "right" });
+    doc.text(`Réf : ${ref} · Dakar, Sénégal`, margin, y);
+    doc.text("ziza@digal.sn · digal.vercel.app", margin, y + 4);
+
+    // Digal logo bottom-right
+    if (digalLogoData) {
+      try {
+        doc.addImage(digalLogoData, "PNG", w - 35, h - 16, 20, 9.6);
+      } catch {
+        doc.setTextColor(180, 180, 180);
+        doc.text("digal.vercel.app", w - margin, h - 10, { align: "right" });
+      }
+    } else {
+      doc.setTextColor(180, 180, 180);
+      doc.text("digal.vercel.app", w - margin, h - 10, { align: "right" });
+    }
 
     // === Bottom accent bar ===
     doc.setFillColor(...accent);
@@ -511,7 +565,7 @@ const AdminFacturation = () => {
                   <SelectContent>
                     {accounts.map(a => (
                       <SelectItem key={a.id} value={a.id}>
-                        {a.prenom} {a.nom} — {a.email}
+                        {a.prenom} {a.nom} · {a.email}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -529,7 +583,7 @@ const AdminFacturation = () => {
                     <p><span className="font-medium">Formule actuelle :</span> {planLabels[currentPlanSlug] || currentPlanSlug}</p>
                     {planChanged && (
                       <div className="mt-2 p-2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                        ⚠️ Changement de formule détecté — Ancien plan : <strong>{planLabels[lastPlan] || lastPlan}</strong> → Nouveau : <strong>{planLabels[currentPlanSlug] || currentPlanSlug}</strong>
+                        ⚠️ Changement de formule détecté, ancien plan : <strong>{planLabels[lastPlan] || lastPlan}</strong> → Nouveau : <strong>{planLabels[currentPlanSlug] || currentPlanSlug}</strong>
                       </div>
                     )}
                   </div>
@@ -543,7 +597,7 @@ const AdminFacturation = () => {
                     <SelectContent>
                       {paidPlans.map(p => (
                         <SelectItem key={p.slug} value={p.slug}>
-                          {p.nom} — {(planPrices[p.slug] || 0).toLocaleString("fr-FR")} FCFA
+                          {p.nom} · {(planPrices[p.slug] || 0).toLocaleString("fr-FR")} FCFA
                         </SelectItem>
                       ))}
                     </SelectContent>

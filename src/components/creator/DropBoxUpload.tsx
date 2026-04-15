@@ -65,7 +65,7 @@ export function DropBoxUpload({ ownerId, clientId, clientName }: DropBoxUploadPr
       setUploadProgress(100);
       setTimeout(() => setUploadProgress(0), 800);
 
-      toast.success("Fichier déposé — le CM sera notifié");
+      toast.success("Fichier déposé, le CM sera notifié");
       setSelectedFile(null);
       setDescription("");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -86,7 +86,7 @@ export function DropBoxUpload({ ownerId, clientId, clientName }: DropBoxUploadPr
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Inbox className="h-4 w-4" /> Boîte de dépôt — {clientName}
+            <Inbox className="h-4 w-4" /> Boîte de dépôt · {clientName}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

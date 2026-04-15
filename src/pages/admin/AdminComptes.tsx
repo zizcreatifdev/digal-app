@@ -1,20 +1,43 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
-  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign,
+  Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
+
+const createAccountSchema = z.object({
+  prenom: z.string().min(1, "Prénom requis"),
+  nom: z.string().min(1, "Nom requis"),
+  email: z.string().email("Email invalide"),
+  password: z.string().min(8, "Minimum 8 caractères"),
+  confirmPassword: z.string().min(1, "Confirmation requise"),
+  type_compte: z.enum(["solo", "agence"]),
+  plan: z.enum(["freemium", "solo_standard", "agence_standard", "agence_pro"]),
+  agence_nom: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
+type CreateAccountForm = z.infer<typeof createAccountSchema>;
 
 interface UserProfile {
   id: string;
@@ -43,13 +66,67 @@ interface AccountFinancial {
   masseSalariale: number;
 }
 
+function formatRelativeTime(date: Date | null): { text: string; isOld: boolean } {
+  if (!date) return { text: "Jamais", isOld: true };
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  let text: string;
+  if (diffHours < 1) text = "Il y a moins d'1h";
+  else if (diffHours < 24) text = `Il y a ${diffHours}h`;
+  else if (diffDays === 1) text = "Il y a 1 jour";
+  else text = `Il y a ${diffDays} jours`;
+  return { text, isOld: diffDays >= 30 };
+}
+
+const FILTER_LABELS: Record<string, string> = {
+  inactive7: "Inactifs 7 jours",
+  inactive30: "Inactifs 30 jours",
+  never: "Jamais connectés",
+  hot: "Prospects chauds",
+};
+
 export default function AdminComptes() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filterParam = searchParams.get("filter");
   const [selected, setSelected] = useState<UserProfile | null>(null);
   const [detail, setDetail] = useState<AccountDetail | null>(null);
   const [financial, setFinancial] = useState<AccountFinancial | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingFinancial, setLoadingFinancial] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const createForm = useForm<CreateAccountForm>({
+    resolver: zodResolver(createAccountSchema),
+    defaultValues: { type_compte: "solo", plan: "freemium" },
+  });
+
+  const createAccount = useMutation({
+    mutationFn: async (values: CreateAccountForm) => {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          prenom: values.prenom,
+          nom: values.nom,
+          email: values.email,
+          password: values.password,
+          plan: values.plan,
+          agence_nom: values.agence_nom || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      toast.success("Compte créé avec succès");
+      setCreateOpen(false);
+      createForm.reset({ type_compte: "solo", plan: "freemium" });
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erreur lors de la création"),
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-comptes"],
@@ -59,6 +136,43 @@ export default function AdminComptes() {
       return data as UserProfile[];
     },
   });
+
+  // Last login map (shared query key with AdminDashboard)
+  const { data: lastLoginMap } = useQuery({
+    queryKey: ["admin-last-logins"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("user_id, created_at")
+        .eq("type_action", "auth")
+        .eq("action", "Connexion")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      const map: Record<string, Date> = {};
+      for (const log of data ?? []) {
+        if (!map[log.user_id]) map[log.user_id] = new Date(log.created_at);
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  // Filtered users based on URL param
+  const filteredUsers = (() => {
+    if (!users || !filterParam || !lastLoginMap) return users;
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return users.filter((u) => {
+      const lastLogin = lastLoginMap[u.user_id] ?? null;
+      const activationDate = new Date(u.created_at);
+      if (filterParam === "inactive7") return lastLogin ? lastLogin < sevenDaysAgo : false;
+      if (filterParam === "inactive30") return lastLogin ? lastLogin < thirtyDaysAgo : false;
+      if (filterParam === "never") return !lastLogin;
+      if (filterParam === "hot") return u.role === "freemium" && activationDate < thirtyDaysAgo && !!lastLogin;
+      return true;
+    });
+  })();
 
   const updateUser = useMutation({
     mutationFn: async (updates: { id: string } & Partial<Omit<UserProfile, "id">>) => {
@@ -134,7 +248,7 @@ export default function AdminComptes() {
         `"${u.email}"`,
         `"${u.role}"`,
         `"${new Date(u.created_at).toLocaleDateString("fr-FR")}"`,
-        `"${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}"`,
+        `"${u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}"`,
         `"${statut}"`,
       ].join(",");
     }).join("\n");
@@ -205,13 +319,31 @@ export default function AdminComptes() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Comptes utilisateurs</h1>
-            <p className="text-muted-foreground font-sans mt-1">
-              {users?.length ?? 0} comptes enregistrés — cliquez sur un compte pour voir son activité
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-muted-foreground font-sans">
+                {filteredUsers?.length ?? 0} compte(s) affiché(s)
+                {filterParam && ` · filtre : ${FILTER_LABELS[filterParam] ?? filterParam}`}
+              </p>
+              {filterParam && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs font-sans gap-1"
+                  onClick={() => setSearchParams({})}
+                >
+                  <X className="h-3 w-3" /> Retirer le filtre
+                </Button>
+              )}
+            </div>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!users?.length} className="font-sans">
-            <Download className="h-4 w-4 mr-2" /> Exporter CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setCreateOpen(true)} className="font-sans">
+              <UserPlus className="h-4 w-4 mr-2" /> Créer un compte
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={!users?.length} className="font-sans">
+              <Download className="h-4 w-4 mr-2" /> Exporter CSV
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -228,37 +360,151 @@ export default function AdminComptes() {
                     <TableHead>Statut licence</TableHead>
                     <TableHead>Expiration</TableHead>
                     <TableHead>Inscription</TableHead>
+                    <TableHead>Dernière connexion</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users?.map((u) => (
-                    <TableRow key={u.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(u)}>
-                      <TableCell className="font-medium">{u.prenom} {u.nom}</TableCell>
-                      <TableCell className="text-sm">{u.email}</TableCell>
-                      <TableCell>{getRoleBadge(u.role)}</TableCell>
-                      <TableCell>{getStatusBadge(u)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(u.created_at).toLocaleDateString("fr-FR")}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openDetail(u); }}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {users?.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-12">Aucun compte</TableCell></TableRow>
+                  {filteredUsers?.map((u) => {
+                    const lastLoginDate = lastLoginMap ? (lastLoginMap[u.user_id] ?? null) : null;
+                    const { text: lastLoginText, isOld } = formatRelativeTime(lastLoginDate);
+                    return (
+                      <TableRow key={u.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(u)}>
+                        <TableCell className="font-medium">{u.prenom} {u.nom}</TableCell>
+                        <TableCell className="text-sm">{u.email}</TableCell>
+                        <TableCell>{getRoleBadge(u.role)}</TableCell>
+                        <TableCell>{getStatusBadge(u)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                        </TableCell>
+                        <TableCell className={`text-xs ${isOld ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+                          {lastLoginMap ? lastLoginText : <Loader2 className="h-3 w-3 animate-spin" />}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openDetail(u); }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredUsers?.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Aucun compte</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         )}
+
+        {/* Modal création de compte */}
+        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) createForm.reset({ type_compte: "solo", plan: "freemium" }); }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-serif flex items-center gap-2">
+                <UserPlus className="h-5 w-5" /> Créer un compte
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={createForm.handleSubmit((v) => createAccount.mutate(v))} className="space-y-4 font-sans">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="prenom" className="text-xs">Prénom *</Label>
+                  <Input id="prenom" {...createForm.register("prenom")} placeholder="Awa" />
+                  {createForm.formState.errors.prenom && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.prenom.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="nom" className="text-xs">Nom *</Label>
+                  <Input id="nom" {...createForm.register("nom")} placeholder="Diallo" />
+                  {createForm.formState.errors.nom && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.nom.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-xs">Email *</Label>
+                <Input id="email" type="email" {...createForm.register("email")} placeholder="awa@agence.sn" />
+                {createForm.formState.errors.email && (
+                  <p className="text-xs text-destructive">{createForm.formState.errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="password" className="text-xs">Mot de passe *</Label>
+                  <Input id="password" type="password" {...createForm.register("password")} placeholder="min. 8 caractères" />
+                  {createForm.formState.errors.password && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.password.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword" className="text-xs">Confirmation *</Label>
+                  <Input id="confirmPassword" type="password" {...createForm.register("confirmPassword")} placeholder="Répéter" />
+                  {createForm.formState.errors.confirmPassword && (
+                    <p className="text-xs text-destructive">{createForm.formState.errors.confirmPassword.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Type de compte *</Label>
+                <RadioGroup
+                  defaultValue="solo"
+                  onValueChange={(v) => createForm.setValue("type_compte", v as "solo" | "agence")}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <RadioGroupItem value="solo" id="type-solo" />
+                    <Label htmlFor="type-solo" className="text-sm font-normal cursor-pointer">Solo / Freelance</Label>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <RadioGroupItem value="agence" id="type-agence" />
+                    <Label htmlFor="type-agence" className="text-sm font-normal cursor-pointer">Agence</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Plan *</Label>
+                <Select
+                  defaultValue="freemium"
+                  onValueChange={(v) => createForm.setValue("plan", v as CreateAccountForm["plan"])}
+                >
+                  <SelectTrigger><SelectValue placeholder="Choisir un plan" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freemium">Freemium</SelectItem>
+                    <SelectItem value="solo_standard">Solo Standard</SelectItem>
+                    <SelectItem value="agence_standard">Agence Standard</SelectItem>
+                    <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+                {createForm.watch("plan") !== "freemium" && (
+                  <p className="text-xs text-muted-foreground">Licence active, expiration dans 6 mois</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="agence_nom" className="text-xs">Nom de l'agence / entreprise</Label>
+                <Input id="agence_nom" {...createForm.register("agence_nom")} placeholder="Optionnel" />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(false)} className="font-sans">
+                  Annuler
+                </Button>
+                <Button type="submit" size="sm" disabled={createAccount.isPending} className="font-sans">
+                  {createAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                  Créer le compte
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDetail(null); } }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -290,7 +536,7 @@ export default function AdminComptes() {
                     <div><span className="text-muted-foreground">Email</span><p className="font-medium">{selected.email}</p></div>
                     <div><span className="text-muted-foreground">Plan</span><p className="font-medium">{selected.role}</p></div>
                     <div><span className="text-muted-foreground">Inscription</span><p className="font-medium">{new Date(selected.created_at).toLocaleDateString("fr-FR")}</p></div>
-                    <div><span className="text-muted-foreground">Expiration</span><p className="font-medium">{selected.licence_expiration ? new Date(selected.licence_expiration).toLocaleDateString("fr-FR") : "—"}</p></div>
+                    <div><span className="text-muted-foreground">Expiration</span><p className="font-medium">{selected.licence_expiration ? new Date(selected.licence_expiration).toLocaleDateString("fr-FR") : "-"}</p></div>
                     {selected.agence_nom && <div className="col-span-2"><span className="text-muted-foreground">Agence</span><p className="font-medium">{selected.agence_nom}</p></div>}
                   </div>
 
