@@ -106,7 +106,8 @@ export default function Activate() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12 pwa-login-container">
+    <div className="ios-scroll-container">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         <div className="flex justify-center">
           <img
@@ -221,6 +222,7 @@ export default function Activate() {
           </Card>
         )}
       </div>
+    </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 31 — Fix clavier iOS PWA (viewport, onFocus scroll, CSS @supports)_
+_Prompt courant : 31B — Fix clavier iOS PWA approche dvh (ios-scroll-container, 100dvh, autoComplete)_
 
 ---
 
@@ -206,7 +206,7 @@ _Prompt courant : 31 — Fix clavier iOS PWA (viewport, onFocus scroll, CSS @sup
 | Auto-update SW | ✅ Complet (prompt-11) | `registerSW` dans main.tsx |
 | Web Push API | ✅ Complet (prompt-11) | VAPID, table push_subscriptions, edge fn send-push |
 | Opt-in UI (Settings) | ✅ Complet (prompt-11) | Toggle dans onglet Profil |
-| Fix clavier iOS PWA | ✅ Complet (prompt-31) | viewport-fit=cover, onFocus scrollIntoView, @supports CSS |
+| Fix clavier iOS PWA | ✅ Complet (prompt-31B) | ios-scroll-container fixed+overflow-y, min-h-[100dvh], autoComplete/inputMode |
 | VAPID keys | ❌ À configurer | Env VITE_VAPID_PUBLIC_KEY + secrets |
 
 ---
@@ -350,3 +350,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 29 | Onboarding 5 étapes (DB persistence + badge modal) + KPI métriques complètes + périodes trimestrielle/personnalisée | 2026-04-15 |
 | 30 | Emails automatiques : relance freemium, expiry reminders améliorés, notification lien expiré CM, migrations expiry_notified + relance_sent | 2026-04-15 |
 | 31 | Fix clavier iOS PWA : viewport-fit=cover + interactive-widget, onFocus scrollIntoView (Login + Activate), CSS @supports pwa-login-container | 2026-04-15 |
+| 31B | Fix clavier iOS PWA (approche dvh) : viewport simplifié, ios-scroll-container (fixed+overflow), min-h-[100dvh], autoComplete/inputMode | 2026-04-15 |
