@@ -24,6 +24,7 @@ import { RESEAUX } from "@/lib/clients";
 import type { Tables } from "@/integrations/supabase/types";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush, getNotificationPermission } from "@/lib/push-notifications";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
+import { sendActivationEmail } from "@/lib/emails";
 
 type UserRow = Tables<"users">;
 type PostTemplateRow = Tables<"post_templates">;
@@ -555,6 +556,7 @@ function TeamTab() {
   const { user } = useAuth();
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("cm");
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [profile, setProfile] = useState<UserRow | null>(null);
   const [teamMembers, setTeamMembers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -579,10 +581,38 @@ function TeamTab() {
 
   const isAgence = profile?.role === "dm" || profile?.role?.startsWith("agence");
 
-  const handleInvite = () => {
-    if (!inviteEmail) return;
-    toast.success(`Invitation envoyée à ${inviteEmail}`);
-    setInviteEmail("");
+  const handleInvite = async () => {
+    if (!inviteEmail || !profile) return;
+    setInviteLoading(true);
+    try {
+      // Insert activation token reusing the existing activation flow
+      const { data: tokenData, error: tokenErr } = await supabase
+        .from("activation_tokens")
+        .insert({
+          email: inviteEmail,
+          prenom: "",
+          nom: "",
+          type_compte: inviteRole,
+          agence_id: profile.agence_id ?? null,
+        } as Parameters<ReturnType<typeof supabase.from>["insert"]>[0])
+        .select("token")
+        .single();
+
+      if (tokenErr || !tokenData) {
+        toast.error("Erreur lors de la création du lien d'invitation.");
+        return;
+      }
+
+      const activationLink = `${window.location.origin}/activate/${tokenData.token}`;
+      const roleLabel = inviteRole === "cm" ? "CM" : "Créateur";
+      await sendActivationEmail(inviteEmail, "", inviteRole, activationLink);
+      toast.success(`Invitation envoyée à ${inviteEmail} (${roleLabel})`);
+      setInviteEmail("");
+    } catch {
+      toast.error("Erreur lors de l'envoi de l'invitation.");
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const ROLE_LABELS: Record<string, string> = {
@@ -638,7 +668,10 @@ function TeamTab() {
                 </Select>
               </div>
             </div>
-            <Button onClick={handleInvite}><Plus className="h-4 w-4 mr-1" /> Inviter</Button>
+            <Button onClick={() => { void handleInvite(); }} disabled={inviteLoading}>
+              {inviteLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+              Inviter
+            </Button>
           </CardContent>
         </Card>
       )}

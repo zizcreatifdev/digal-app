@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { logAuth } from "@/lib/activity-logs";
@@ -35,13 +35,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileRoleLoaded(true);
   };
 
+  // Prevents getSession() from overwriting onAuthStateChange when both fire concurrently
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        initializedRef.current = true;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Use setTimeout to avoid Supabase deadlock
+          // Use setTimeout to avoid Supabase deadlock inside the listener
           setTimeout(() => fetchRole(session.user.id), 0);
         } else {
           setUserRole(null);
@@ -52,7 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Fallback: only runs if onAuthStateChange hasn't fired yet (avoids double-fetch)
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (initializedRef.current) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {

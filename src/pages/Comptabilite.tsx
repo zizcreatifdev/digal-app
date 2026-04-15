@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Document, fetchDocuments } from "@/lib/facturation";
-import { Depense, Salaire, fetchDepenses, fetchSalaires } from "@/lib/comptabilite";
+import { Depense, Salaire, fetchDepenses, fetchSalaires, exportComptabiliteCSV } from "@/lib/comptabilite";
 import { RevenusSection } from "@/components/comptabilite/RevenusSection";
 import { DepensesSection } from "@/components/comptabilite/DepensesSection";
 import { MasseSalarialeSection } from "@/components/comptabilite/MasseSalarialeSection";
@@ -86,16 +88,27 @@ export default function Comptabilite() {
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-serif font-bold">Comptabilité</h1>
-          <Select value={mois} onValueChange={setMois}>
-            <SelectTrigger className="w-52">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportComptabiliteCSV(depenses, salaires, mois)}
+              disabled={loading}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exporter CSV
+            </Button>
+            <Select value={mois} onValueChange={setMois}>
+              <SelectTrigger className="w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (

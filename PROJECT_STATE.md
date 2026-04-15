@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 31B — Fix clavier iOS PWA approche dvh (ios-scroll-container, 100dvh, autoComplete)_
+_Prompt courant : 32 — Export CSV comptabilité + invitation équipe + fix useAuth race condition_
 
 ---
 
@@ -123,7 +123,7 @@ _Prompt courant : 31B — Fix clavier iOS PWA approche dvh (ios-scroll-container
 
 ---
 
-### Module COMPTABILITÉ — 85% ✅
+### Module COMPTABILITÉ — 100% ✅ (prompt-32)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Dashboard financier | ✅ Complet | |
@@ -131,7 +131,7 @@ _Prompt courant : 31B — Fix clavier iOS PWA approche dvh (ios-scroll-container
 | Boost dépenses (client + réseau) | ✅ Complet (prompt-08) | |
 | Boost → ligne facture | ✅ Complet (prompt-08) | |
 | Masse salariale | ✅ Complet | |
-| Export CSV/rapport | ❌ Manquant | Non implémenté |
+| Export CSV/rapport | ✅ Complet (prompt-32) | papaparse, bouton Download, colonnes dépenses + salaires |
 | Graphiques | ✅ Complet | Recharts |
 | Protection route /comptabilite | ✅ Complet (prompt-06) | |
 | Tests fetchBoostDepenses | ✅ 4/4 (prompt-11) | `boost-facture.test.ts` |
@@ -211,11 +211,11 @@ _Prompt courant : 31B — Fix clavier iOS PWA approche dvh (ios-scroll-container
 
 ---
 
-### Module PARAMÈTRES — 85% ✅
+### Module PARAMÈTRES — 98% ✅ (prompt-32)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Profil utilisateur | ✅ Complet | |
-| Invitation équipe | ⚠️ Partiel | |
+| Invitation équipe | ✅ Complet (prompt-32) | Token activation_tokens + email Resend + activate-account gère rôle + agence_id |
 | Clé licence | ✅ Complet | |
 | Historique licences | ✅ Complet | |
 | Tampon + signature | ✅ Complet (prompt-08) | |
@@ -297,8 +297,8 @@ _Prompt courant : 31B — Fix clavier iOS PWA approche dvh (ios-scroll-container
 | # | Description | Sévérité |
 |---|-------------|----------|
 | 1 | QR code TOTP via api.qrserver.com (dépendance externe) | MOYENNE |
-| 2 | Double fetch session dans useAuth (race condition) | BASSE |
-| 3 | Export CSV comptabilité non implémenté | BASSE |
+| 2 | ~~Double fetch session dans useAuth (race condition)~~ | ✅ Corrigé (prompt-32) |
+| 3 | ~~Export CSV comptabilité non implémenté~~ | ✅ Implémenté (prompt-32) |
 | 4 | RESEND_API_KEY + VAPID keys à configurer en production | CRITIQUE (config) |
 
 ---
@@ -351,3 +351,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 30 | Emails automatiques : relance freemium, expiry reminders améliorés, notification lien expiré CM, migrations expiry_notified + relance_sent | 2026-04-15 |
 | 31 | Fix clavier iOS PWA : viewport-fit=cover + interactive-widget, onFocus scrollIntoView (Login + Activate), CSS @supports pwa-login-container | 2026-04-15 |
 | 31B | Fix clavier iOS PWA (approche dvh) : viewport simplifié, ios-scroll-container (fixed+overflow), min-h-[100dvh], autoComplete/inputMode | 2026-04-15 |
+| 32 | Export CSV comptabilité (papaparse) + invitation équipe complète (token+email+agence_id) + fix useAuth race condition (initializedRef) | 2026-04-15 |

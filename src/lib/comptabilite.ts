@@ -1,3 +1,4 @@
+import Papa from "papaparse";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Depense {
@@ -147,6 +148,49 @@ export async function markSalairePaid(id: string, methode: string) {
     methode_paiement: methode,
   }).eq("id", id);
   if (error) throw error;
+}
+
+export function exportComptabiliteCSV(
+  depenses: Depense[],
+  salaires: Salaire[],
+  mois: string,
+  clientsMap: Record<string, string> = {}
+): void {
+  const [y, m] = mois.split("-");
+  const filename = `comptabilite-${m}-${y}.csv`;
+
+  // Section dépenses
+  const depenseRows = depenses.map((d) => ({
+    Section: "Dépenses",
+    Date: d.date_depense,
+    Catégorie: CATEGORIE_LABELS[d.categorie] ?? d.categorie,
+    Description: d.libelle,
+    "Montant FCFA": d.montant,
+    "Client affecté": d.client_id ? (clientsMap[d.client_id] ?? d.client_id) : "",
+  }));
+
+  // Section masse salariale
+  const salaireRows = salaires.map((s) => ({
+    Section: "Masse salariale",
+    Date: s.date_paiement ?? mois,
+    Catégorie: "Salaire",
+    Description: s.membre_nom,
+    "Montant FCFA": s.salaire_mensuel,
+    "Client affecté": "",
+  }));
+
+  const csv = Papa.unparse([...depenseRows, ...salaireRows], {
+    delimiter: ";",
+    header: true,
+  });
+
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function nextMonth(ym: string): string {

@@ -66,7 +66,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, type_compte } = tokenRow;
+    const { email, type_compte, agence_id } = tokenRow as typeof tokenRow & { agence_id?: string | null };
+
+    // Determine role: team invites use type_compte directly (cm/createur)
+    const TEAM_ROLES = ["cm", "createur"];
+    const isTeamInvite = TEAM_ROLES.includes(type_compte);
+    const userRole = isTeamInvite ? type_compte : "freemium";
 
     // 2. Create Auth user (confirmed: no email verification needed)
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
@@ -90,9 +95,10 @@ Deno.serve(async (req) => {
       email,
       prenom,
       nom,
-      role: "freemium",
+      role: userRole,
       plan: null,
       agence_nom: agence_nom || null,
+      ...(isTeamInvite && agence_id ? { agence_id } : {}),
     });
 
     if (profileError) {
