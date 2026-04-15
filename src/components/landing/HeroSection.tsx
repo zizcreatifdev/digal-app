@@ -32,13 +32,13 @@ export function HeroSection() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-          <Button size="lg" className="gap-2 px-8 text-base" asChild>
+          <Button size="lg" className="gap-2 px-8 text-base w-full sm:w-auto" asChild>
             <Link to="/waitlist">
               Rejoindre la liste d'attente
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="outline" size="lg" className="px-8 text-base" asChild>
+          <Button variant="outline" size="lg" className="px-8 text-base w-full sm:w-auto" asChild>
             <a href="#fonctionnalites">Découvrir Digal</a>
           </Button>
         </div>

@@ -30,7 +30,8 @@ export function LandingHeader() {
           </a>
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-3">
+          <Button size="sm" variant="ghost" asChild><Link to="/login">Se connecter</Link></Button>
           <Button size="sm" asChild><Link to="/waitlist">Rejoindre la liste</Link></Button>
         </div>
 
@@ -57,7 +58,8 @@ export function LandingHeader() {
             <a href="#contact" className="text-sm font-sans text-muted-foreground hover:text-foreground" onClick={() => setMenuOpen(false)}>
               Contact
             </a>
-            <Button size="sm" className="mt-2 w-full" asChild><Link to="/waitlist">Rejoindre la liste</Link></Button>
+            <Button size="sm" variant="ghost" className="min-h-[44px] w-full justify-start" asChild><Link to="/login" onClick={() => setMenuOpen(false)}>Se connecter</Link></Button>
+            <Button size="sm" className="mt-1 w-full min-h-[44px]" asChild><Link to="/waitlist">Rejoindre la liste</Link></Button>
           </nav>
         </div>
       )}

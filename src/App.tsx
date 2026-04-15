@@ -1,11 +1,13 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminTotpGate } from "@/components/AdminTotpGate";
+import { Loader2 } from "lucide-react";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import ClientsPage from "./pages/Clients";
@@ -46,6 +48,34 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const PwaRootRedirect = () => {
+  const { session, loading, profileRole, profileRoleLoaded, userRole } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading || !profileRoleLoaded) return;
+    if (!session) {
+      navigate("/login", { replace: true });
+    } else if (profileRole === "owner" || profileRole === "admin" || userRole === "admin") {
+      navigate("/admin", { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [session, loading, profileRole, profileRoleLoaded, userRole, navigate]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+};
+
+const RootRoute = () => {
+  const isPWA = window.matchMedia("(display-mode: standalone)").matches;
+  if (isPWA) return <PwaRootRedirect />;
+  return <LandingPage />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -54,7 +84,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/waitlist" element={<Waitlist />} />
