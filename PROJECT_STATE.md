@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 33 — QR code TOTP local (qrcode lib, sans api.qrserver.com)_
+_Prompt courant : 36 — Durées de licence flexibles depuis Admin_
 
 ---
 
@@ -238,15 +238,17 @@ _Prompt courant : 33 — QR code TOTP local (qrcode lib, sans api.qrserver.com)_
 
 ---
 
-### Module ADMIN — 95% ✅
+### Module ADMIN — 99% ✅
 | Page admin | État | Notes |
 |------------|------|-------|
 | Dashboard KPIs (MRR, comptes) | ✅ Complet | |
 | Gestion comptes + Export CSV | ✅ Complet (prompt-09) | |
 | Onglet Financier par compte | ✅ Complet (prompt-09) | CA, dépenses, salaires |
 | Génération clés + promo + prolongation | ✅ Complet | |
-| Gestion waitlist | ✅ Complet (prompt-19) | Copie manuelle message activation, badge statut, regénération lien |
+| Génération clé avec durée depuis plan_configs | ✅ Complet (prompt-36) | Select durées actives par plan |
+| Gestion waitlist | ✅ Complet (prompt-36) | Select durée + prix dans message copié |
 | Gestion plans tarifaires | ✅ Complet | |
+| Configurations tarifaires (plan_configs) | ✅ Complet (prompt-36) | Durées/prix par plan, toggle actif/populaire, inline edit, ajout |
 | Gestion contrats | ✅ Complet | |
 | Campagnes emails | ✅ Complet | |
 | Logs de sécurité | ✅ Complet | |
@@ -260,7 +262,7 @@ _Prompt courant : 33 — QR code TOTP local (qrcode lib, sans api.qrserver.com)_
 | Hero + countdown | ✅ | |
 | Problem / Solution | ✅ | |
 | MockupsSection | ✅ (prompt-10) | 4 cartes animées |
-| Pricing | ✅ | |
+| Pricing | ✅ (prompt-36) | Toggle durée Mensuel/3m/6m/12m, prix depuis plan_configs, badge "Économisez X%" |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
 | Page /privacy | ✅ (prompt-10) | |
@@ -353,3 +355,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 31B | Fix clavier iOS PWA (approche dvh) : viewport simplifié, ios-scroll-container (fixed+overflow), min-h-[100dvh], autoComplete/inputMode | 2026-04-15 |
 | 32 | Export CSV comptabilité (papaparse) + invitation équipe complète (token+email+agence_id) + fix useAuth race condition (initializedRef) | 2026-04-15 |
 | 33 | QR code TOTP local : remplacement api.qrserver.com par lib qrcode (toDataURL), fallback Loader2 | 2026-04-15 |
+| 34 | Rapport test end-to-end TEST_REPORT.md (10 modules, 137/137 tests) | 2026-04-15 |
+| 35 | Fix log connexion activity_logs : login_success dans Activate + useAuth + widget "Jamais connectés" (exclure < 1h) | 2026-04-15 |
+| 36 | Durées licence flexibles : table plan_configs, AdminPlans configs tarifaires, AdminLicences select durée, PricingSection toggle, AdminWaitlist durée+prix | 2026-04-15 |

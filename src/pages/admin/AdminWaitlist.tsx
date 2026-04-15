@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle, Copy, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+
+/* ─── Types ─────────────────────────────────────────────── */
 
 interface WaitlistEntry {
   id: string;
@@ -26,6 +30,15 @@ interface TokenInfo {
   message_copied_at: string | null;
 }
 
+interface PlanConfig {
+  plan_type: string;
+  duree_mois: number;
+  prix_fcfa: number;
+  est_actif: boolean;
+}
+
+/* ─── Constants ─────────────────────────────────────────── */
+
 const TYPE_LABELS: Record<string, string> = {
   solo: "Solo",
   agence: "Agence",
@@ -33,8 +46,20 @@ const TYPE_LABELS: Record<string, string> = {
   agence_pro: "Agence Pro",
 };
 
+// Maps waitlist type_compte → plan_configs plan_type
+const TYPE_COMPTE_TO_PLAN_TYPE: Record<string, string> = {
+  solo: "solo",
+  agence: "agence_standard",
+  agence_standard: "agence_standard",
+  agence_pro: "agence_pro",
+};
+
+/* ─── Component ─────────────────────────────────────────── */
+
 export default function AdminWaitlist() {
   const queryClient = useQueryClient();
+  // duration selected per entry (keyed by entry email)
+  const [dureeParEmail, setDureeParEmail] = useState<Record<string, string>>({});
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["admin-waitlist"],
@@ -48,7 +73,7 @@ export default function AdminWaitlist() {
     },
   });
 
-  // Fetch latest token per email (ordered newest-first → first entry = latest)
+  // Fetch latest token per email
   const { data: tokensByEmail = {} } = useQuery({
     queryKey: ["admin-activation-tokens"],
     queryFn: async () => {
@@ -64,6 +89,33 @@ export default function AdminWaitlist() {
       return map;
     },
   });
+
+  // Load plan_configs for duration select (active only)
+  const { data: planConfigs } = useQuery({
+    queryKey: ["plan-configs"],
+    queryFn: async () => {
+      // plan_configs not yet in generated types — cast required
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("plan_configs")
+        .select("plan_type, duree_mois, prix_fcfa, est_actif")
+        .eq("est_actif", true)
+        .order("duree_mois");
+      if (error) throw error;
+      return (data ?? []) as PlanConfig[];
+    },
+  });
+
+  const getDurationsForEntry = (typeCompte: string | null) => {
+    const planType = TYPE_COMPTE_TO_PLAN_TYPE[typeCompte ?? "solo"] ?? "solo";
+    return (planConfigs ?? []).filter((c) => c.plan_type === planType);
+  };
+
+  const getSelectedConfig = (entry: WaitlistEntry): PlanConfig | undefined => {
+    const duree = parseInt(dureeParEmail[entry.email] ?? "6");
+    const planType = TYPE_COMPTE_TO_PLAN_TYPE[entry.type_compte ?? "solo"] ?? "solo";
+    return (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+  };
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, statut, entry }: { id: string; statut: string; entry: WaitlistEntry }) => {
@@ -93,9 +145,20 @@ export default function AdminWaitlist() {
   });
 
   const copyMessage = useMutation({
-    mutationFn: async ({ entry, tokenInfo }: { entry: WaitlistEntry; tokenInfo: TokenInfo }) => {
+    mutationFn: async ({
+      entry,
+      tokenInfo,
+      duree,
+      prix,
+    }: {
+      entry: WaitlistEntry;
+      tokenInfo: TokenInfo;
+      duree: number;
+      prix: number;
+    }) => {
       const typeLabel = TYPE_LABELS[entry.type_compte ?? ""] ?? (entry.type_compte ?? "Solo");
       const activationLink = `https://digal.vercel.app/activate/${tokenInfo.token}`;
+      const prixLine = prix > 0 ? `Prix : ${prix.toLocaleString("fr-FR")} FCFA` : null;
       const message = [
         `Bonjour ${entry.prenom ?? ""} 👋`,
         "",
@@ -104,6 +167,8 @@ export default function AdminWaitlist() {
         `Vous avez été sélectionné(e) parmi nos premiers utilisateurs, bienvenue dans la communauté.`,
         "",
         `Compte : ${typeLabel}`,
+        `Durée : ${duree} mois`,
+        ...(prixLine ? [prixLine] : []),
         `Lien d'activation (valable 48h) :`,
         activationLink,
         "",
@@ -205,6 +270,8 @@ export default function AdminWaitlist() {
                     const tokenExpired = tokenInfo && !tokenInfo.is_used && new Date(tokenInfo.expires_at) < new Date();
                     const canCopy = tokenInfo && !tokenInfo.is_used && !tokenExpired;
                     const needsRegenerate = e.statut === "approuve" && (!tokenInfo || tokenExpired);
+                    const durations = getDurationsForEntry(e.type_compte);
+                    const selectedConfig = getSelectedConfig(e);
 
                     return (
                       <TableRow key={e.id}>
@@ -221,7 +288,7 @@ export default function AdminWaitlist() {
                           {new Date(e.created_at).toLocaleDateString("fr-FR")}
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1 flex-wrap">
+                          <div className="flex gap-1 flex-wrap items-center">
                             {e.statut === "en_attente" && (
                               <>
                                 <Button size="sm" variant="ghost" onClick={() => updateStatus.mutate({ id: e.id, statut: "approuve", entry: e })} disabled={updateStatus.isPending}>
@@ -232,12 +299,57 @@ export default function AdminWaitlist() {
                                 </Button>
                               </>
                             )}
-                            {canCopy && (
+                            {canCopy && durations.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Select
+                                  value={dureeParEmail[e.email] ?? "6"}
+                                  onValueChange={(v) =>
+                                    setDureeParEmail((prev) => ({ ...prev, [e.email]: v }))
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 w-24 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {durations.map((c) => (
+                                      <SelectItem key={c.duree_mois} value={String(c.duree_mois)}>
+                                        {c.duree_mois} mois
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-7 gap-1"
+                                  onClick={() =>
+                                    copyMessage.mutate({
+                                      entry: e,
+                                      tokenInfo: tokenInfo!,
+                                      duree: parseInt(dureeParEmail[e.email] ?? "6"),
+                                      prix: selectedConfig?.prix_fcfa ?? 0,
+                                    })
+                                  }
+                                  disabled={copyMessage.isPending}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                  Copier
+                                </Button>
+                              </div>
+                            )}
+                            {canCopy && durations.length === 0 && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="text-xs h-7 gap-1"
-                                onClick={() => copyMessage.mutate({ entry: e, tokenInfo: tokenInfo! })}
+                                onClick={() =>
+                                  copyMessage.mutate({
+                                    entry: e,
+                                    tokenInfo: tokenInfo!,
+                                    duree: 6,
+                                    prix: 0,
+                                  })
+                                }
                                 disabled={copyMessage.isPending}
                               >
                                 <Copy className="h-3 w-3" />

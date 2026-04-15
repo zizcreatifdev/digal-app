@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette } from "lucide-react";
 import { usePlans } from "@/hooks/usePlans";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+/* ─── Types ─────────────────────────────────────────────── */
+
+interface PlanConfig {
+  plan_type: string;
+  duree_mois: number;
+  prix_fcfa: number;
+  est_actif: boolean;
+  est_populaire: boolean;
+}
+
+/* ─── Constants ─────────────────────────────────────────── */
+
+// Maps plans.slug → plan_configs.plan_type
+const SLUG_TO_PLAN_TYPE: Record<string, string> = {
+  solo_standard: "solo",
+  agence_standard: "agence_standard",
+  agence_pro: "agence_pro",
+};
 
 const AGENCE_FEATURE_MAP: Record<string, string> = {
   "1 DM + 3 membres": "1 DM + Community Managers + Créateurs (graphistes/vidéastes)",
@@ -16,6 +38,8 @@ const AGENCE_ROLES = [
   { icon: Users, label: "Community Manager", desc: "gère le calendrier et les validations" },
   { icon: Palette, label: "Créateur", desc: "graphiste ou vidéaste, dépose ses fichiers" },
 ] as const;
+
+/* ─── Sub-components ─────────────────────────────────────── */
 
 function AgenceRolesBlock({ highlighted }: { highlighted: boolean }) {
   return (
@@ -37,14 +61,70 @@ function AgenceRolesBlock({ highlighted }: { highlighted: boolean }) {
   );
 }
 
+/* ─── Main component ─────────────────────────────────────── */
+
 export function PricingSection() {
   const navigate = useNavigate();
   const { data: plans, isLoading } = usePlans();
+  const [selectedDuree, setSelectedDuree] = useState(6);
+
+  // Load plan_configs (public read, no auth needed)
+  const { data: planConfigs } = useQuery({
+    queryKey: ["plan-configs-public"],
+    queryFn: async () => {
+      // plan_configs not yet in generated types — cast required
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("plan_configs")
+        .select("plan_type, duree_mois, prix_fcfa, est_actif, est_populaire")
+        .eq("est_actif", true)
+        .order("duree_mois");
+      if (error) throw error;
+      return (data ?? []) as PlanConfig[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Unique active durations across all plan types
+  const durations = [...new Set((planConfigs ?? []).map((c) => c.duree_mois))].sort((a, b) => a - b);
+
+  // Get configured price for a plan at the selected duration
+  const getConfigPrice = (slug: string, duree: number): number | null => {
+    const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
+    if (!planType) return null;
+    const config = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+    return config?.prix_fcfa ?? null;
+  };
+
+  // Calculate savings vs monthly × duree
+  const getSavingsPct = (slug: string, duree: number): number | null => {
+    if (duree <= 1) return null;
+    const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
+    if (!planType) return null;
+    const monthly = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === 1);
+    const target = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+    if (!monthly || !target) return null;
+    const base = monthly.prix_fcfa * duree;
+    const savings = Math.round(((base - target.prix_fcfa) / base) * 100);
+    return savings > 0 ? savings : null;
+  };
+
+  const durationLabel = (d: number) => {
+    if (d === 1) return "Mensuel";
+    if (d === 12) return "1 an";
+    return `${d} mois`;
+  };
+
+  const priceSuffix = (d: number) => {
+    if (d === 1) return "/mois";
+    if (d === 12) return "/an";
+    return `/ ${d} mois`;
+  };
 
   return (
     <section className="py-20 md:py-28 bg-card" id="tarifs">
       <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
             Simple, transparent, FCFA
           </h2>
@@ -52,6 +132,28 @@ export function PricingSection() {
             Commencez gratuitement. Passez à la licence quand vous êtes prêt.
           </p>
         </div>
+
+        {/* Duration toggle */}
+        {durations.length > 1 && (
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex bg-muted rounded-lg p-1 gap-1">
+              {durations.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setSelectedDuree(d)}
+                  className={`px-4 py-2 text-sm font-sans rounded-md transition-all ${
+                    selectedDuree === d
+                      ? "bg-background shadow text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {durationLabel(d)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -62,13 +164,17 @@ export function PricingSection() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {plans?.map((plan) => {
-              const displayPrice = plan.promo_active && plan.promo_prix_mensuel != null
-                ? plan.promo_prix_mensuel
-                : plan.prix_mensuel;
-              const hasPromo = plan.promo_active && plan.promo_prix_mensuel != null;
-              const promoSemestriel = hasPromo && plan.prix_semestriel
-                ? Math.round(plan.promo_prix_mensuel! * 5)
-                : plan.prix_semestriel;
+              const configPrice = getConfigPrice(plan.slug ?? "", selectedDuree);
+              const savingsPct = getSavingsPct(plan.slug ?? "", selectedDuree);
+
+              // Price to display: use plan_configs if available, else fallback to plans table
+              const displayPrice = configPrice !== null
+                ? configPrice
+                : (plan.promo_active && plan.promo_prix_mensuel != null
+                    ? plan.promo_prix_mensuel
+                    : plan.prix_mensuel);
+
+              const hasPromo = configPrice === null && plan.promo_active && plan.promo_prix_mensuel != null;
 
               return (
                 <Card
@@ -97,11 +203,21 @@ export function PricingSection() {
                       </span>
                       {displayPrice > 0 && (
                         <span className={`text-sm font-sans ${plan.highlighted ? "text-background/60" : "text-muted-foreground"}`}>
-                          /mois
+                          {priceSuffix(selectedDuree)}
                         </span>
                       )}
                     </div>
 
+                    {/* Savings badge */}
+                    {savingsPct !== null && (
+                      <div className="mb-1">
+                        <Badge variant="secondary" className="gap-1 text-[10px] bg-emerald-100 text-emerald-700 border-0">
+                          Économisez {savingsPct}%
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Legacy promo badge (when no config price) */}
                     {hasPromo && (
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-sm line-through font-sans ${plan.highlighted ? "text-background/40" : "text-muted-foreground"}`}>
@@ -114,13 +230,7 @@ export function PricingSection() {
                       </div>
                     )}
 
-                    {promoSemestriel != null && promoSemestriel > 0 ? (
-                      <p className={`text-xs font-sans mb-5 ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
-                        {promoSemestriel.toLocaleString("fr-FR")} FCFA / 6 mois
-                      </p>
-                    ) : (
-                      <div className="mb-5" />
-                    )}
+                    <div className="mb-5" />
 
                     {(() => {
                       const isAgence = plan.slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");

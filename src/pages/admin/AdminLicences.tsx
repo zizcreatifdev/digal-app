@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/sonner";
+
+interface PlanConfig {
+  id: string;
+  plan_type: string;
+  duree_mois: number;
+  prix_fcfa: number;
+  est_actif: boolean;
+}
 
 const TYPE_LABELS: Record<string, string> = {
   solo: "Solo Standard",
@@ -56,6 +64,28 @@ export default function AdminLicences() {
   // Extend license dialog
   const [extendUser, setExtendUser] = useState<{ id: string; email: string; licence_expiration: string | null } | null>(null);
   const [extendMonths, setExtendMonths] = useState("3");
+
+  const { data: planConfigs } = useQuery({
+    queryKey: ["plan-configs"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("plan_configs")
+        .select("id, plan_type, duree_mois, prix_fcfa, est_actif")
+        .eq("est_actif", true)
+        .order("duree_mois");
+      if (error) throw error;
+      return (data ?? []) as PlanConfig[];
+    },
+  });
+
+  // Reset genDuration when genType changes, default to 6m if available
+  useEffect(() => {
+    const configs = (planConfigs ?? []).filter((c) => c.plan_type === genType);
+    if (configs.length === 0) return;
+    const sixM = configs.find((c) => c.duree_mois === 6);
+    setGenDuration(String(sixM?.duree_mois ?? configs[0].duree_mois));
+  }, [genType, planConfigs]);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-licences-users"],
@@ -295,8 +325,27 @@ export default function AdminLicences() {
                 </Select>
               </div>
               <div>
-                <Label>Durée (mois)</Label>
-                <Input type="number" value={genDuration} onChange={e => setGenDuration(e.target.value)} min="1" max="24" disabled={!!generatedKey} />
+                <Label>Durée</Label>
+                <Select
+                  value={genDuration}
+                  onValueChange={setGenDuration}
+                  disabled={!!generatedKey}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une durée" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(planConfigs ?? [])
+                      .filter((c) => c.plan_type === genType)
+                      .map((c) => (
+                        <SelectItem key={c.id} value={String(c.duree_mois)}>
+                          {c.duree_mois === 12 ? "12 mois (1 an)" : `${c.duree_mois} mois`}
+                          {" — "}
+                          {c.prix_fcfa.toLocaleString("fr-FR")} FCFA
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
               {/* Promo key */}
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
