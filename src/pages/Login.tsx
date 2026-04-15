@@ -108,7 +108,7 @@ const Login = () => {
   const isLocked = Date.now() < lockoutUntilRef.current;
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background pwa-login-container">
       <div className="hidden lg:flex lg:w-1/2 bg-foreground items-center justify-center p-12">
         <div className="max-w-md text-center space-y-6 animate-fade-in">
           <h1 className="text-5xl font-bold font-serif text-primary-foreground">Digal</h1>
@@ -138,7 +138,7 @@ const Login = () => {
                 <Label htmlFor="email" className="font-sans text-sm">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="vous@exemple.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
+                  <Input id="email" type="email" placeholder="vous@exemple.com" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="pl-10" required />
                 </div>
               </div>
 
@@ -146,7 +146,7 @@ const Login = () => {
                 <Label htmlFor="password" className="font-sans text-sm">Mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required />
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="pl-10" required />
                 </div>
               </div>
 

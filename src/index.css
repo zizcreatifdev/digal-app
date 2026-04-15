@@ -104,3 +104,16 @@
     @apply font-serif;
   }
 }
+
+/* Fix iOS PWA keyboard */
+@supports (-webkit-touch-callout: none) {
+  .pwa-login-container {
+    min-height: -webkit-fill-available;
+    padding-bottom: env(keyboard-inset-height, 0px);
+  }
+
+  input, textarea {
+    font-size: 16px !important;
+    /* Empêche le zoom auto iOS sur focus */
+  }
+}

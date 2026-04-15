@@ -106,7 +106,7 @@ export default function Activate() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12 pwa-login-container">
       <div className="w-full max-w-md space-y-6">
         <div className="flex justify-center">
           <img
@@ -180,12 +180,12 @@ export default function Activate() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="prenom" className="font-sans text-xs">Prénom *</Label>
-                    <Input id="prenom" {...register("prenom")} />
+                    <Input id="prenom" {...register("prenom")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} />
                     {errors.prenom && <p className="text-xs text-destructive">{errors.prenom.message}</p>}
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="nom" className="font-sans text-xs">Nom *</Label>
-                    <Input id="nom" {...register("nom")} />
+                    <Input id="nom" {...register("nom")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} />
                     {errors.nom && <p className="text-xs text-destructive">{errors.nom.message}</p>}
                   </div>
                 </div>
@@ -193,19 +193,19 @@ export default function Activate() {
                 {(tokenRow.type_compte === "agence" || tokenRow.type_compte === "agence_standard" || tokenRow.type_compte === "agence_pro") && (
                   <div className="space-y-1">
                     <Label htmlFor="agence_nom" className="font-sans text-xs">Nom de l'agence</Label>
-                    <Input id="agence_nom" {...register("agence_nom")} placeholder="Mon agence digitale" />
+                    <Input id="agence_nom" {...register("agence_nom")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="Mon agence digitale" />
                   </div>
                 )}
 
                 <div className="space-y-1">
                   <Label htmlFor="password" className="font-sans text-xs">Mot de passe *</Label>
-                  <Input id="password" type="password" {...register("password")} placeholder="8 caractères minimum" />
+                  <Input id="password" type="password" {...register("password")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="8 caractères minimum" />
                   {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                 </div>
 
                 <div className="space-y-1">
                   <Label htmlFor="confirm_password" className="font-sans text-xs">Confirmer le mot de passe *</Label>
-                  <Input id="confirm_password" type="password" {...register("confirm_password")} />
+                  <Input id="confirm_password" type="password" {...register("confirm_password")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} />
                   {errors.confirm_password && <p className="text-xs text-destructive">{errors.confirm_password.message}</p>}
                 </div>
 
