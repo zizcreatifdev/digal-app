@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 32 — Export CSV comptabilité + invitation équipe + fix useAuth race condition_
+_Prompt courant : 33 — QR code TOTP local (qrcode lib, sans api.qrserver.com)_
 
 ---
 
@@ -296,7 +296,7 @@ _Prompt courant : 32 — Export CSV comptabilité + invitation équipe + fix use
 
 | # | Description | Sévérité |
 |---|-------------|----------|
-| 1 | QR code TOTP via api.qrserver.com (dépendance externe) | MOYENNE |
+| 1 | ~~QR code TOTP via api.qrserver.com~~ | ✅ Corrigé (prompt-33) — génération locale via `qrcode` |
 | 2 | ~~Double fetch session dans useAuth (race condition)~~ | ✅ Corrigé (prompt-32) |
 | 3 | ~~Export CSV comptabilité non implémenté~~ | ✅ Implémenté (prompt-32) |
 | 4 | RESEND_API_KEY + VAPID keys à configurer en production | CRITIQUE (config) |
@@ -352,3 +352,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 31 | Fix clavier iOS PWA : viewport-fit=cover + interactive-widget, onFocus scrollIntoView (Login + Activate), CSS @supports pwa-login-container | 2026-04-15 |
 | 31B | Fix clavier iOS PWA (approche dvh) : viewport simplifié, ios-scroll-container (fixed+overflow), min-h-[100dvh], autoComplete/inputMode | 2026-04-15 |
 | 32 | Export CSV comptabilité (papaparse) + invitation équipe complète (token+email+agence_id) + fix useAuth race condition (initializedRef) | 2026-04-15 |
+| 33 | QR code TOTP local : remplacement api.qrserver.com par lib qrcode (toDataURL), fallback Loader2 | 2026-04-15 |

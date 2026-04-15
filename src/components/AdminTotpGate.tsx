@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,6 +20,7 @@ export function AdminTotpGate({ children }: AdminTotpGateProps) {
   const [state, setState] = useState<GateState>("loading");
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrUri, setQrUri] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -26,6 +28,13 @@ export function AdminTotpGate({ children }: AdminTotpGateProps) {
   useEffect(() => {
     checkMfaStatus();
   }, [user]);
+
+  useEffect(() => {
+    if (!qrUri) return;
+    QRCode.toDataURL(qrUri, { width: 200, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [qrUri]);
 
   async function checkMfaStatus() {
     setState("loading");
@@ -141,13 +150,19 @@ export function AdminTotpGate({ children }: AdminTotpGateProps) {
           {qrUri && (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`}
-                  alt="QR Code TOTP"
-                  className="rounded-lg border"
-                  width={200}
-                  height={200}
-                />
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="QR Code TOTP"
+                    className="rounded-lg border"
+                    width={200}
+                    height={200}
+                  />
+                ) : (
+                  <div className="h-[200px] w-[200px] flex items-center justify-center rounded-lg border bg-muted">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
 
               {secret && (
