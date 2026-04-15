@@ -15,6 +15,7 @@ import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
 import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
 import { EditClientModal } from "@/components/clients/EditClientModal";
 import { DropBoxReview } from "@/components/clients/DropBoxReview";
+import { PreviewLinksHistory } from "@/components/clients/PreviewLinksHistory";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -234,14 +235,7 @@ const ClientDetail = () => {
           </TabsContent>
 
           <TabsContent value="activite" className="mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Activité client</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground font-sans text-center py-12">
-                  L'historique d'activité sera bientôt disponible ici.
-                </p>
-              </CardContent>
-            </Card>
+            <PreviewLinksHistory clientId={client.id} />
           </TabsContent>
         </Tabs>
 

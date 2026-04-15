@@ -10,6 +10,20 @@ function formatNumber(n: number): string {
 }
 
 function getMonthLabel(ym: string): string {
+  // Quarterly: "2026-Q2"
+  if (/^\d{4}-Q\d$/.test(ym)) {
+    const [y, q] = ym.split("-Q").map(Number);
+    const quarters = ["janv – mars", "avr – juin", "juil – sept", "oct – déc"];
+    return `T${q} ${y} (${quarters[q - 1] ?? ""})`;
+  }
+  // Custom range: "2026-01-01/2026-04-15"
+  if (ym.includes("/")) {
+    const [start, end] = ym.split("/");
+    const fmt = (s: string) =>
+      new Date(s).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+    return `${fmt(start)} — ${fmt(end)}`;
+  }
+  // Monthly: "2026-04"
   const [y, m] = ym.split("-").map(Number);
   const d = new Date(y, m - 1);
   return d.toLocaleString("fr-FR", { month: "long", year: "numeric" });

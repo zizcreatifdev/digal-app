@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 27 — Calendrier amélioré (périodes + carrousel + compression)_
+_Prompt courant : 29 — Onboarding 5 étapes (DB) + KPI métriques complètes_
 
 ---
 
@@ -37,7 +37,7 @@ _Prompt courant : 27 — Calendrier amélioré (périodes + carrousel + compress
 | Protection routes par profileRole | ✅ Complet (prompt-06) | `allowedProfileRoles` dans AuthGuard |
 | TOTP 2FA pour admin | ✅ Complet | `AdminTotpGate` — enrollment QR + vérification |
 | Onboarding wizard | ✅ Complet | 4 étapes, skip possible |
-| Checklist onboarding 5 étapes | ✅ Complet (prompt-07) | `OnboardingChecklist` floating, badges, localStorage |
+| Checklist onboarding 5 étapes | ✅ Complet (prompt-29) | `OnboardingChecklist` floating, badges DB, modal félicitations |
 | Waitlist | ✅ Complet | Page publique |
 | Tests routes | ✅ Complet (prompt-11) | 19 tests dans `routes.test.ts` |
 
@@ -139,13 +139,20 @@ _Prompt courant : 27 — Calendrier amélioré (périodes + carrousel + compress
 
 ---
 
-### Module RAPPORTS KPI — 80% ✅
+### Module RAPPORTS KPI — 95% ✅ (prompt-29)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Création rapport KPI | ✅ Complet | |
-| Métriques par réseau | ✅ Complet | |
+| Métriques par réseau | ✅ Complet (prompt-29) | +likes/commentaires/partages instagram, facebook, linkedin, x, tiktok |
+| Métriques Instagram | ✅ Complet (prompt-29) | Likes, Commentaires, Partages ajoutés |
+| Métriques Facebook | ✅ Complet (prompt-29) | Likes, Commentaires, Partages ajoutés |
+| Métriques LinkedIn | ✅ Complet (prompt-29) | Réactions, Commentaires, Partages ajoutés |
+| Métriques X/Twitter | ✅ Complet (prompt-29) | Likes, Retweets, Réponses ajoutés |
+| Métriques TikTok | ✅ Complet (prompt-29) | Favoris, Portée ajoutés |
+| Période Trimestrielle | ✅ Complet (prompt-29) | Sélecteur type période + calcul T1/T2/T3/T4 |
+| Période Personnalisée | ✅ Complet (prompt-29) | 2 date pickers libres |
 | Points forts / axes | ✅ Complet | |
-| Export PDF | ✅ Complet | `kpi-pdf.ts` |
+| Export PDF | ✅ Complet | `kpi-pdf.ts` + labels période adapt. |
 | Historique rapports | ✅ Complet | |
 | Protection route /rapports | ✅ Complet (prompt-06) | |
 | Tests | ✅ 18/18 | `kpi-reports.test.ts` |
@@ -329,3 +336,8 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 13-17 | CI deploy edge fns, VAPID, vercel.json SPA, create-user admin modal, logos SVG intégration | 2026-04-14 |
 | 18 | Activation compte par lien unique (activation_tokens, edge fn, page /activate/:token) | 2026-04-14 |
 | 19 | Copie manuelle message activation (suppression email auto, bouton copy, badge statut, regénération) | 2026-04-14 |
+| 25 | Licences : retour freemium auto, validation regex, messages RPC distincts | 2026-04-15 |
+| 26 | Sécurité rôles : AuthGuard toast, filtrage CM, FreemiumLimitModal, deep-link settings | 2026-04-15 |
+| 27 | Calendrier : couleur custom périodes, carrousel 10 médias, compression images, drag&drop | 2026-04-15 |
+| 28 | Boîte dépôt (déjà existante) + historique liens validation (PreviewLinksHistory) | 2026-04-15 |
+| 29 | Onboarding 5 étapes (DB persistence + badge modal) + KPI métriques complètes + périodes trimestrielle/personnalisée | 2026-04-15 |
