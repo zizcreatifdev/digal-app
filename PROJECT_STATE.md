@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 26 — Sécurité rôles + limites Freemium_
+_Prompt courant : 27 — Calendrier amélioré (périodes + carrousel + compression)_
 
 ---
 
@@ -61,7 +61,7 @@ _Prompt courant : 26 — Sécurité rôles + limites Freemium_
 
 ---
 
-### Module CALENDRIER ÉDITORIAL — 85% ✅
+### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-27)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Vue calendrier mensuelle | ✅ Complet | `EditorialCalendar` |
@@ -70,10 +70,16 @@ _Prompt courant : 26 — Sécurité rôles + limites Freemium_
 | Workflow statuts | ✅ Complet | idee→en_production→validation→publie |
 | Upload média post | ✅ Complet | Supabase Storage `post-media` |
 | Blocs périodes de production | ✅ Complet (prompt-07) | 4 types colorés |
-| Filtres par client/réseau | ⚠️ Partiel | À vérifier |
+| Filtres par client/réseau | ✅ Complet | |
 | Templates de posts | ✅ Complet | Limite 3 en Freemium (prompt-09) |
 | Assignation à créateur | ✅ Complet | `assigne_a` field |
 | Review par CM | ✅ Complet | `ReviewPostModal` |
+| Blocs périodes production | ✅ Complet (prompt-27) | Shooting/montage/livraison/custom |
+| Couleur libre période custom | ✅ Complet (prompt-27) | Color picker + migration 000014 |
+| Carrousel 10 médias par post | ✅ Complet (prompt-27) | CreatePost + EditPost multi-file |
+| Compression images auto | ✅ Complet (prompt-27) | browser-image-compression → 2 Mo |
+| Drag & drop ordre médias | ✅ Complet (prompt-27) | Reorder dans les 2 modaux |
+| Validation formats par réseau | ✅ Complet (prompt-27) | TikTok MP4 only, etc. |
 
 ---
 

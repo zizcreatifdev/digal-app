@@ -13,6 +13,8 @@ import {
   createProductionPeriod, updateProductionPeriod, deleteProductionPeriod,
 } from "@/lib/production-periods";
 
+const DEFAULT_CUSTOM_COLOR = "#8B5CF6";
+
 interface ProductionPeriodModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,6 +30,7 @@ export function ProductionPeriodModal({
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<PeriodType>("shooting");
   const [titre, setTitre] = useState("");
+  const [color, setColor] = useState(DEFAULT_CUSTOM_COLOR);
   const [description, setDescription] = useState("");
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
@@ -36,17 +39,21 @@ export function ProductionPeriodModal({
     if (period) {
       setType(period.type);
       setTitre(period.titre);
+      setColor(period.color ?? DEFAULT_CUSTOM_COLOR);
       setDescription(period.description ?? "");
       setDateDebut(period.date_debut);
       setDateFin(period.date_fin);
     } else {
       setType("shooting");
       setTitre("");
+      setColor(DEFAULT_CUSTOM_COLOR);
       setDescription("");
       setDateDebut("");
       setDateFin("");
     }
   }, [period, open]);
+
+  const selectedType = PERIOD_TYPES.find(pt => pt.id === type);
 
   const handleSubmit = async () => {
     if (!titre.trim()) { toast.error("Le titre est requis"); return; }
@@ -56,19 +63,24 @@ export function ProductionPeriodModal({
 
     setLoading(true);
     try {
+      const payload = {
+        type,
+        titre: titre.trim(),
+        color: type === "custom" ? color : null,
+        description: description || null,
+        date_debut: dateDebut,
+        date_fin: dateFin,
+        assigne_a: null,
+      };
+
       if (period) {
-        await updateProductionPeriod(period.id, { type, titre: titre.trim(), description: description || null, date_debut: dateDebut, date_fin: dateFin });
+        await updateProductionPeriod(period.id, payload);
         toast.success("Période modifiée");
       } else {
         await createProductionPeriod({
           user_id: user.id,
           client_id: clientId,
-          type,
-          titre: titre.trim(),
-          description: description || null,
-          date_debut: dateDebut,
-          date_fin: dateFin,
-          assigne_a: null,
+          ...payload,
         });
         toast.success("Période créée");
       }
@@ -104,26 +116,67 @@ export function ProductionPeriodModal({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Type selector with color preview */}
           <div>
             <Label className="font-sans">Type *</Label>
-            <Select value={type} onValueChange={(v) => setType(v as PeriodType)}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIOD_TYPES.map(pt => (
-                  <SelectItem key={pt.id} value={pt.id}>{pt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 mt-1">
+              {selectedType && (
+                <div
+                  className="h-4 w-4 rounded-full shrink-0"
+                  style={{
+                    backgroundColor: type === "custom" ? color :
+                      type === "shooting" ? "#3B82F6" :
+                      type === "montage"  ? "#F97316" :
+                      type === "livraison" ? "#22C55E" : "#8B5CF6",
+                  }}
+                />
+              )}
+              <Select value={type} onValueChange={(v) => setType(v as PeriodType)}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_TYPES.map(pt => (
+                    <SelectItem key={pt.id} value={pt.id}>{pt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {/* Custom color picker */}
+          {type === "custom" && (
+            <div>
+              <Label className="font-sans">Couleur *</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-9 w-12 rounded border border-border cursor-pointer bg-transparent"
+                />
+                <Input
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="#8B5CF6"
+                  className="font-mono text-sm flex-1"
+                  maxLength={7}
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <Label className="font-sans">Titre *</Label>
             <Input
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex : Shooting produits Acme"
+              placeholder={
+                type === "shooting"  ? "Ex: Shooting produits Acme" :
+                type === "montage"   ? "Ex: Montage vidéo pub" :
+                type === "livraison" ? "Ex: Livraison pack janvier" :
+                "Ex: Brainstorming direction créative"
+              }
               className="mt-1"
             />
           </div>

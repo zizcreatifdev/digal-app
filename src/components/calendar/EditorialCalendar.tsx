@@ -15,7 +15,7 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
-  ProductionPeriod, getPeriodStyle, fetchProductionPeriods,
+  ProductionPeriod, getPeriodStyle, getPeriodInlineStyle, fetchProductionPeriods,
 } from "@/lib/production-periods";
 
 interface EditorialCalendarProps {
@@ -199,10 +199,12 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
                 {/* Production periods */}
                 {periodsForDay(day).map((period) => {
                   const style = getPeriodStyle(period.type);
+                  const inlineStyle = getPeriodInlineStyle(period);
                   return (
                     <div
                       key={period.id}
-                      className={`text-[10px] font-sans px-1.5 py-0.5 rounded border cursor-pointer truncate ${style.bg} ${style.color}`}
+                      className={`text-[10px] font-sans px-1.5 py-0.5 rounded border cursor-pointer truncate ${!inlineStyle ? `${style.bg} ${style.color}` : ""}`}
+                      style={inlineStyle}
                       onClick={(e) => { e.stopPropagation(); setEditPeriod(period); setPeriodModalOpen(true); }}
                       title={period.titre}
                     >
@@ -246,10 +248,12 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
                     {/* Production periods */}
                     {periodsForDay(day).map((period) => {
                       const style = getPeriodStyle(period.type);
+                      const inlineStyle = getPeriodInlineStyle(period);
                       return (
                         <div
                           key={period.id}
-                          className={`text-[9px] font-sans px-1 py-px rounded border cursor-pointer truncate ${style.bg} ${style.color}`}
+                          className={`text-[9px] font-sans px-1 py-px rounded border cursor-pointer truncate ${!inlineStyle ? `${style.bg} ${style.color}` : ""}`}
+                          style={inlineStyle}
                           onClick={(e) => { e.stopPropagation(); setEditPeriod(period); setPeriodModalOpen(true); }}
                           title={period.titre}
                         >
