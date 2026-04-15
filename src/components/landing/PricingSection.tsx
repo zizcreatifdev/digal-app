@@ -2,9 +2,40 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, ArrowRight, Tag, PartyPopper } from "lucide-react";
+import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette } from "lucide-react";
 import { usePlans } from "@/hooks/usePlans";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const AGENCE_FEATURE_MAP: Record<string, string> = {
+  "1 DM + 3 membres": "1 DM + Community Managers + Créateurs (graphistes/vidéastes)",
+  "1 DM + 7 membres": "1 DM + jusqu'à 6 membres (CM + Créateurs)",
+};
+
+const AGENCE_ROLES = [
+  { icon: Shield, label: "Digital Manager", desc: "pilote les clients et la stratégie" },
+  { icon: Users, label: "Community Manager", desc: "gère le calendrier et les validations" },
+  { icon: Palette, label: "Créateur", desc: "graphiste ou vidéaste, dépose ses fichiers" },
+] as const;
+
+function AgenceRolesBlock({ highlighted }: { highlighted: boolean }) {
+  return (
+    <div className={`mt-5 mb-6 rounded-lg p-3 space-y-2 ${highlighted ? "bg-white/10" : "bg-primary/5 border border-primary/10"}`}>
+      <p className={`text-[11px] font-semibold font-sans uppercase tracking-wider mb-2 ${highlighted ? "text-background/60" : "text-primary"}`}>
+        Les 3 rôles inclus
+      </p>
+      {AGENCE_ROLES.map(({ icon: Icon, label, desc }) => (
+        <div key={label} className="flex items-start gap-2">
+          <Icon className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${highlighted ? "text-background/70" : "text-primary"}`} />
+          <span className={`text-xs font-sans leading-snug ${highlighted ? "text-background/80" : "text-foreground/80"}`}>
+            <span className="font-semibold">{label}</span>
+            {" · "}
+            <span className={highlighted ? "text-background/60" : "text-muted-foreground"}>{desc}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function PricingSection() {
   const navigate = useNavigate();
@@ -91,14 +122,25 @@ export function PricingSection() {
                       <div className="mb-5" />
                     )}
 
-                    <ul className="space-y-2.5 mb-8 flex-1">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-sm font-sans">
-                          <Check className={`h-4 w-4 shrink-0 mt-0.5 text-primary`} />
-                          <span className={plan.highlighted ? "text-background/80" : ""}>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {(() => {
+                      const isAgence = plan.slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
+                      return (
+                        <>
+                          <ul className="space-y-2.5 mb-2 flex-1">
+                            {plan.features.map((f) => {
+                              const display = isAgence ? (AGENCE_FEATURE_MAP[f] ?? f) : f;
+                              return (
+                                <li key={f} className="flex items-start gap-2 text-sm font-sans">
+                                  <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                                  <span className={plan.highlighted ? "text-background/80" : ""}>{display}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          {isAgence && <AgenceRolesBlock highlighted={plan.highlighted} />}
+                        </>
+                      );
+                    })()}
 
                     <Button
                       variant={plan.highlighted ? "default" : "outline"}
