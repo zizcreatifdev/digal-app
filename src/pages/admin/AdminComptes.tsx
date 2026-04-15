@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSearchParams } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity-logs";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
   Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
+  CreditCard, Receipt, PauseCircle, CheckCircle2,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
@@ -68,6 +70,24 @@ interface AccountFinancial {
   masseSalariale: number;
 }
 
+interface PlanConfig {
+  plan_type: string;
+  duree_mois: number;
+  prix_fcfa: number;
+  est_actif: boolean;
+}
+
+/* ─── Constants ──────────────────────────────────────────── */
+
+const PLAN_LABELS: Record<string, string> = {
+  freemium: "Freemium",
+  solo: "Solo Standard",
+  agence_standard: "Agence Standard",
+  agence_pro: "Agence Pro",
+};
+
+const METHODE_LABELS = ["Wave", "Orange Money", "YAS", "Virement", "Cash"];
+
 function formatRelativeTime(date: Date | null): { text: string; isOld: boolean } {
   if (!date) return { text: "Jamais", isOld: true };
   const now = new Date();
@@ -99,6 +119,16 @@ export default function AdminComptes() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingFinancial, setLoadingFinancial] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  // Plan change 3-step flow
+  const [planNewPlan, setPlanNewPlan] = useState("freemium");
+  const [planNewDuree, setPlanNewDuree] = useState(6);
+  const [planStep, setPlanStep] = useState<0 | 1 | 2>(0);
+  const [planInvoiceId, setPlanInvoiceId] = useState<string | null>(null);
+  const [planInvoiceNumero, setPlanInvoiceNumero] = useState<string | null>(null);
+  const [planPayMethod, setPlanPayMethod] = useState("Wave");
+  const [planPayRef, setPlanPayRef] = useState("");
+  // Danger zone
+  const [deleteInput, setDeleteInput] = useState("");
 
   const createForm = useForm<CreateAccountForm>({
     resolver: zodResolver(createAccountSchema),
@@ -157,6 +187,22 @@ export default function AdminComptes() {
       return map;
     },
     staleTime: 60_000,
+  });
+
+  // Plan configs (for plan change flow)
+  const { data: planConfigs } = useQuery<PlanConfig[]>({
+    queryKey: ["plan-configs-admin"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("plan_configs")
+        .select("plan_type, duree_mois, prix_fcfa, est_actif")
+        .eq("est_actif", true)
+        .order("duree_mois");
+      if (error) throw error;
+      return (data ?? []) as PlanConfig[];
+    },
+    staleTime: 5 * 60_000,
   });
 
   // Filtered users based on URL param
@@ -296,27 +342,148 @@ export default function AdminComptes() {
     return <Badge className={info.cls}>{info.label}</Badge>;
   };
 
-  const extendLicense = (user: UserProfile) => {
-    const newExp = new Date(user.licence_expiration ? new Date(user.licence_expiration) : new Date());
-    newExp.setMonth(newExp.getMonth() + 6);
-    updateUser.mutate({ id: user.id, licence_expiration: newExp.toISOString() });
+  const resetPlanFlow = () => {
+    setPlanStep(0);
+    setPlanNewPlan("freemium");
+    setPlanNewDuree(6);
+    setPlanInvoiceId(null);
+    setPlanInvoiceNumero(null);
+    setPlanPayMethod("Wave");
+    setPlanPayRef("");
   };
 
-  const revokeLicense = (user: UserProfile) => {
-    updateUser.mutate({ id: user.id, licence_expiration: null, role: "freemium", plan: null });
-    toast.success("Licence révoquée");
-  };
+  const getDurationsForPlan = (planType: string) =>
+    (planConfigs ?? []).filter((c) => c.plan_type === planType);
+
+  const getSelectedConfig = (planType: string, duree: number) =>
+    (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+
+  const generateInvoice = useMutation({
+    mutationFn: async ({ targetUser, plan, duree, prix }: {
+      targetUser: UserProfile; plan: string; duree: number; prix: number;
+    }) => {
+      const now = new Date();
+      const yymm = now.toISOString().slice(0, 7).replace("-", "");
+      const rand = Math.floor(Math.random() * 9000) + 1000;
+      const numero = `FAC-DIG-${yymm}-${rand}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("documents")
+        .insert({
+          user_id: targetUser.user_id,
+          client_id: null,
+          type: "facture_licence",
+          statut: "en_attente",
+          numero,
+          sous_total: prix,
+          montant_tva: 0,
+          montant_brs: 0,
+          taux_tva: 0,
+          taux_brs: 0,
+          total: prix,
+          date_emission: now.toISOString().slice(0, 10),
+          notes: `Licence Digal ${PLAN_LABELS[plan] ?? plan} - ${duree} mois`,
+        })
+        .select("id, numero")
+        .single();
+      if (error) throw error;
+      return data as { id: string; numero: string };
+    },
+    onSuccess: (data) => {
+      setPlanInvoiceId(data.id);
+      setPlanInvoiceNumero(data.numero);
+      setPlanStep(1);
+      toast.success(`Facture générée — en attente de paiement`);
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erreur lors de la génération"),
+  });
+
+  const confirmPayment = useMutation({
+    mutationFn: async ({ targetUser, invoiceId, plan, duree, methode, reference }: {
+      targetUser: UserProfile; invoiceId: string; plan: string;
+      duree: number; methode: string; reference: string;
+    }) => {
+      const newExp = new Date();
+      newExp.setMonth(newExp.getMonth() + duree);
+      const [docErr, userErr] = await Promise.all([
+        supabase.from("documents").update({ statut: "payee" }).eq("id", invoiceId).then((r) => r.error),
+        supabase.from("users").update({
+          role: plan,
+          plan,
+          licence_expiration: newExp.toISOString(),
+        }).eq("id", targetUser.id).then((r) => r.error),
+      ]);
+      if (docErr) throw docErr;
+      if (userErr) throw userErr;
+      await logActivity(
+        targetUser.user_id,
+        "plan_change",
+        "auth",
+        `Plan activé par admin : ${PLAN_LABELS[plan] ?? plan} — ${duree} mois — ${methode}${reference ? ` (${reference})` : ""}`,
+        "user",
+        targetUser.id,
+      );
+      await supabase.from("notifications").insert({
+        user_id: targetUser.user_id,
+        titre: "Votre plan a été activé",
+        message: `Votre plan ${PLAN_LABELS[plan] ?? plan} est actif pour ${duree} mois. Expiration : ${newExp.toLocaleDateString("fr-FR")}.`,
+        type: "plan",
+      });
+      return newExp;
+    },
+    onSuccess: (newExp) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      setPlanStep(2);
+      toast.success(`Plan activé jusqu'au ${newExp.toLocaleDateString("fr-FR")}`);
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erreur lors de l'activation"),
+  });
+
+  const revokeWithLog = useMutation({
+    mutationFn: async (targetUser: UserProfile) => {
+      const { error } = await supabase.from("users")
+        .update({ role: "freemium", plan: null, licence_expiration: null })
+        .eq("id", targetUser.id);
+      if (error) throw error;
+      await logActivity(targetUser.user_id, "plan_revoked", "auth", "Licence révoquée par admin", "user", targetUser.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      toast.success("Licence révoquée");
+    },
+    onError: () => toast.error("Erreur lors de la révocation"),
+  });
+
+  const suspendAccount = useMutation({
+    mutationFn: async (targetUser: UserProfile) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("users")
+        .update({ statut: "suspendu" })
+        .eq("id", targetUser.id);
+      if (error) throw error;
+      await logActivity(targetUser.user_id, "account_suspended", "auth", "Compte suspendu par admin", "user", targetUser.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      toast.success("Compte suspendu");
+    },
+    onError: () => toast.error("Erreur lors de la suspension"),
+  });
 
   const deleteAccount = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase.from("users").delete().eq("id", userId);
+    mutationFn: async (targetUser: UserProfile) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("users")
+        .update({ statut: "suppression_planifiee" })
+        .eq("id", targetUser.id);
       if (error) throw error;
+      await logActivity(targetUser.user_id, "account_deletion_planned", "auth", "Suppression planifiée par admin", "user", targetUser.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
       setSelected(null);
       setDetail(null);
-      toast.success("Compte supprimé");
+      toast.success("Compte marqué pour suppression");
     },
     onError: () => toast.error("Erreur lors de la suppression"),
   });
@@ -514,7 +681,7 @@ export default function AdminComptes() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDetail(null); setFinancial(null); } }}>
+        <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDetail(null); setFinancial(null); setDeleteInput(""); resetPlanFlow(); } }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle asChild>
@@ -678,49 +845,212 @@ export default function AdminComptes() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="actions" className="space-y-3 mt-4">
-                  <Button variant="outline" size="sm" className="w-full justify-start font-sans" onClick={() => extendLicense(selected)}>
-                    <KeyRound className="h-4 w-4 mr-2" /> Étendre licence (+6 mois)
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground font-sans">Changer le plan :</span>
-                    <Select onValueChange={(val) => updateUser.mutate({ id: selected.id, role: val })}>
-                      <SelectTrigger className="w-40"><SelectValue placeholder={selected.role} /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="freemium">Freemium</SelectItem>
-                        <SelectItem value="solo">Solo Standard</SelectItem>
-                        <SelectItem value="agence_standard">Agence Standard</SelectItem>
-                        <SelectItem value="agence_pro">Agence Pro</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <TabsContent value="actions" className="space-y-4 mt-4 font-sans">
+                  {/* ── Section : Changer de plan ── */}
+                  <div className="rounded-lg border border-border p-4 space-y-3">
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-primary" /> Changer de plan
+                    </p>
+
+                    {planStep === 0 && (
+                      <div className="space-y-3">
+                        {/* Sélection plan */}
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nouveau plan</Label>
+                          <Select value={planNewPlan} onValueChange={(v) => { setPlanNewPlan(v); setPlanNewDuree(getDurationsForPlan(v)[0]?.duree_mois ?? 6); }}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="freemium">Freemium</SelectItem>
+                              <SelectItem value="solo">Solo Standard</SelectItem>
+                              <SelectItem value="agence_standard">Agence Standard</SelectItem>
+                              <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Sélection durée (masquée pour Freemium) */}
+                        {planNewPlan !== "freemium" && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Durée</Label>
+                            {getDurationsForPlan(planNewPlan).length > 0 ? (
+                              <Select
+                                value={String(planNewDuree)}
+                                onValueChange={(v) => setPlanNewDuree(Number(v))}
+                              >
+                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {getDurationsForPlan(planNewPlan).map((c) => (
+                                    <SelectItem key={c.duree_mois} value={String(c.duree_mois)}>
+                                      {c.duree_mois} mois — {c.prix_fcfa.toLocaleString("fr-FR")} FCFA
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Aucune configuration tarifaire active</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Prix affiché */}
+                        {planNewPlan !== "freemium" && getSelectedConfig(planNewPlan, planNewDuree) && (
+                          <p className="text-xs text-muted-foreground">
+                            Prix : <span className="font-semibold text-foreground">{getSelectedConfig(planNewPlan, planNewDuree)!.prix_fcfa.toLocaleString("fr-FR")} FCFA</span>
+                          </p>
+                        )}
+
+                        <Button
+                          size="sm"
+                          className="w-full gap-1.5"
+                          onClick={() => {
+                            if (planNewPlan === "freemium") {
+                              revokeWithLog.mutate(selected);
+                            } else {
+                              const cfg = getSelectedConfig(planNewPlan, planNewDuree);
+                              generateInvoice.mutate({ targetUser: selected, plan: planNewPlan, duree: planNewDuree, prix: cfg?.prix_fcfa ?? 0 });
+                            }
+                          }}
+                          disabled={generateInvoice.isPending || revokeWithLog.isPending || (planNewPlan !== "freemium" && getDurationsForPlan(planNewPlan).length === 0)}
+                        >
+                          {generateInvoice.isPending || revokeWithLog.isPending
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Receipt className="h-3.5 w-3.5" />}
+                          {planNewPlan === "freemium" ? "Rétrograder en Freemium" : "Générer la facture"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {planStep === 1 && (
+                      <div className="space-y-3">
+                        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs space-y-1">
+                          <p className="font-semibold text-amber-800">{planInvoiceNumero}</p>
+                          <p className="text-amber-700">{PLAN_LABELS[planNewPlan]} — {planNewDuree} mois — {(getSelectedConfig(planNewPlan, planNewDuree)?.prix_fcfa ?? 0).toLocaleString("fr-FR")} FCFA</p>
+                          <p className="text-amber-600">En attente de paiement</p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Méthode de paiement</Label>
+                          <Select value={planPayMethod} onValueChange={setPlanPayMethod}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {METHODE_LABELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Référence transaction (optionnel)</Label>
+                          <Input
+                            className="h-8 text-xs"
+                            placeholder="Ex: WV-2026-XXXX"
+                            value={planPayRef}
+                            onChange={(e) => setPlanPayRef(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1.5"
+                            onClick={() => confirmPayment.mutate({ targetUser: selected, invoiceId: planInvoiceId!, plan: planNewPlan, duree: planNewDuree, methode: planPayMethod, reference: planPayRef })}
+                            disabled={confirmPayment.isPending}
+                          >
+                            {confirmPayment.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            Confirmer paiement reçu
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-xs" onClick={resetPlanFlow}>
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {planStep === 2 && (
+                      <div className="space-y-3">
+                        <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3 text-xs flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-emerald-800">Plan activé</p>
+                            <p className="text-emerald-700">{PLAN_LABELS[planNewPlan]} — {planNewDuree} mois</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full text-xs" onClick={resetPlanFlow}>
+                          Nouveau changement de plan
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="border-t border-border pt-3 mt-3 space-y-2">
-                    <p className="text-xs font-semibold text-destructive font-sans">Zone dangereuse</p>
-                    <Button variant="outline" size="sm" className="w-full justify-start font-sans text-orange-600 border-orange-300 hover:bg-orange-50" onClick={() => revokeLicense(selected)}>
-                      <ShieldOff className="h-4 w-4 mr-2" /> Révoquer la licence
-                    </Button>
+                  {/* ── Zone dangereuse ── */}
+                  <div className="rounded-lg border border-destructive/30 p-4 space-y-2">
+                    <p className="text-xs font-semibold text-destructive">Zone dangereuse</p>
+
+                    {/* Révoquer */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full justify-start font-sans text-destructive border-destructive/30 hover:bg-destructive/10">
-                          <Trash2 className="h-4 w-4 mr-2" /> Supprimer le compte
+                        <Button variant="outline" size="sm" className="w-full justify-start text-orange-600 border-orange-300 hover:bg-orange-50">
+                          <ShieldOff className="h-4 w-4 mr-2" /> Révoquer la licence
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-serif">Supprimer ce compte ?</AlertDialogTitle>
+                          <AlertDialogTitle className="font-serif">Révoquer la licence ?</AlertDialogTitle>
                           <AlertDialogDescription className="font-sans">
-                            Cette action est irréversible. Toutes les données de {selected.prenom} {selected.nom} seront supprimées définitivement.
+                            {selected.prenom} {selected.nom} repassera en Freemium immédiatement.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel className="font-sans">Annuler</AlertDialogCancel>
-                          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-sans" onClick={() => deleteAccount.mutate(selected.id)}>
-                            Supprimer
+                          <AlertDialogAction className="bg-orange-600 text-white hover:bg-orange-700 font-sans" onClick={() => revokeWithLog.mutate(selected)}>
+                            Révoquer
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+
+                    {/* Suspendre */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full justify-start text-amber-700 border-amber-300 hover:bg-amber-50">
+                          <PauseCircle className="h-4 w-4 mr-2" /> Suspendre le compte
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-serif">Suspendre ce compte ?</AlertDialogTitle>
+                          <AlertDialogDescription className="font-sans">
+                            Le compte de {selected.prenom} {selected.nom} sera suspendu. L'accès sera bloqué.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="font-sans">Annuler</AlertDialogCancel>
+                          <AlertDialogAction className="bg-amber-700 text-white hover:bg-amber-800 font-sans" onClick={() => suspendAccount.mutate(selected)}>
+                            Suspendre
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    {/* Supprimer */}
+                    <div className="space-y-2 pt-1">
+                      <Button variant="outline" size="sm" className="w-full justify-start text-destructive border-destructive/30 hover:bg-destructive/10" disabled>
+                        <Trash2 className="h-4 w-4 mr-2" /> Supprimer le compte
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground">Tapez l'email pour confirmer :</p>
+                      <Input
+                        className="h-8 text-xs"
+                        placeholder={selected.email}
+                        value={deleteInput}
+                        onChange={(e) => setDeleteInput(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full"
+                        disabled={deleteInput !== selected.email || deleteAccount.isPending}
+                        onClick={() => deleteAccount.mutate(selected)}
+                      >
+                        {deleteAccount.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+                        Confirmer la suppression
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>

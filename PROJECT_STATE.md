@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-15_
-_Prompt courant : 36 — Durées de licence flexibles depuis Admin_
+_Prompt courant : 37B — Onglet Actions fiche compte Admin_
 
 ---
 
@@ -243,6 +243,8 @@ _Prompt courant : 36 — Durées de licence flexibles depuis Admin_
 |------------|------|-------|
 | Dashboard KPIs (MRR, comptes) | ✅ Complet | |
 | Gestion comptes + Export CSV | ✅ Complet (prompt-09) | |
+| Fiche compte : en-tête avatar + stats Aperçu | ✅ Complet (prompt-37A) | Initiales colorées, email, dernière connexion, clients actifs/posts/liens/factures mois |
+| Fiche compte : onglet Actions | ✅ Complet (prompt-37B) | Facturation plan 3 étapes, révoquer/suspendre/supprimer avec confirmations |
 | Onglet Financier par compte | ✅ Complet (prompt-09) | CA, dépenses, salaires |
 | Génération clés + promo + prolongation | ✅ Complet | |
 | Génération clé avec durée depuis plan_configs | ✅ Complet (prompt-36) | Select durées actives par plan |
@@ -358,3 +360,5 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 34 | Rapport test end-to-end TEST_REPORT.md (10 modules, 137/137 tests) | 2026-04-15 |
 | 35 | Fix log connexion activity_logs : login_success dans Activate + useAuth + widget "Jamais connectés" (exclure < 1h) | 2026-04-15 |
 | 36 | Durées licence flexibles : table plan_configs, AdminPlans configs tarifaires, AdminLicences select durée, PricingSection toggle, AdminWaitlist durée+prix | 2026-04-15 |
+| 37A | Fiche compte Admin : en-tête avatar + onglet Aperçu (clients actifs, posts, liens, factures mois) | 2026-04-15 |
+| 37B | Fiche compte Admin : onglet Actions — facturation plan 3 étapes + zone dangereuse | 2026-04-15 |
