@@ -30,9 +30,17 @@ interface Props {
   onCreated: () => void;
 }
 
+type PeriodType = "mensuel" | "trimestriel" | "personnalise";
+
 function getCurrentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getCurrentQuarter(): string {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3) + 1;
+  return `${now.getFullYear()}-Q${q}`;
 }
 
 function generateMonthOptions(): { value: string; label: string }[] {
@@ -48,10 +56,17 @@ function generateMonthOptions(): { value: string; label: string }[] {
   return options;
 }
 
-function getPrevMonth(ym: string): string {
+function getPrevMonth(ym: string): string | null {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return null; // Only works for monthly format
   const [y, m] = ym.split("-").map(Number);
   if (m === 1) return `${y - 1}-12`;
   return `${y}-${String(m - 1).padStart(2, "0")}`;
+}
+
+function getMoisValue(periodType: PeriodType, mois: string, customDebut: string, customFin: string): string {
+  if (periodType === "trimestriel") return getCurrentQuarter();
+  if (periodType === "personnalise" && customDebut && customFin) return `${customDebut}/${customFin}`;
+  return mois;
 }
 
 export function CreateKpiReportModal({
@@ -64,7 +79,10 @@ export function CreateKpiReportModal({
   onCreated,
 }: Props) {
   const { user } = useAuth();
+  const [periodType, setPeriodType] = useState<PeriodType>("mensuel");
   const [mois, setMois] = useState(getCurrentMonth());
+  const [customDateDebut, setCustomDateDebut] = useState("");
+  const [customDateFin, setCustomDateFin] = useState("");
   const [metriques, setMetriques] = useState<KpiMetriques>({});
   const [pointsForts, setPointsForts] = useState("");
   const [axesAmelioration, setAxesAmelioration] = useState("");
@@ -114,16 +132,17 @@ export function CreateKpiReportModal({
   };
 
   const buildPreviewData = async (): Promise<KpiReportPreviewData> => {
+    const effectiveMois = getMoisValue(periodType, mois, customDateDebut, customDateFin);
     const allReports = await fetchKpiReports(clientId);
-    const prevMonth = getPrevMonth(mois);
-    const previousReport = allReports.find((r) => r.mois === prevMonth) ?? null;
+    const prevMonth = getPrevMonth(effectiveMois);
+    const previousReport = prevMonth ? (allReports.find((r) => r.mois === prevMonth) ?? null) : null;
 
     return {
       report: {
         id: "preview",
         user_id: user?.id ?? "",
         client_id: clientId,
-        mois,
+        mois: effectiveMois,
         metriques,
         points_forts: pointsForts,
         axes_amelioration: axesAmelioration,
@@ -154,18 +173,23 @@ export function CreateKpiReportModal({
       previewData.cmName,
       previewData.previousReport
     );
-    pdf.save(`KPI-${clientName}-${mois}.pdf`);
+    pdf.save(`KPI-${clientName}-${previewData.report.mois}.pdf`);
   };
 
   const handleSaveAndDownload = async () => {
     if (!user) return;
+    const effectiveMois = getMoisValue(periodType, mois, customDateDebut, customDateFin);
+    if (periodType === "personnalise" && (!customDateDebut || !customDateFin)) {
+      toast.error("Veuillez sélectionner une date de début et de fin");
+      return;
+    }
     setLoading(true);
     try {
       const data = await buildPreviewData();
       const reportId = await saveKpiReport({
         user_id: user.id,
         client_id: clientId,
-        mois,
+        mois: effectiveMois,
         metriques,
         points_forts: pointsForts,
         axes_amelioration: axesAmelioration,
@@ -180,9 +204,9 @@ export function CreateKpiReportModal({
         data.previousReport
       );
 
-      pdf.save(`KPI-${clientName}-${mois}.pdf`);
+      pdf.save(`KPI-${clientName}-${effectiveMois}.pdf`);
       toast.success("Rapport KPI généré et téléchargé");
-      logKpiAction(user.id, "Rapport KPI généré", `${clientName} · ${mois}`, reportId);
+      logKpiAction(user.id, "Rapport KPI généré", `${clientName} · ${effectiveMois}`, reportId);
       onCreated();
       onOpenChange(false);
     } catch (err: unknown) {
@@ -203,18 +227,72 @@ export function CreateKpiReportModal({
           </DialogHeader>
 
           <div className="space-y-6">
-            <div>
-              <Label>Mois</Label>
-              <Select value={mois} onValueChange={setMois}>
-                <SelectTrigger className="w-52">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Period type selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label>Type de période</Label>
+                <Select value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mensuel">Mensuel</SelectItem>
+                    <SelectItem value="trimestriel">Trimestriel</SelectItem>
+                    <SelectItem value="personnalise">Personnalisé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Monthly select */}
+              {periodType === "mensuel" && (
+                <div className="sm:col-span-2">
+                  <Label>Mois</Label>
+                  <Select value={mois} onValueChange={setMois}>
+                    <SelectTrigger className="mt-1 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Quarterly info */}
+              {periodType === "trimestriel" && (
+                <div className="sm:col-span-2 flex items-end">
+                  <p className="text-sm text-muted-foreground font-sans pb-2">
+                    Période : 3 derniers mois glissants ({getCurrentQuarter().replace("-Q", " · T")})
+                  </p>
+                </div>
+              )}
+
+              {/* Custom date pickers */}
+              {periodType === "personnalise" && (
+                <>
+                  <div>
+                    <Label>Date de début</Label>
+                    <Input
+                      type="date"
+                      value={customDateDebut}
+                      onChange={(e) => setCustomDateDebut(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Date de fin</Label>
+                    <Input
+                      type="date"
+                      value={customDateFin}
+                      min={customDateDebut}
+                      onChange={(e) => setCustomDateFin(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {networksToShow.map((netKey) => {
