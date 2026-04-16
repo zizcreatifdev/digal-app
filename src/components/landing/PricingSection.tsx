@@ -177,8 +177,8 @@ export function PricingSection() {
 
         {/* Duration toggle */}
         {durations.length > 1 && (
-          <div className="flex justify-center mb-10">
-            <div className="inline-flex bg-muted rounded-lg p-1 gap-1">
+          <div className="flex justify-center mb-10 overflow-x-auto px-4">
+            <div className="inline-flex bg-muted rounded-lg p-1 gap-1 min-w-max">
               {durations.map((d) => {
                 const discountPct = getToggleDiscountPct(d);
                 return (
@@ -269,7 +269,7 @@ export function PricingSection() {
                       </span>
                       {displayPrice > 0 && (
                         <span className={`text-sm font-sans ${plan.highlighted ? "text-background/60" : "text-muted-foreground"}`}>
-                          {priceSuffix(selectedDuree)}
+                          {configPrice !== null ? priceSuffix(selectedDuree) : "/mois"}
                         </span>
                       )}
                     </div>
