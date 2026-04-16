@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette, Sparkles } from "lucide-react";
+import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette, Star, ChevronDown, ChevronUp } from "lucide-react";
 import { usePlans } from "@/hooks/usePlans";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -67,7 +67,6 @@ const SHOWN_DURATIONS = [1, 6, 12];
 // Fixed features for the Elite (agence_pro) card — replaces DB data
 const ELITE_FEATURES = [
   "Membres illimités",
-  "Clients illimités",
   "Tout Studio inclus",
   "Support prioritaire dédié",
   "Onboarding personnalisé",
@@ -85,22 +84,51 @@ const FALLBACK_PRICES: Record<string, Record<number, number>> = {
 
 /* ─── Sub-components ─────────────────────────────────────── */
 
-function AgenceRolesBlock({ highlighted }: { highlighted: boolean }) {
+function AgenceRolesAccordion({ highlighted, isElite }: { highlighted: boolean; isElite?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const borderCls = isElite
+    ? "border-[#E8511A]/30"
+    : highlighted
+    ? "border-background/20"
+    : "border-[#E8511A]/20";
+
   return (
-    <div className={`mt-5 mb-6 rounded-lg p-3 space-y-2 ${highlighted ? "bg-white/10" : "bg-primary/5 border border-primary/10"}`}>
-      <p className={`text-[11px] font-semibold font-sans uppercase tracking-wider mb-2 ${highlighted ? "text-background/60" : "text-primary"}`}>
-        Les 3 rôles inclus
-      </p>
-      {AGENCE_ROLES.map(({ icon: Icon, label, desc }) => (
-        <div key={label} className="flex items-start gap-2">
-          <Icon className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${highlighted ? "text-background/70" : "text-primary"}`} />
-          <span className={`text-xs font-sans leading-snug ${highlighted ? "text-background/80" : "text-foreground/80"}`}>
-            <span className="font-semibold">{label}</span>
-            {" · "}
-            <span className={highlighted ? "text-background/60" : "text-muted-foreground"}>{desc}</span>
-          </span>
+    <div className={`mt-4 mb-4 rounded-lg border overflow-hidden ${borderCls}`}>
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-3 py-2.5 text-[11px] font-semibold font-sans uppercase tracking-wider transition-colors"
+        style={{ color: "#E8511A" }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>Les 3 rôles inclus</span>
+        {open
+          ? <ChevronUp className="h-3.5 w-3.5 shrink-0" />
+          : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+      </button>
+      <div
+        className="transition-all duration-200 overflow-hidden"
+        style={{ maxHeight: open ? "200px" : "0px" }}
+      >
+        <div className="px-3 pb-3 space-y-2">
+          {AGENCE_ROLES.map(({ icon: Icon, label, desc }) => (
+            <div key={label} className="flex items-start gap-2">
+              <Icon
+                className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${!isElite && !highlighted ? "text-primary" : ""}`}
+                style={isElite ? { color: "rgba(232,81,26,0.7)" } : undefined}
+              />
+              <span className={`text-xs font-sans leading-snug ${
+                isElite ? "text-white/80" : highlighted ? "text-background/80" : "text-foreground/80"
+              }`}>
+                <span className="font-semibold">{label}</span>
+                {" · "}
+                <span className={
+                  isElite ? "text-white/50" : highlighted ? "text-background/60" : "text-muted-foreground"
+                }>{desc}</span>
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -266,7 +294,7 @@ export function PricingSection() {
             ))}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
             {plans?.map((plan) => {
               const slug = plan.slug ?? "";
               const planType = SLUG_TO_PLAN_TYPE[slug] ?? null;
@@ -355,13 +383,18 @@ export function PricingSection() {
               return (
                 <Card
                   key={plan.id}
+                  style={isElite
+                    ? { background: "#1a1a1a", border: "1.5px solid #E8511A" }
+                    : undefined}
                   className={`relative flex flex-col ${
-                    plan.highlighted
+                    isElite
+                      ? "shadow-xl"
+                      : plan.highlighted
                       ? "bg-foreground text-background border-foreground shadow-xl scale-[1.03] z-10"
                       : "border-border/50"
                   }`}
                 >
-                  {plan.badge && (
+                  {plan.badge && !isElite && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge className="bg-primary text-primary-foreground border-0 text-[10px] px-3 py-0.5 whitespace-nowrap">
                         {plan.badge}
@@ -369,27 +402,43 @@ export function PricingSection() {
                     </div>
                   )}
                   <CardContent className="p-6 flex flex-col flex-1">
-                    <p className={`text-sm font-sans font-semibold mb-0.5 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
-                      {displayName}
-                    </p>
+
+                    {/* ── Plan name ── */}
+                    {isElite ? (
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Star className="h-4 w-4 shrink-0" style={{ color: "#E8511A" }} />
+                        <p className="text-sm font-sans font-semibold text-white/70">Elite</p>
+                      </div>
+                    ) : (
+                      <p className={`text-sm font-sans font-semibold mb-0.5 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
+                        {displayName}
+                      </p>
+                    )}
+
+                    {/* ── Tagline ── */}
                     {tagline && (
-                      <p className={`text-[11px] font-sans mb-3 leading-snug ${plan.highlighted ? "text-background/50" : "text-muted-foreground/70"}`}>
+                      <p className={`text-[11px] font-sans mb-3 leading-snug ${
+                        isElite ? "text-white/40"
+                        : plan.highlighted ? "text-background/50"
+                        : "text-muted-foreground/70"
+                      }`}>
                         {tagline}
                       </p>
                     )}
 
+                    {/* ── Price section ── */}
                     {isElite ? (
-                      /* Elite — tarif sur mesure */
-                      <div className="mb-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Sparkles className={`h-4 w-4 ${plan.highlighted ? "text-background/70" : "text-primary"}`} />
-                          <span className={`text-2xl font-bold font-serif ${plan.highlighted ? "text-background" : ""}`}>
-                            Tarif sur mesure
-                          </span>
-                        </div>
-                        <p className={`text-xs font-sans ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
-                          Adapté à la taille et aux besoins de votre agence
+                      <div
+                        className="mb-4 py-3 px-3 rounded-lg text-center"
+                        style={{ background: "rgba(232,81,26,0.08)", border: "1px solid rgba(232,81,26,0.2)" }}
+                      >
+                        <p
+                          className="text-[10px] font-sans uppercase tracking-widest font-semibold mb-1"
+                          style={{ color: "#6b7280" }}
+                        >
+                          Tarif sur mesure
                         </p>
+                        <p className="text-base font-bold font-sans text-white">Sur devis uniquement</p>
                       </div>
                     ) : (
                       <>
@@ -404,14 +453,12 @@ export function PricingSection() {
                           )}
                         </div>
 
-                        {/* "au lieu de" for multi-month */}
                         {auLieuDe !== null && auLieuDe !== displayPrice && (
                           <p className={`text-xs font-sans mb-1 line-through ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
                             au lieu de {auLieuDe.toLocaleString("fr-FR")} FCFA
                           </p>
                         )}
 
-                        {/* Savings badge */}
                         {savingsPct !== null && (
                           <div className="mb-1">
                             <Badge variant="secondary" className="gap-1 text-[10px] bg-emerald-100 text-emerald-700 border-0">
@@ -420,7 +467,6 @@ export function PricingSection() {
                           </div>
                         )}
 
-                        {/* Legacy promo badge (when no config price) */}
                         {hasPromo && (
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-sm line-through font-sans ${plan.highlighted ? "text-background/40" : "text-muted-foreground"}`}>
@@ -432,20 +478,23 @@ export function PricingSection() {
                             </Badge>
                           </div>
                         )}
+                        <div className="mb-3" />
                       </>
                     )}
 
-                    <div className="mb-5" />
-
+                    {/* ── Features ── */}
                     {isElite ? (
-                      <ul className="space-y-2.5 mb-6 flex-1">
-                        {ELITE_FEATURES.map((f) => (
-                          <li key={f} className="flex items-start gap-2 text-sm font-sans">
-                            <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-                            <span className={plan.highlighted ? "text-background/80" : ""}>{f}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <>
+                        <ul className="space-y-2.5 mb-2 flex-1">
+                          {ELITE_FEATURES.map((f) => (
+                            <li key={f} className="flex items-start gap-2 text-sm font-sans">
+                              <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#E8511A" }} />
+                              <span className="text-white/80">{f}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <AgenceRolesAccordion highlighted={false} isElite={true} />
+                      </>
                     ) : (
                       (() => {
                         const isAgence = slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
@@ -463,20 +512,17 @@ export function PricingSection() {
                                 );
                               })}
                             </ul>
-                            {isAgence && <AgenceRolesBlock highlighted={plan.highlighted} />}
+                            {isAgence && <AgenceRolesAccordion highlighted={plan.highlighted} />}
                           </>
                         );
                       })()
                     )}
 
+                    {/* ── CTA Button ── */}
                     {isElite ? (
                       <Button
-                        variant={plan.highlighted ? "default" : "outline"}
-                        className={`w-full gap-1.5 ${
-                          plan.highlighted
-                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                            : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        }`}
+                        className="w-full gap-1.5 mt-auto border-0 text-white hover:opacity-90"
+                        style={{ background: "#E8511A" }}
                         onClick={() => setEliteModalOpen(true)}
                       >
                         Demander un devis
@@ -485,7 +531,7 @@ export function PricingSection() {
                     ) : (
                       <Button
                         variant={plan.highlighted ? "default" : "outline"}
-                        className={`w-full gap-1.5 ${
+                        className={`w-full gap-1.5 mt-auto ${
                           plan.highlighted
                             ? "bg-primary text-primary-foreground hover:bg-primary/90"
                             : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
