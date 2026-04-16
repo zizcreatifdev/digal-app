@@ -102,7 +102,7 @@ export async function generateDocumentPdf(
   // ── Load all images in parallel ─────────────────────────────────
   const [digalLogoData, digalIconData, tamponData, signatureData, userLogoData] =
     await Promise.all([
-      loadSvgAsPng("/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg", 500, 250),
+      loadSvgAsPng("/logos/Logo_Digal_iconorange_ettext_ennoir_svg.svg", 500, 250),
       loadSvgAsPng("/logos/Logo%20Digal-icon_orange_sansbaseline.svg", 100, 100),
       userProfile.tampon_url ? loadImage(userProfile.tampon_url) : Promise.resolve(null),
       userProfile.signature_url ? loadImage(userProfile.signature_url) : Promise.resolve(null),
