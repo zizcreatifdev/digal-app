@@ -164,7 +164,7 @@ const ClientsPage = () => {
       <FreemiumLimitModal
         open={limitModalOpen}
         onOpenChange={setLimitModalOpen}
-        description={`Les comptes Freemium sont limités à ${FREEMIUM_CLIENT_LIMIT} clients actifs. Activez une licence pour gérer des clients illimités.`}
+        description={`Les comptes Découverte sont limités à ${FREEMIUM_CLIENT_LIMIT} clients actifs. Activez une licence pour gérer des clients illimités.`}
       />
     </DashboardLayout>
   );

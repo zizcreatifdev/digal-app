@@ -25,11 +25,11 @@ interface OnboardingWizardProps {
 }
 
 const PLAN_LABELS: Record<string, string> = {
-  freemium: "Freemium",
-  solo_standard: "Solo Standard",
+  freemium: "Découverte",
+  solo_standard: "CM Pro",
   solo_pro: "Solo Pro",
-  agence_starter: "Agence Starter",
-  agence_pro: "Agence Pro",
+  agence_starter: "Studio",
+  agence_pro: "Elite",
 };
 
 export function OnboardingWizard({ profile, onComplete }: OnboardingWizardProps) {

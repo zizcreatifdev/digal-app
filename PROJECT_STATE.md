@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-15_
-_Prompt courant : 37B — Onglet Actions fiche compte Admin_
+_Dernière mise à jour : 2026-04-16_
+_Prompt courant : 38 — Refonte pricing + noms plans + remises_
 
 ---
 
@@ -109,6 +109,7 @@ _Prompt courant : 37B — Onglet Actions fiche compte Admin_
 | Création facture | ✅ Complet | |
 | Lignes de facturation | ✅ Complet | Avec BRS et TVA |
 | Calcul taxes (BRS + TVA) | ✅ Complet | `calculateTotals()` |
+| Remise sur facture | ✅ Complet (prompt-38) | Champ remise % dans modal, PDF ligne verte, auto-calculé sur factures_licence |
 | Conversion devis → facture | ✅ Complet | |
 | Enregistrement paiements | ✅ Complet | |
 | Statuts (brouillon/envoyé/payé/...) | ✅ Complet | 7 statuts |
@@ -264,7 +265,7 @@ _Prompt courant : 37B — Onglet Actions fiche compte Admin_
 | Hero + countdown | ✅ | |
 | Problem / Solution | ✅ | |
 | MockupsSection | ✅ (prompt-10) | 4 cartes animées |
-| Pricing | ✅ (prompt-36) | Toggle durée Mensuel/3m/6m/12m, prix depuis plan_configs, badge "Économisez X%" |
+| Pricing | ✅ (prompt-38) | Toggle 3 options Mensuel/6mois/Annuel, badges -X% sur toggle, "au lieu de", taglines par plan, nouveaux noms |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
 | Page /privacy | ✅ (prompt-10) | |
@@ -362,3 +363,5 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 36 | Durées licence flexibles : table plan_configs, AdminPlans configs tarifaires, AdminLicences select durée, PricingSection toggle, AdminWaitlist durée+prix | 2026-04-15 |
 | 37A | Fiche compte Admin : en-tête avatar + onglet Aperçu (clients actifs, posts, liens, factures mois) | 2026-04-15 |
 | 37B | Fiche compte Admin : onglet Actions — facturation plan 3 étapes + zone dangereuse | 2026-04-15 |
+| bugs | Fix 4 bugs : bouton Facture ClientDetail, TeamJournal refonte équipe, route journal, lien Login AdminSetup | 2026-04-16 |
+| 38 | Nouveaux noms plans (Découverte/CM Pro/Studio/Elite), toggle pricing 3 options + -X% + taglines, remise sur factures | 2026-04-16 |

@@ -63,6 +63,7 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
   const [tauxTva, setTauxTva] = useState(0);
   const [methodes, setMethodes] = useState<string[]>(["wave"]);
   const [notes, setNotes] = useState("");
+  const [remisePct, setRemisePct] = useState(0);
   const [loading, setLoading] = useState(false);
   // Boost depenses
   const [boostDepenses, setBoostDepenses] = useState<Depense[]>([]);
@@ -104,7 +105,12 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
       montant: d.montant,
       ordre: lines.length + i,
     }));
-  const totals = calculateTotals([...lines, ...boostLinesPreview], tauxBrs, tauxTva);
+  const rawTotals = calculateTotals([...lines, ...boostLinesPreview], tauxBrs, tauxTva);
+  const montantRemise = remisePct > 0 ? Math.round(rawTotals.sousTotal * remisePct / 100) : 0;
+  const totals = {
+    ...rawTotals,
+    total: rawTotals.total - montantRemise,
+  };
 
   const updateLine = (index: number, field: keyof DocumentLine, value: DocumentLine[keyof DocumentLine]) => {
     setLines((prev) =>
@@ -139,6 +145,7 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
 
       const allLines = [...lines, ...boostLines];
       const allTotals = calculateTotals(allLines, tauxBrs, tauxTva);
+      const allMontantRemise = remisePct > 0 ? Math.round(allTotals.sousTotal * remisePct / 100) : 0;
 
       await createDocument(
         {
@@ -153,7 +160,9 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
           montant_brs: allTotals.montantBrs,
           taux_tva: tauxTva,
           montant_tva: allTotals.montantTva,
-          total: allTotals.total,
+          remise_pct: remisePct,
+          montant_remise: allMontantRemise,
+          total: allTotals.total - allMontantRemise,
           methodes_paiement: methodes,
           notes,
         },
@@ -299,8 +308,8 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
             </div>
           )}
 
-          {/* Taxes */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Taxes & Remise */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label>BRS (%)</Label>
               <Input type="number" min={0} max={100} value={tauxBrs} onChange={(e) => setTauxBrs(parseFloat(e.target.value) || 0)} />
@@ -309,11 +318,21 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
               <Label>TVA (%)</Label>
               <Input type="number" min={0} max={100} value={tauxTva} onChange={(e) => setTauxTva(parseFloat(e.target.value) || 0)} />
             </div>
+            <div>
+              <Label>Remise (%)</Label>
+              <Input type="number" min={0} max={100} value={remisePct} onChange={(e) => setRemisePct(parseFloat(e.target.value) || 0)} />
+            </div>
           </div>
 
           {/* Totals preview */}
           <div className="bg-muted/50 rounded-lg p-4 space-y-1 text-sm">
-            <div className="flex justify-between"><span>Sous-total</span><span>{formatFCFA(totals.sousTotal)}</span></div>
+            <div className="flex justify-between"><span>Sous-total</span><span>{formatFCFA(rawTotals.sousTotal)}</span></div>
+            {montantRemise > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <span>Remise ({remisePct}%)</span>
+                <span>- {formatFCFA(montantRemise)}</span>
+              </div>
+            )}
             <div className="flex justify-between"><span>BRS ({tauxBrs}%)</span><span>{formatFCFA(totals.montantBrs)}</span></div>
             {tauxTva > 0 && (
               <div className="flex justify-between"><span>TVA ({tauxTva}%)</span><span>{formatFCFA(totals.montantTva)}</span></div>

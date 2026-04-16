@@ -7,9 +7,10 @@ interface FreemiumLimitModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   description: string;
+  title?: string;
 }
 
-export function FreemiumLimitModal({ open, onOpenChange, description }: FreemiumLimitModalProps) {
+export function FreemiumLimitModal({ open, onOpenChange, description, title }: FreemiumLimitModalProps) {
   const navigate = useNavigate();
 
   const handleActivate = () => {
@@ -23,7 +24,7 @@ export function FreemiumLimitModal({ open, onOpenChange, description }: Freemium
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-serif">
             <Sparkles className="h-5 w-5 text-primary" />
-            Fonctionnalité Pro
+            {title ?? "Fonctionnalité Pro"}
           </DialogTitle>
           <DialogDescription className="font-sans">{description}</DialogDescription>
         </DialogHeader>

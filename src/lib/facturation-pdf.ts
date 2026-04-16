@@ -252,20 +252,34 @@ export async function generateDocumentPdf(
   const totalsEndX = pageW - 15;
 
   // Background for totals
-  const totalsItems = [
+  const totalsItems: { label: string; value: string; bold: boolean; isDiscount?: boolean }[] = [
     { label: "Sous-total", value: formatFCFA(doc.sous_total), bold: false },
-    { label: `BRS (${doc.taux_brs}%)`, value: formatFCFA(doc.montant_brs), bold: false },
   ];
+  if (Number(doc.remise_pct) > 0 && Number(doc.montant_remise) > 0) {
+    totalsItems.push({
+      label: `Remise (${doc.remise_pct}%)`,
+      value: `- ${formatFCFA(doc.montant_remise)}`,
+      bold: false,
+      isDiscount: true,
+    });
+  }
+  totalsItems.push({ label: `BRS (${doc.taux_brs}%)`, value: formatFCFA(doc.montant_brs), bold: false });
   if (Number(doc.taux_tva) > 0) {
     totalsItems.push({ label: `TVA (${doc.taux_tva}%)`, value: formatFCFA(doc.montant_tva), bold: false });
   }
+
+  const green: [number, number, number] = [21, 128, 61];
 
   pdf.setFontSize(9);
   totalsItems.forEach((item) => {
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(...gray);
     pdf.text(item.label, totalsStartX, ty);
-    pdf.setTextColor(...dark);
+    if (item.isDiscount) {
+      pdf.setTextColor(...green);
+    } else {
+      pdf.setTextColor(...dark);
+    }
     pdf.text(item.value, totalsEndX, ty, { align: "right" });
     ty += 6;
   });
