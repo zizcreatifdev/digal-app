@@ -119,16 +119,20 @@ export function PricingSection() {
 
   // ── Debug logging ─────────────────────────────────────────
   useEffect(() => {
-    console.log("[PricingSection] planConfigs:", planConfigs);
-    console.log("[PricingSection] planConfigsError:", planConfigsError);
-    console.log("[PricingSection] selectedDuree:", selectedDuree);
-  }, [planConfigs, planConfigsError, selectedDuree]);
+    console.log("[PricingSection] selectedDuree changed to:", selectedDuree, "→ re-render triggered");
+    console.log("[PricingSection] planConfigs rows:", (planConfigs ?? []).length, planConfigs);
+    if (planConfigsError) console.error("[PricingSection] planConfigsError:", planConfigsError);
+    console.log("[PricingSection] plans:", (plans ?? []).map(p => `${p.slug}(${p.prix_mensuel})`).join(", "));
+  }, [planConfigs, planConfigsError, selectedDuree, plans]);
 
   // Get configured price for a plan at the selected duration
   const getConfigPrice = (slug: string, duree: number): number | null => {
     const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
     if (!planType) return null;
-    const config = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+    // Use Number() coercion — Supabase may return duree_mois as string
+    const config = (planConfigs ?? []).find(
+      (c) => c.plan_type === planType && Number(c.duree_mois) === Number(duree)
+    );
     return config?.prix_fcfa ?? null;
   };
 
@@ -136,7 +140,9 @@ export function PricingSection() {
   const getMonthlyPrice = (slug: string): number | null => {
     const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
     if (!planType) return null;
-    const monthly = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === 1);
+    const monthly = (planConfigs ?? []).find(
+      (c) => c.plan_type === planType && Number(c.duree_mois) === 1
+    );
     return monthly?.prix_fcfa ?? null;
   };
 
@@ -148,8 +154,8 @@ export function PricingSection() {
     const planTypes = ["solo", "agence_standard", "agence_pro"];
     const percentages: number[] = [];
     for (const pt of planTypes) {
-      const monthly = (planConfigs ?? []).find((c) => c.plan_type === pt && c.duree_mois === 1);
-      const target = (planConfigs ?? []).find((c) => c.plan_type === pt && c.duree_mois === duree);
+      const monthly = (planConfigs ?? []).find((c) => c.plan_type === pt && Number(c.duree_mois) === 1);
+      const target = (planConfigs ?? []).find((c) => c.plan_type === pt && Number(c.duree_mois) === Number(duree));
       if (!monthly || !target) continue;
       const raw = Math.round(((monthly.prix_fcfa * duree - target.prix_fcfa) / (monthly.prix_fcfa * duree)) * 100);
       percentages.push(raw - 5);
@@ -181,8 +187,8 @@ export function PricingSection() {
     if (duree <= 1) return null;
     const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
     if (!planType) return null;
-    const monthly = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === 1);
-    const target = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+    const monthly = (planConfigs ?? []).find((c) => c.plan_type === planType && Number(c.duree_mois) === 1);
+    const target = (planConfigs ?? []).find((c) => c.plan_type === planType && Number(c.duree_mois) === Number(duree));
     if (!monthly || !target) return null;
     const raw = Math.round(((monthly.prix_fcfa * duree - target.prix_fcfa) / (monthly.prix_fcfa * duree)) * 100);
     return raw > 5 ? raw - 5 : null;
@@ -253,8 +259,10 @@ export function PricingSection() {
               const planType = SLUG_TO_PLAN_TYPE[slug] ?? null;
               const configPrice = getConfigPrice(slug, selectedDuree);
 
-              // Effective multi-month price:
-              // 1) plan_configs  2) plans.prix_semestriel for 6m  3) FALLBACK_PRICES
+              // Effective price for selected duration:
+              // 1) plan_configs  2) plans.prix_semestriel (6m only)  3) FALLBACK_PRICES
+              // NOTE: FALLBACK_PRICES applies to ALL durations (including 1) to avoid
+              // falling back to plan.prix_mensuel which may be stale/incorrect.
               const effectivePrice: number | null = (() => {
                 if (configPrice !== null) return configPrice;
                 if (
@@ -262,7 +270,7 @@ export function PricingSection() {
                   plan.prix_semestriel != null &&
                   plan.prix_semestriel > 0
                 ) return plan.prix_semestriel;
-                if (planType && selectedDuree > 1) {
+                if (planType) {
                   const fallback = FALLBACK_PRICES[planType]?.[selectedDuree];
                   if (fallback != null) return fallback;
                 }
@@ -270,9 +278,11 @@ export function PricingSection() {
               })();
 
               console.log(
-                `[PricingSection] ${slug} configPrice(${selectedDuree}):`,
-                configPrice,
-                "effectivePrice:", effectivePrice,
+                `[PricingSection] plan=${slug} planType=${planType} duree=${selectedDuree}`,
+                `| planConfigs rows=${(planConfigs ?? []).length}`,
+                `| configPrice=${configPrice}`,
+                `| effectivePrice=${effectivePrice}`,
+                `| plan.prix_mensuel=${plan.prix_mensuel}`,
               );
 
               // Monthly reference: plan_configs → FALLBACK_PRICES → plans.prix_mensuel
