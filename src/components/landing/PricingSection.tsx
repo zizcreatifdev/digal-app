@@ -43,6 +43,12 @@ const PLAN_TAGLINES: Record<string, string> = {
   agence_pro: "Pour les agences qui visent le sommet",
 };
 
+// Rename feature strings that reference old plan names
+const FEATURE_RENAME_MAP: Record<string, string> = {
+  "Tout Solo Standard inclus": "Tout CM Pro inclus",
+  "Tout Solo Pro inclus": "Tout CM Pro inclus",
+};
+
 const AGENCE_FEATURE_MAP: Record<string, string> = {
   "1 DM + 3 membres": "1 DM + Community Managers + Créateurs (graphistes/vidéastes)",
   "1 DM + 7 membres": "1 DM + jusqu'à 6 membres (CM + Créateurs)",
@@ -53,6 +59,9 @@ const AGENCE_ROLES = [
   { icon: Users, label: "Community Manager", desc: "gère le calendrier et les validations" },
   { icon: Palette, label: "Créateur", desc: "graphiste ou vidéaste, dépose ses fichiers" },
 ] as const;
+
+// Always show these 3 duration options in the toggle, regardless of DB state
+const SHOWN_DURATIONS = [1, 6, 12];
 
 /* ─── Sub-components ─────────────────────────────────────── */
 
@@ -100,10 +109,7 @@ export function PricingSection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Unique active durations across all plan types, filtered to Mensuel / 6 mois / Annuel
-  const allDurations = [...new Set((planConfigs ?? []).map((c) => c.duree_mois))].sort((a, b) => a - b);
-  const SHOWN_DURATIONS = [1, 6, 12];
-  const durations = allDurations.filter((d) => SHOWN_DURATIONS.includes(d));
+  // (planConfigs used only for price lookups — toggle always shows SHOWN_DURATIONS)
 
   // Get configured price for a plan at the selected duration
   const getConfigPrice = (slug: string, duree: number): number | null => {
@@ -175,35 +181,33 @@ export function PricingSection() {
           </p>
         </div>
 
-        {/* Duration toggle */}
-        {durations.length > 1 && (
-          <div className="flex justify-center mb-10 overflow-x-auto px-4">
-            <div className="inline-flex bg-muted rounded-lg p-1 gap-1 min-w-max">
-              {durations.map((d) => {
-                const discountPct = getToggleDiscountPct(d);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setSelectedDuree(d)}
-                    className={`relative px-4 py-2 text-sm font-sans rounded-md transition-all ${
-                      selectedDuree === d
-                        ? "bg-background shadow text-foreground font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {durationLabel(d)}
-                    {discountPct !== null && (
-                      <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-1.5 py-0.5">
-                        -{discountPct}%
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Duration toggle — always visible */}
+        <div className="flex justify-center mb-10 overflow-x-auto px-4">
+          <div className="inline-flex bg-muted rounded-lg p-1 gap-1 min-w-max">
+            {SHOWN_DURATIONS.map((d) => {
+              const discountPct = getToggleDiscountPct(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setSelectedDuree(d)}
+                  className={`relative px-4 py-2 text-sm font-sans rounded-md transition-all ${
+                    selectedDuree === d
+                      ? "bg-background shadow text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {durationLabel(d)}
+                  {discountPct !== null && (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-1.5 py-0.5">
+                      -{discountPct}%
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -311,7 +315,8 @@ export function PricingSection() {
                         <>
                           <ul className="space-y-2.5 mb-2 flex-1">
                             {plan.features.map((f) => {
-                              const display = isAgence ? (AGENCE_FEATURE_MAP[f] ?? f) : f;
+                              const renamed = FEATURE_RENAME_MAP[f] ?? f;
+                              const display = isAgence ? (AGENCE_FEATURE_MAP[renamed] ?? renamed) : renamed;
                               return (
                                 <li key={f} className="flex items-start gap-2 text-sm font-sans">
                                   <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
