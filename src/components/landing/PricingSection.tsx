@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette } from "lucide-react";
+import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette, Sparkles } from "lucide-react";
 import { usePlans } from "@/hooks/usePlans";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { EliteContactModal } from "./EliteContactModal";
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -63,6 +64,17 @@ const AGENCE_ROLES = [
 // Always show these 3 duration options in the toggle, regardless of DB state
 const SHOWN_DURATIONS = [1, 6, 12];
 
+// Fixed features for the Elite (agence_pro) card — replaces DB data
+const ELITE_FEATURES = [
+  "Membres illimités",
+  "Clients illimités",
+  "Tout Studio inclus",
+  "Support prioritaire dédié",
+  "Onboarding personnalisé",
+  "Formation équipe incluse",
+  "Contrat sur mesure",
+];
+
 // Hardcoded fallback prices (FCFA) used when plan_configs has no entry
 // for a given plan_type + duree_mois combination
 const FALLBACK_PRICES: Record<string, Record<number, number>> = {
@@ -99,6 +111,7 @@ export function PricingSection() {
   const navigate = useNavigate();
   const { data: plans, isLoading } = usePlans();
   const [selectedDuree, setSelectedDuree] = useState(6);
+  const [eliteModalOpen, setEliteModalOpen] = useState(false);
 
   // Load plan_configs (public read, no auth needed)
   const { data: planConfigs, error: planConfigsError } = useQuery({
@@ -337,6 +350,7 @@ export function PricingSection() {
               // Display name override
               const displayName = PLAN_DISPLAY_NAMES[slug] ?? plan.nom;
               const tagline = PLAN_TAGLINES[slug] ?? null;
+              const isElite = slug === "agence_pro";
 
               return (
                 <Card
@@ -364,81 +378,124 @@ export function PricingSection() {
                       </p>
                     )}
 
-                    <div className="mb-1 flex items-baseline gap-2">
-                      <span className="text-3xl font-bold font-serif">
-                        {displayPrice === 0 ? "Gratuit" : displayPrice.toLocaleString("fr-FR") + " FCFA"}
-                      </span>
-                      {displayPrice > 0 && (
-                        <span className={`text-sm font-sans ${plan.highlighted ? "text-background/60" : "text-muted-foreground"}`}>
-                          {priceSuffixDisplay}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* "au lieu de" for multi-month */}
-                    {auLieuDe !== null && auLieuDe !== displayPrice && (
-                      <p className={`text-xs font-sans mb-1 line-through ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
-                        au lieu de {auLieuDe.toLocaleString("fr-FR")} FCFA
-                      </p>
-                    )}
-
-                    {/* Savings badge */}
-                    {savingsPct !== null && (
+                    {isElite ? (
+                      /* Elite — tarif sur mesure */
                       <div className="mb-1">
-                        <Badge variant="secondary" className="gap-1 text-[10px] bg-emerald-100 text-emerald-700 border-0">
-                          Économisez {savingsPct}%
-                        </Badge>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Sparkles className={`h-4 w-4 ${plan.highlighted ? "text-background/70" : "text-primary"}`} />
+                          <span className={`text-2xl font-bold font-serif ${plan.highlighted ? "text-background" : ""}`}>
+                            Tarif sur mesure
+                          </span>
+                        </div>
+                        <p className={`text-xs font-sans ${plan.highlighted ? "text-background/50" : "text-muted-foreground"}`}>
+                          Adapté à la taille et aux besoins de votre agence
+                        </p>
                       </div>
-                    )}
+                    ) : (
+                      <>
+                        <div className="mb-1 flex items-baseline gap-2">
+                          <span className="text-3xl font-bold font-serif">
+                            {displayPrice === 0 ? "Gratuit" : displayPrice.toLocaleString("fr-FR") + " FCFA"}
+                          </span>
+                          {displayPrice > 0 && (
+                            <span className={`text-sm font-sans ${plan.highlighted ? "text-background/60" : "text-muted-foreground"}`}>
+                              {priceSuffixDisplay}
+                            </span>
+                          )}
+                        </div>
 
-                    {/* Legacy promo badge (when no config price) */}
-                    {hasPromo && (
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-sm line-through font-sans ${plan.highlighted ? "text-background/40" : "text-muted-foreground"}`}>
-                          {plan.prix_mensuel.toLocaleString("fr-FR")} FCFA
-                        </span>
-                        <Badge variant="secondary" className="gap-1 text-[10px] bg-primary/10 text-primary border-0">
-                          <Tag className="h-2.5 w-2.5" />
-                          {plan.promo_label || "Promo"}
-                        </Badge>
-                      </div>
+                        {/* "au lieu de" for multi-month */}
+                        {auLieuDe !== null && auLieuDe !== displayPrice && (
+                          <p className={`text-xs font-sans mb-1 line-through ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
+                            au lieu de {auLieuDe.toLocaleString("fr-FR")} FCFA
+                          </p>
+                        )}
+
+                        {/* Savings badge */}
+                        {savingsPct !== null && (
+                          <div className="mb-1">
+                            <Badge variant="secondary" className="gap-1 text-[10px] bg-emerald-100 text-emerald-700 border-0">
+                              Économisez {savingsPct}%
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Legacy promo badge (when no config price) */}
+                        {hasPromo && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-sm line-through font-sans ${plan.highlighted ? "text-background/40" : "text-muted-foreground"}`}>
+                              {plan.prix_mensuel.toLocaleString("fr-FR")} FCFA
+                            </span>
+                            <Badge variant="secondary" className="gap-1 text-[10px] bg-primary/10 text-primary border-0">
+                              <Tag className="h-2.5 w-2.5" />
+                              {plan.promo_label || "Promo"}
+                            </Badge>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div className="mb-5" />
 
-                    {(() => {
-                      const isAgence = slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
-                      return (
-                        <>
-                          <ul className="space-y-2.5 mb-2 flex-1">
-                            {plan.features.map((f) => {
-                              const renamed = FEATURE_RENAME_MAP[f] ?? f;
-                              const display = isAgence ? (AGENCE_FEATURE_MAP[renamed] ?? renamed) : renamed;
-                              return (
-                                <li key={f} className="flex items-start gap-2 text-sm font-sans">
-                                  <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-                                  <span className={plan.highlighted ? "text-background/80" : ""}>{display}</span>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                          {isAgence && <AgenceRolesBlock highlighted={plan.highlighted} />}
-                        </>
-                      );
-                    })()}
+                    {isElite ? (
+                      <ul className="space-y-2.5 mb-6 flex-1">
+                        {ELITE_FEATURES.map((f) => (
+                          <li key={f} className="flex items-start gap-2 text-sm font-sans">
+                            <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                            <span className={plan.highlighted ? "text-background/80" : ""}>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      (() => {
+                        const isAgence = slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
+                        return (
+                          <>
+                            <ul className="space-y-2.5 mb-2 flex-1">
+                              {plan.features.map((f) => {
+                                const renamed = FEATURE_RENAME_MAP[f] ?? f;
+                                const display = isAgence ? (AGENCE_FEATURE_MAP[renamed] ?? renamed) : renamed;
+                                return (
+                                  <li key={f} className="flex items-start gap-2 text-sm font-sans">
+                                    <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                                    <span className={plan.highlighted ? "text-background/80" : ""}>{display}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                            {isAgence && <AgenceRolesBlock highlighted={plan.highlighted} />}
+                          </>
+                        );
+                      })()
+                    )}
 
-                    <Button
-                      variant={plan.highlighted ? "default" : "outline"}
-                      className={`w-full gap-1.5 ${
-                        plan.highlighted
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                      }`}
-                      onClick={() => navigate("/waitlist")}
-                    >
-                      {plan.cta_text}
-                      {plan.cta_text.includes("liste") && <ArrowRight className="h-3.5 w-3.5" />}
-                    </Button>
+                    {isElite ? (
+                      <Button
+                        variant={plan.highlighted ? "default" : "outline"}
+                        className={`w-full gap-1.5 ${
+                          plan.highlighted
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        }`}
+                        onClick={() => setEliteModalOpen(true)}
+                      >
+                        Demander un devis
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={plan.highlighted ? "default" : "outline"}
+                        className={`w-full gap-1.5 ${
+                          plan.highlighted
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        }`}
+                        onClick={() => navigate("/waitlist")}
+                      >
+                        {plan.cta_text}
+                        {plan.cta_text.includes("liste") && <ArrowRight className="h-3.5 w-3.5" />}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -452,6 +509,8 @@ export function PricingSection() {
           </p>
         )}
       </div>
+
+      <EliteContactModal open={eliteModalOpen} onClose={() => setEliteModalOpen(false)} />
     </section>
   );
 }

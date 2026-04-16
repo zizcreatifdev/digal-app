@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-16_
-_Prompt courant : 40 — Refonte PDF factures style épuré_
+_Prompt courant : 41 — Plan Elite sur mesure_
 
 ---
 
@@ -240,7 +240,7 @@ _Prompt courant : 40 — Refonte PDF factures style épuré_
 
 ---
 
-### Module ADMIN — 99% ✅
+### Module ADMIN — 100% ✅
 | Page admin | État | Notes |
 |------------|------|-------|
 | Dashboard KPIs (MRR, comptes) | ✅ Complet | |
@@ -250,7 +250,7 @@ _Prompt courant : 40 — Refonte PDF factures style épuré_
 | Onglet Financier par compte | ✅ Complet (prompt-09) | CA, dépenses, salaires |
 | Génération clés + promo + prolongation | ✅ Complet | |
 | Génération clé avec durée depuis plan_configs | ✅ Complet (prompt-36) | Select durées actives par plan |
-| Gestion waitlist | ✅ Complet (prompt-36) | Select durée + prix dans message copié |
+| Gestion waitlist + Demandes Elite | ✅ Complet (prompt-41) | Onglets : Liste d'attente + Demandes Elite ; tableau Elite avec statuts colorés, select inline, copier contact, compteurs |
 | Gestion plans tarifaires | ✅ Complet | |
 | Configurations tarifaires (plan_configs) | ✅ Complet (prompt-36) | Durées/prix par plan, toggle actif/populaire, inline edit, ajout |
 | Gestion contrats | ✅ Complet | |
@@ -266,7 +266,9 @@ _Prompt courant : 40 — Refonte PDF factures style épuré_
 | Hero + countdown | ✅ | |
 | Problem / Solution | ✅ | |
 | MockupsSection | ✅ (prompt-10) | 4 cartes animées |
-| Pricing | ✅ (prompt-38) | Toggle 3 options Mensuel/6mois/Annuel, badges -X% sur toggle, "au lieu de", taglines par plan, nouveaux noms |
+| Pricing | ✅ (prompt-41) | Toggle 3 options Mensuel/6mois/Annuel, badges -X% sur toggle, "au lieu de", taglines par plan, nouveaux noms |
+| Elite sur mesure | ✅ (prompt-41) | Carte Elite : "Tarif sur mesure" + "Demander un devis" → EliteContactModal |
+| EliteContactModal | ✅ (prompt-41) | Form 6 champs, insert table elite_requests, toast 24h |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
 | Page /privacy | ✅ (prompt-10) | |
@@ -366,3 +368,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 37B | Fiche compte Admin : onglet Actions — facturation plan 3 étapes + zone dangereuse | 2026-04-15 |
 | bugs | Fix 4 bugs : bouton Facture ClientDetail, TeamJournal refonte équipe, route journal, lien Login AdminSetup | 2026-04-16 |
 | 38 | Nouveaux noms plans (Découverte/CM Pro/Studio/Elite), toggle pricing 3 options + -X% + taglines, remise sur factures | 2026-04-16 |
+| 41 | Plan Elite sur mesure : carte "Tarif sur mesure" + EliteContactModal (6 champs, insert elite_requests), AdminWaitlist onglets + tableau Demandes Elite, migration SQL | 2026-04-16 |
