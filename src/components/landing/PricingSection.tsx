@@ -63,6 +63,14 @@ const AGENCE_ROLES = [
 // Always show these 3 duration options in the toggle, regardless of DB state
 const SHOWN_DURATIONS = [1, 6, 12];
 
+// Hardcoded fallback prices (FCFA) used when plan_configs has no entry
+// for a given plan_type + duree_mois combination
+const FALLBACK_PRICES: Record<string, Record<number, number>> = {
+  solo:             { 1: 15000,  6: 75000,  12: 140000 },
+  agence_standard:  { 1: 35000,  6: 175000, 12: 330000 },
+  agence_pro:       { 1: 55000,  6: 275000, 12: 520000 },
+};
+
 /* ─── Sub-components ─────────────────────────────────────── */
 
 function AgenceRolesBlock({ highlighted }: { highlighted: boolean }) {
@@ -158,6 +166,13 @@ export function PricingSection() {
       }
       if (pcts.length > 0) return pcts[0];
     }
+    // Third fallback: compute from FALLBACK_PRICES (use "solo" as representative)
+    const fbMonthly = FALLBACK_PRICES["solo"]?.[1];
+    const fbTarget = FALLBACK_PRICES["solo"]?.[duree];
+    if (fbMonthly && fbTarget) {
+      const raw = Math.round(((fbMonthly * duree - fbTarget) / (fbMonthly * duree)) * 100);
+      return raw > 5 ? raw - 5 : null;
+    }
     return null;
   };
 
@@ -235,10 +250,11 @@ export function PricingSection() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {plans?.map((plan) => {
               const slug = plan.slug ?? "";
+              const planType = SLUG_TO_PLAN_TYPE[slug] ?? null;
               const configPrice = getConfigPrice(slug, selectedDuree);
 
               // Effective multi-month price:
-              // 1) plan_configs  2) plans.prix_semestriel for 6m  3) null (monthly only)
+              // 1) plan_configs  2) plans.prix_semestriel for 6m  3) FALLBACK_PRICES
               const effectivePrice: number | null = (() => {
                 if (configPrice !== null) return configPrice;
                 if (
@@ -246,6 +262,10 @@ export function PricingSection() {
                   plan.prix_semestriel != null &&
                   plan.prix_semestriel > 0
                 ) return plan.prix_semestriel;
+                if (planType && selectedDuree > 1) {
+                  const fallback = FALLBACK_PRICES[planType]?.[selectedDuree];
+                  if (fallback != null) return fallback;
+                }
                 return null;
               })();
 
@@ -255,8 +275,10 @@ export function PricingSection() {
                 "effectivePrice:", effectivePrice,
               );
 
-              // Monthly reference (from plan_configs or plans table)
-              const monthlyRef = getMonthlyPrice(slug) ?? plan.prix_mensuel;
+              // Monthly reference: plan_configs → FALLBACK_PRICES → plans.prix_mensuel
+              const monthlyRef =
+                getMonthlyPrice(slug) ??
+                (planType ? (FALLBACK_PRICES[planType]?.[1] ?? plan.prix_mensuel) : plan.prix_mensuel);
 
               // Display price: use effective multi-month price, promo, or monthly
               const displayPrice = effectivePrice !== null
@@ -276,7 +298,7 @@ export function PricingSection() {
                 ? monthlyRef * selectedDuree
                 : null;
 
-              // Savings %: from plan_configs, then from prix_semestriel fallback
+              // Savings %: plan_configs → prix_semestriel → FALLBACK_PRICES
               const savingsPct = (() => {
                 const fromConfig = getSavingsPct(slug, selectedDuree);
                 if (fromConfig !== null) return fromConfig;
@@ -290,6 +312,14 @@ export function PricingSection() {
                     ((plan.prix_mensuel * 6 - plan.prix_semestriel) / (plan.prix_mensuel * 6)) * 100
                   );
                   return raw > 5 ? raw - 5 : null;
+                }
+                if (planType && selectedDuree > 1) {
+                  const fbMonthly = FALLBACK_PRICES[planType]?.[1];
+                  const fbTarget = FALLBACK_PRICES[planType]?.[selectedDuree];
+                  if (fbMonthly && fbTarget) {
+                    const raw = Math.round(((fbMonthly * selectedDuree - fbTarget) / (fbMonthly * selectedDuree)) * 100);
+                    return raw > 5 ? raw - 5 : null;
+                  }
                 }
                 return null;
               })();
