@@ -144,7 +144,7 @@ const App = () => (
             <Route
               path="/dashboard/facturation"
               element={
-                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro"]}>
+                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro", "freemium"]}>
                   <Facturation />
                 </AuthGuard>
               }

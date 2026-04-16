@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Link2, BarChart3, Receipt, Archive, Loader2,
-  Calendar, FolderOpen, Activity, Pencil,
+  Calendar, FolderOpen, Activity, Pencil, Lock,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
@@ -35,8 +35,10 @@ const ClientDetail = () => {
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [archiveLimitModalOpen, setArchiveLimitModalOpen] = useState(false);
+  const [factureLimitModalOpen, setFactureLimitModalOpen] = useState(false);
   const [slugEdit, setSlugEdit] = useState<string | null>(null);
   const [savingSlug, setSavingSlug] = useState(false);
+  const [profile, setProfile] = useState<{ role: string; plan: string | null } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -50,6 +52,28 @@ const ClientDetail = () => {
       .catch(() => toast.error("Client introuvable"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("users")
+      .select("role, plan")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!error && data) setProfile(data);
+      });
+  }, [user]);
+
+  const isFreemium = profile?.role === "freemium" && !profile?.plan;
+
+  const handleFactureClick = () => {
+    if (isFreemium) {
+      setFactureLimitModalOpen(true);
+    } else {
+      navigate("/dashboard/facturation", { state: { clientId: client?.id, openCreate: true } });
+    }
+  };
 
   const handleSaveSlug = async () => {
     if (!client || slugEdit === null) return;
@@ -175,8 +199,8 @@ const ClientDetail = () => {
             <Button size="sm" variant="outline" onClick={() => setKpiModalOpen(true)}>
               <BarChart3 className="h-4 w-4" /> Rapport KPI
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/facturation", { state: { clientId: client.id, openCreate: true } })}>
-              <Receipt className="h-4 w-4" /> Facture
+            <Button size="sm" variant="outline" onClick={handleFactureClick}>
+              {isFreemium ? <Lock className="h-4 w-4" /> : <Receipt className="h-4 w-4" />} Facture
             </Button>
             <Button size="sm" variant="outline" onClick={() => setEditModalOpen(true)}>
               <Pencil className="h-4 w-4" /> Modifier
@@ -319,6 +343,13 @@ const ClientDetail = () => {
         open={archiveLimitModalOpen}
         onOpenChange={setArchiveLimitModalOpen}
         description={`Les comptes Découverte peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients. Activez une licence pour archiver sans limite.`}
+      />
+
+      <FreemiumLimitModal
+        open={factureLimitModalOpen}
+        onOpenChange={setFactureLimitModalOpen}
+        title="Fonctionnalité CM Pro & Studio & Elite"
+        description="La facturation est disponible à partir du plan CM Pro."
       />
     </DashboardLayout>
   );
