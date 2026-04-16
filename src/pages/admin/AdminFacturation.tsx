@@ -228,10 +228,13 @@ const AdminFacturation = () => {
 
   // PDF receipt: matches preview exactly
   const downloadPDF = async (p: OwnerPayment) => {
-    // Load Digal logo (SVG → PNG via canvas)
     const digalLogoData = await loadSvgAsPng(
-      "/logos/Logo%20Digal-iconorange_avec_baseline_noir.svg",
-      400, 192
+      "/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg",
+      500, 250
+    );
+    const digalIconData = await loadSvgAsPng(
+      "/logos/Logo%20Digal-icon_orange_sansbaseline.svg",
+      100, 100
     );
 
     const receiptData = getReceiptData(p);
@@ -242,54 +245,44 @@ const AdminFacturation = () => {
     const contentW = w - margin * 2;
     const col2X = w / 2 + 5;
 
-    // Colors
-    const accent: [number, number, number] = [196, 82, 42];
-    const dark: [number, number, number] = [26, 26, 26];
-    const gray: [number, number, number] = [160, 160, 160];
-    const bgGray: [number, number, number] = [249, 249, 249];
+    // Colors (new palette)
+    const accent: [number, number, number]  = [232, 81, 26];   // #E8511A
+    const dark: [number, number, number]    = [26, 26, 26];    // #1a1a1a
+    const gray: [number, number, number]    = [107, 114, 128]; // #6b7280
+    const border: [number, number, number]  = [229, 231, 235]; // #e5e7eb
+    const bgGray: [number, number, number]  = [249, 250, 251]; // #f9fafb
 
-    // === Top accent bar ===
-    doc.setFillColor(...accent);
-    doc.rect(0, 0, w, 4, "F");
-
-    // === Header: Digal logo (40×20mm) ===
+    // === Header: Digal logo left ===
     if (digalLogoData) {
-      try {
-        doc.addImage(digalLogoData, "PNG", margin, 7, 40, 20);
-      } catch {
+      try { doc.addImage(digalLogoData, "PNG", margin, 8, 45, 22); } catch {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(20);
         doc.setTextColor(...dark);
-        doc.text("Digal", margin, 18);
+        doc.text("Digal", margin, 22);
       }
     } else {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
       doc.setTextColor(...dark);
-      doc.text("Digal", margin, 18);
+      doc.text("Digal", margin, 22);
     }
 
-    // Subtitle below logo
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...gray);
-    doc.text("Plateforme SaaS pour Community Managers", margin, 30);
-
-    // Right side: Receipt title + date
-    doc.setTextColor(...accent);
-    doc.setFontSize(8);
+    // Right: receipt label + date
     doc.setFont("helvetica", "bold");
-    doc.text("REÇU DE PAIEMENT", w - margin, 16, { align: "right" });
     doc.setFontSize(8);
+    doc.setTextColor(...gray);
+    doc.text("REÇU DE PAIEMENT", w - margin, 15, { align: "right" });
+
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
     doc.setTextColor(...gray);
     const formattedDate = format(new Date(p.date_paiement), "dd MMMM yyyy", { locale: fr });
-    doc.text(formattedDate, w - margin, 22, { align: "right" });
+    doc.text(formattedDate, w - margin, 21, { align: "right" });
 
-    let y = 35;
+    let y = 36;
 
-    // === Divider ===
-    doc.setDrawColor(240, 240, 240);
+    // Separator
+    doc.setDrawColor(...border);
     doc.setLineWidth(0.3);
     doc.line(margin, y, w - margin, y);
     y += 8;
@@ -298,28 +291,28 @@ const AdminFacturation = () => {
     doc.setFillColor(...bgGray);
     doc.roundedRect(margin, y, contentW, 48, 3, 3, "F");
 
-    doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
     doc.setTextColor(...gray);
     doc.text("DÉTAILS DU COMPTE", margin + 8, y + 10);
 
     const infoY = y + 18;
-    // Row 1: Titulaire + Email
+    // Row 1
     doc.setFontSize(7);
-    doc.setTextColor(...gray);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(...gray);
     doc.text("Titulaire", margin + 8, infoY);
     doc.text("Email", col2X, infoY);
 
     doc.setFontSize(9);
-    doc.setTextColor(...dark);
     doc.setFont("helvetica", "bold");
+    doc.setTextColor(...dark);
     doc.text(p.compte_nom, margin + 8, infoY + 5);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(...gray);
     doc.text(p.compte_email ?? "-", col2X, infoY + 5);
 
-    // Row 2: Formule + Méthode
+    // Row 2
     const row2Y = infoY + 14;
     doc.setFontSize(7);
     doc.setTextColor(...gray);
@@ -327,10 +320,10 @@ const AdminFacturation = () => {
     doc.text("Méthode de paiement", col2X, row2Y);
 
     doc.setFontSize(9);
-    doc.setTextColor(...accent);
     doc.setFont("helvetica", "bold");
+    doc.setTextColor(...accent);
     doc.text(receiptData.planLabel, margin + 8, row2Y + 5);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(...gray);
     doc.setFont("helvetica", "normal");
     doc.text(receiptData.methodeLabel, col2X, row2Y + 5);
 
@@ -338,7 +331,7 @@ const AdminFacturation = () => {
 
     // === Amount block ===
     doc.setDrawColor(...accent);
-    doc.setLineWidth(0.6);
+    doc.setLineWidth(0.5);
     doc.roundedRect(margin, y, contentW, 32, 3, 3, "S");
 
     doc.setFontSize(7);
@@ -359,19 +352,16 @@ const AdminFacturation = () => {
 
     // Status badge
     const isPaid = p.statut === "paye";
-    if (isPaid) {
-      doc.setFillColor(236, 253, 245);
-      doc.setTextColor(22, 101, 52);
-    } else {
-      doc.setFillColor(254, 243, 199);
-      doc.setTextColor(146, 64, 14);
-    }
+    const badgeBgColor: [number, number, number] = isPaid ? [220, 252, 231] : [254, 243, 199];
+    const badgeTextColor: [number, number, number] = isPaid ? [21, 128, 61] : [146, 64, 14];
     const badgeText = isPaid ? "Payé" : "En attente";
-    const badgeW = doc.getStringUnitWidth(badgeText) * 8 / doc.internal.scaleFactor + 8;
-    doc.roundedRect(w - margin - badgeW - 4, y + 12, badgeW + 4, 12, 2, 2, "F");
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text(badgeText, w - margin - badgeW / 2 - 2, y + 20, { align: "center" });
+    const badgeW = doc.getStringUnitWidth(badgeText) * 8 / doc.internal.scaleFactor + 8;
+    doc.setFillColor(...badgeBgColor);
+    doc.roundedRect(w - margin - badgeW - 2, y + 12, badgeW + 2, 12, 2, 2, "F");
+    doc.setTextColor(...badgeTextColor);
+    doc.text(badgeText, w - margin - badgeW / 2 - 1, y + 20, { align: "center" });
 
     y += 40;
 
@@ -397,9 +387,9 @@ const AdminFacturation = () => {
         const row = Math.floor(i / cols);
         const fx = margin + 8 + col * (contentW / 2 - 4);
         const fy = y + 16 + row * featureRowH;
-        doc.setTextColor(34, 197, 94);
+        doc.setTextColor(22, 163, 74);
         doc.text("✓", fx, fy);
-        doc.setTextColor(100, 100, 100);
+        doc.setTextColor(...gray);
         doc.text(f, fx + 5, fy);
       });
 
@@ -407,31 +397,29 @@ const AdminFacturation = () => {
     }
 
     // === Footer ===
-    doc.setDrawColor(240, 240, 240);
+    doc.setDrawColor(...border);
     doc.setLineWidth(0.3);
     doc.line(margin, y, w - margin, y);
     y += 6;
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(200, 200, 200);
+    doc.setTextColor(...gray);
     const ref = `DGL-${format(new Date(p.date_paiement), "yyyyMMdd")}-${p.id.substring(0, 4).toUpperCase()}`;
     doc.text(`Réf : ${ref} · Dakar, Sénégal`, margin, y);
-    doc.text("ziza@digal.sn · digal.vercel.app", margin, y + 4);
+    doc.text("contact@digal.sn · digal.sn", margin, y + 4);
 
-    // Digal logo bottom-right
-    if (digalLogoData) {
-      try {
-        doc.addImage(digalLogoData, "PNG", w - 35, h - 16, 20, 9.6);
-      } catch {
-        doc.setTextColor(180, 180, 180);
-        doc.text("digal.vercel.app", w - margin, h - 10, { align: "right" });
+    // Digal icon bottom-right
+    if (digalIconData) {
+      try { doc.addImage(digalIconData, "PNG", w - 24, h - 16, 10, 10); } catch {
+        doc.setTextColor(200, 200, 200);
+        doc.text("Digal", w - margin, h - 10, { align: "right" });
       }
     } else {
-      doc.setTextColor(180, 180, 180);
-      doc.text("digal.vercel.app", w - margin, h - 10, { align: "right" });
+      doc.setTextColor(200, 200, 200);
+      doc.text("Digal", w - margin, h - 10, { align: "right" });
     }
 
-    // === Bottom accent bar ===
+    // Bottom accent bar
     doc.setFillColor(...accent);
     doc.rect(0, h - 3, w, 3, "F");
 

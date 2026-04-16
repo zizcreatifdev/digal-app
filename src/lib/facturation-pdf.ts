@@ -21,6 +21,7 @@ export interface PdfClientInfo {
   facturation_adresse?: string | null;
 }
 
+// ─── Image helpers ────────────────────────────────────────────────
 async function loadImage(url: string): Promise<string | null> {
   try {
     const response = await fetch(url);
@@ -61,6 +62,28 @@ async function loadSvgAsPng(url: string, width: number, height: number): Promise
   }
 }
 
+// ─── Color palette ────────────────────────────────────────────────
+const C_ORANGE: [number, number, number] = [232, 81, 26];   // #E8511A
+const C_DARK: [number, number, number]   = [26, 26, 26];    // #1a1a1a
+const C_GRAY: [number, number, number]   = [107, 114, 128]; // #6b7280
+const C_BORDER: [number, number, number] = [229, 231, 235]; // #e5e7eb
+const C_THEAD: [number, number, number]  = [249, 250, 251]; // #f9fafb
+const C_GREEN: [number, number, number]  = [22, 163, 74];   // #16a34a
+
+function getStatusBadgeColors(statut: string): {
+  bg: [number, number, number];
+  text: [number, number, number];
+} {
+  switch (statut) {
+    case "paye":               return { bg: [220, 252, 231], text: [21, 128, 61] };
+    case "en_retard":          return { bg: [254, 226, 226], text: [185, 28, 28] };
+    case "envoye":             return { bg: [219, 234, 254], text: [29, 78, 216] };
+    case "partiellement_paye": return { bg: [254, 243, 199], text: [146, 64, 14] };
+    default:                   return { bg: [243, 244, 246], text: [107, 114, 128] };
+  }
+}
+
+// ─── Main export ─────────────────────────────────────────────────
 export async function generateDocumentPdf(
   doc: Document,
   lines: DocumentLine[],
@@ -71,247 +94,265 @@ export async function generateDocumentPdf(
   const pdf = new jsPDF("p", "mm", "a4");
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
+  const ML = 15;
+  const MR = 15;
   const isFacture = doc.type === "facture";
   const title = isFacture ? "FACTURE" : "DEVIS";
 
-  // Colors
-  const accent: [number, number, number] = [196, 82, 42];
-  const dark: [number, number, number] = [26, 26, 26];
-  const gray: [number, number, number] = [120, 120, 120];
-  const lightBg: [number, number, number] = [250, 247, 244];
+  // ── Load all images in parallel ─────────────────────────────────
+  const [digalLogoData, digalIconData, tamponData, signatureData, userLogoData] =
+    await Promise.all([
+      loadSvgAsPng("/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg", 500, 250),
+      loadSvgAsPng("/logos/Logo%20Digal-icon_orange_sansbaseline.svg", 100, 100),
+      userProfile.tampon_url ? loadImage(userProfile.tampon_url) : Promise.resolve(null),
+      userProfile.signature_url ? loadImage(userProfile.signature_url) : Promise.resolve(null),
+      userProfile.logo_url ? loadImage(userProfile.logo_url) : Promise.resolve(null),
+    ]);
 
-  // === HEADER ===
-  // Accent top bar
-  pdf.setFillColor(...accent);
-  pdf.rect(0, 0, pageW, 3, "F");
+  // ══════════════════════════════════════════════════════════════════
+  // HEADER
+  // ══════════════════════════════════════════════════════════════════
 
-  // Try to load user logo
-  let logoLoaded = false;
-  if (userProfile.logo_url) {
-    const logoData = await loadImage(userProfile.logo_url);
-    if (logoData) {
-      try {
-        pdf.addImage(logoData, "PNG", 15, 10, 30, 30);
-        logoLoaded = true;
-      } catch {
-        // fallback to text
-      }
-    }
+  // Left: Digal logo (50×25mm) then optional user logo below
+  if (digalLogoData) {
+    try { pdf.addImage(digalLogoData, "PNG", ML, 12, 50, 25); } catch { /* fallback below */ }
+  } else {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(20);
+    pdf.setTextColor(...C_DARK);
+    pdf.text("Digal", ML, 28);
   }
 
-  // Emitter info (left side)
-  const emitterX = logoLoaded ? 50 : 15;
-  let ey = 14;
-  pdf.setTextColor(...dark);
+  if (userLogoData) {
+    try { pdf.addImage(userLogoData, "PNG", ML, 40, 25, 12); } catch { /* skip */ }
+  }
+
+  // Right: document type label (uppercase gray small)
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(...C_GRAY);
+  pdf.text(title, pageW - MR, 15, { align: "right" });
+
+  // Number (16pt bold)
+  pdf.setFont("helvetica", "bold");
   pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(userProfile.agence_nom || `${userProfile.prenom} ${userProfile.nom}`, emitterX, ey);
-  ey += 6;
-  pdf.setFontSize(9);
-  pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(...gray);
-  if (userProfile.agence_nom) {
-    pdf.text(`${userProfile.prenom} ${userProfile.nom}`, emitterX, ey);
-    ey += 4.5;
-  }
-  pdf.text(userProfile.email, emitterX, ey);
+  pdf.setTextColor(...C_DARK);
+  pdf.text(doc.numero, pageW - MR, 25, { align: "right" });
 
-  // Document title (right side)
-  pdf.setTextColor(...accent);
-  pdf.setFontSize(22);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(title, pageW - 15, 16, { align: "right" });
-
-  pdf.setTextColor(...dark);
-  pdf.setFontSize(11);
-  pdf.text(doc.numero, pageW - 15, 23, { align: "right" });
-
-  // Separator
-  let y = 45;
-  pdf.setDrawColor(230, 225, 220);
-  pdf.setLineWidth(0.5);
-  pdf.line(15, y, pageW - 15, y);
-  y += 10;
-
-  // === META + CLIENT INFO ===
-  // Left column: document details
+  // Status badge (rounded rect)
+  const badgeLabel = STATUT_LABELS[doc.statut] ?? doc.statut;
+  const { bg: badgeBg, text: badgeTextColor } = getStatusBadgeColors(doc.statut);
   pdf.setFontSize(8);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...gray);
-  pdf.text("INFORMATIONS", 15, y);
+  const badgeTextW = pdf.getStringUnitWidth(badgeLabel) * 8 / pdf.internal.scaleFactor;
+  const bPadX = 3;
+  const bPadY = 1.5;
+  const bH = 5.5;
+  const bW = badgeTextW + bPadX * 2;
+  const bX = pageW - MR - bW;
+  const bY = 30;
+  pdf.setFillColor(...badgeBg);
+  pdf.roundedRect(bX, bY, bW, bH, 1.2, 1.2, "F");
+  pdf.setTextColor(...badgeTextColor);
+  pdf.text(badgeLabel, pageW - MR - bPadX, bY + bH - bPadY, { align: "right" });
+
+  // ── Separator ───────────────────────────────────────────────────
+  let y = 52;
+  pdf.setDrawColor(...C_BORDER);
+  pdf.setLineWidth(0.3);
+  pdf.line(ML, y, pageW - MR, y);
+  y += 8;
+
+  // ══════════════════════════════════════════════════════════════════
+  // INFO SECTION — 2 columns
+  // ══════════════════════════════════════════════════════════════════
+  const col2X = pageW / 2 + 10;
+  const infoStartY = y;
+
+  // LEFT — "Facturé à"
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(...C_GRAY);
+  pdf.text("FACTURÉ À", ML, y);
   y += 6;
 
-  pdf.setFontSize(9);
-  pdf.setTextColor(...dark);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.setTextColor(...C_DARK);
+  pdf.text(clientInfo.nom, ML, y);
+  y += 5.5;
 
-  const metaItems = [
-    ["Date d'émission", doc.date_emission],
-    ...(doc.date_echeance ? [["Date d'échéance", doc.date_echeance]] : []),
-    ["Statut", STATUT_LABELS[doc.statut] ?? doc.statut],
-  ];
-  if (doc.methodes_paiement.length > 0) {
-    metaItems.push(["Paiement", doc.methodes_paiement.map((m) => METHODE_LABELS[m] ?? m).join(", ")]);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.setTextColor(...C_GRAY);
+  if (clientInfo.contact_nom) { pdf.text(clientInfo.contact_nom, ML, y); y += 4.5; }
+  if (clientInfo.contact_email) { pdf.text(clientInfo.contact_email, ML, y); y += 4.5; }
+  if (clientInfo.contact_telephone) { pdf.text(clientInfo.contact_telephone, ML, y); y += 4.5; }
+  if (clientInfo.facturation_adresse) {
+    const wrapped = pdf.splitTextToSize(clientInfo.facturation_adresse, col2X - ML - 5) as string[];
+    pdf.text(wrapped, ML, y);
+    y += wrapped.length * 4.5;
   }
 
-  metaItems.forEach(([label, value]) => {
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`${label} :`, 15, y);
+  // RIGHT — "Détails"
+  let ry = infoStartY;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(...C_GRAY);
+  pdf.text("DÉTAILS", col2X, ry);
+  ry += 6;
+
+  const detailRows: [string, string][] = [
+    ["Date de création", doc.date_emission],
+    ...(doc.date_echeance ? [["Date d'échéance", doc.date_echeance] as [string, string]] : []),
+    ...(doc.methodes_paiement.length > 0
+      ? [["Méthode de paiement", doc.methodes_paiement.map((m) => METHODE_LABELS[m] ?? m).join(", ")] as [string, string]]
+      : []),
+  ];
+
+  detailRows.forEach(([label, value]) => {
     pdf.setFont("helvetica", "normal");
-    pdf.text(String(value), 55, y);
-    y += 5.5;
+    pdf.setFontSize(8);
+    pdf.setTextColor(...C_GRAY);
+    pdf.text(label, col2X, ry);
+    ry += 4;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(...C_DARK);
+    pdf.text(String(value), col2X, ry);
+    ry += 5.5;
   });
 
-  // Right column: client info
-  const clientX = pageW / 2 + 15;
-  let cy = y - metaItems.length * 5.5; // align with meta start
+  y = Math.max(y, ry) + 10;
 
-  pdf.setFontSize(8);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...gray);
-  pdf.text("FACTURER À", clientX, cy);
-  cy += 6;
+  // ══════════════════════════════════════════════════════════════════
+  // PRESTATIONS TABLE
+  // ══════════════════════════════════════════════════════════════════
+  const hasDiscount = Number(doc.remise_pct) > 0 && Number(doc.montant_remise) > 0;
+  const discountRowIdx = lines.length; // 0-based index of discount row in body
 
-  // Client box background
-  const clientBoxH = 28;
-  pdf.setFillColor(...lightBg);
-  pdf.roundedRect(clientX - 3, cy - 4, pageW - clientX - 12, clientBoxH, 2, 2, "F");
-
-  pdf.setFontSize(11);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(...dark);
-  pdf.text(clientInfo.nom, clientX, cy);
-  cy += 5.5;
-
-  pdf.setFontSize(9);
-  pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(...gray);
-  if (clientInfo.contact_nom) {
-    pdf.text(clientInfo.contact_nom, clientX, cy);
-    cy += 4.5;
-  }
-  if (clientInfo.contact_email) {
-    pdf.text(clientInfo.contact_email, clientX, cy);
-    cy += 4.5;
-  }
-  if (clientInfo.contact_telephone) {
-    pdf.text(`Tél : ${clientInfo.contact_telephone}`, clientX, cy);
-    cy += 4.5;
-  }
-  if (clientInfo.facturation_adresse) {
-    pdf.text(clientInfo.facturation_adresse, clientX, cy, { maxWidth: pageW - clientX - 15 });
-  }
-
-  y = Math.max(y, cy) + 12;
-
-  // === PRESTATIONS TABLE ===
-  autoTable(pdf, {
-    startY: y,
-    head: [["Description", "Qté", "Prix unitaire", "BRS", "Montant"]],
-    body: lines.map((l) => [
+  const tableBody: string[][] = [
+    ...lines.map((l) => [
       l.description,
       String(l.quantite),
       formatFCFA(l.prix_unitaire),
-      l.brs_applicable ? "Oui" : "-",
       formatFCFA(l.quantite * l.prix_unitaire),
     ]),
+    ...(hasDiscount
+      ? [[`Remise ${doc.remise_pct}%`, "", "", `- ${formatFCFA(doc.montant_remise)}`]]
+      : []),
+  ];
+
+  autoTable(pdf, {
+    startY: y,
+    head: [["DESCRIPTION", "QTÉ", "PRIX UNIT.", "MONTANT"]],
+    body: tableBody,
     headStyles: {
-      fillColor: accent,
-      textColor: [255, 255, 255],
+      fillColor: C_THEAD,
+      textColor: C_GRAY,
       fontStyle: "bold",
-      fontSize: 9,
-      cellPadding: 4,
+      fontSize: 8,
+      cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
     },
     bodyStyles: {
       fontSize: 9,
-      textColor: dark,
-      cellPadding: 4,
+      textColor: C_DARK,
+      cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
     },
-    alternateRowStyles: { fillColor: [250, 247, 244] },
+    alternateRowStyles: { fillColor: [255, 255, 255] as [number, number, number] },
     columnStyles: {
-      0: { cellWidth: "auto" },
-      1: { halign: "center", cellWidth: 18 },
-      2: { halign: "right", cellWidth: 35 },
-      3: { halign: "center", cellWidth: 18 },
-      4: { halign: "right", cellWidth: 35 },
+      0: { cellWidth: "auto", fontStyle: "bold" },
+      1: { halign: "center", cellWidth: 16 },
+      2: { halign: "right", cellWidth: 40 },
+      3: { halign: "right", cellWidth: 40 },
     },
-    margin: { left: 15, right: 15 },
+    margin: { left: ML, right: MR },
     theme: "plain",
     styles: {
-      lineColor: [230, 225, 220],
+      lineColor: C_BORDER,
       lineWidth: 0.3,
+    },
+    tableLineColor: C_BORDER,
+    tableLineWidth: 0.3,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    didParseCell: (data: any) => {
+      if (hasDiscount && data.section === "body" && data.row.index === discountRowIdx) {
+        data.cell.styles.textColor = C_GREEN;
+        data.cell.styles.fontStyle = "bold";
+      }
     },
     didDrawPage: () => {},
   });
 
-  // === TOTALS ===
+  // ══════════════════════════════════════════════════════════════════
+  // TOTALS (right-aligned)
+  // ══════════════════════════════════════════════════════════════════
   const tableEndY = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 30;
-  let ty = tableEndY + 8;
+  let ty = tableEndY + 10;
 
-  const totalsStartX = pageW / 2 + 20;
-  const totalsEndX = pageW - 15;
+  const totalsLabelX = pageW - MR - 80;
+  const totalsValueX = pageW - MR;
 
-  // Background for totals
-  const totalsItems: { label: string; value: string; bold: boolean; isDiscount?: boolean }[] = [
-    { label: "Sous-total", value: formatFCFA(doc.sous_total), bold: false },
-  ];
-  if (Number(doc.remise_pct) > 0 && Number(doc.montant_remise) > 0) {
-    totalsItems.push({
-      label: `Remise (${doc.remise_pct}%)`,
-      value: `- ${formatFCFA(doc.montant_remise)}`,
-      bold: false,
-      isDiscount: true,
-    });
+  // Helper draws one totals row
+  const drawRow = (label: string, value: string, color: [number, number, number], bold: boolean, size: number) => {
+    pdf.setFontSize(size);
+    pdf.setFont("helvetica", bold ? "bold" : "normal");
+    pdf.setTextColor(...C_GRAY);
+    pdf.text(label, totalsLabelX, ty);
+    pdf.setTextColor(...color);
+    pdf.setFont("helvetica", bold ? "bold" : "normal");
+    pdf.text(value, totalsValueX, ty, { align: "right" });
+    ty += size > 10 ? 7 : 6;
+  };
+
+  drawRow("Sous-total", formatFCFA(doc.sous_total), C_DARK, false, 9);
+
+  if (hasDiscount) {
+    drawRow(
+      `Remise (${doc.remise_pct}%)`,
+      `- ${formatFCFA(doc.montant_remise)}`,
+      C_GREEN,
+      false,
+      9,
+    );
   }
-  totalsItems.push({ label: `BRS (${doc.taux_brs}%)`, value: formatFCFA(doc.montant_brs), bold: false });
+
+  if (Number(doc.montant_brs) > 0) {
+    drawRow(`BRS (${doc.taux_brs}%)`, formatFCFA(doc.montant_brs), C_DARK, false, 9);
+  }
+
   if (Number(doc.taux_tva) > 0) {
-    totalsItems.push({ label: `TVA (${doc.taux_tva}%)`, value: formatFCFA(doc.montant_tva), bold: false });
+    drawRow(`TVA (${doc.taux_tva}%)`, formatFCFA(doc.montant_tva), C_DARK, false, 9);
   }
 
-  const green: [number, number, number] = [21, 128, 61];
-
-  pdf.setFontSize(9);
-  totalsItems.forEach((item) => {
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(...gray);
-    pdf.text(item.label, totalsStartX, ty);
-    if (item.isDiscount) {
-      pdf.setTextColor(...green);
-    } else {
-      pdf.setTextColor(...dark);
-    }
-    pdf.text(item.value, totalsEndX, ty, { align: "right" });
-    ty += 6;
-  });
-
-  // Total line
-  pdf.setDrawColor(...accent);
-  pdf.setLineWidth(0.8);
-  pdf.line(totalsStartX, ty - 1, totalsEndX, ty - 1);
+  // Thin separator
+  ty += 1;
+  pdf.setDrawColor(...C_BORDER);
+  pdf.setLineWidth(0.4);
+  pdf.line(totalsLabelX, ty, totalsValueX, ty);
   ty += 5;
 
-  // Total amount
-  pdf.setFillColor(...accent);
-  pdf.roundedRect(totalsStartX - 3, ty - 5, totalsEndX - totalsStartX + 6, 10, 2, 2, "F");
+  // TOTAL — bold, 12pt
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(12);
-  pdf.setTextColor(255, 255, 255);
-  pdf.text("TOTAL", totalsStartX, ty);
-  pdf.text(formatFCFA(doc.total), totalsEndX, ty, { align: "right" });
+  pdf.setTextColor(...C_DARK);
+  pdf.text("TOTAL", totalsLabelX, ty);
+  pdf.text(formatFCFA(doc.total), totalsValueX, ty, { align: "right" });
+  ty += 12;
 
-  ty += 14;
-
-  // === PAYMENTS (for invoices) ===
+  // ══════════════════════════════════════════════════════════════════
+  // PAYMENTS (invoices only)
+  // ══════════════════════════════════════════════════════════════════
   if (isFacture && payments.length > 0) {
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.setTextColor(...dark);
-    pdf.text("Paiements reçus", 15, ty);
+    pdf.setFontSize(8);
+    pdf.setTextColor(...C_GRAY);
+    pdf.text("PAIEMENTS REÇUS", ML, ty);
     ty += 6;
 
     autoTable(pdf, {
       startY: ty,
-      head: [["Date", "Montant", "Méthode", "Notes"]],
+      head: [["DATE", "MONTANT", "MÉTHODE", "NOTES"]],
       body: payments.map((p) => [
         p.date_paiement,
         formatFCFA(p.montant),
@@ -319,15 +360,16 @@ export async function generateDocumentPdf(
         p.notes ?? "",
       ]),
       headStyles: {
-        fillColor: dark,
-        textColor: [255, 255, 255],
-        fontSize: 9,
+        fillColor: C_THEAD,
+        textColor: C_GRAY,
+        fontStyle: "bold",
+        fontSize: 8,
         cellPadding: 3,
       },
-      bodyStyles: { fontSize: 9, cellPadding: 3 },
-      margin: { left: 15, right: 15 },
+      bodyStyles: { fontSize: 9, textColor: C_DARK, cellPadding: 3 },
+      margin: { left: ML, right: MR },
       theme: "plain",
-      styles: { lineColor: [230, 225, 220], lineWidth: 0.3 },
+      styles: { lineColor: C_BORDER, lineWidth: 0.3 },
     });
 
     const totalPaid = payments.reduce((s, p) => s + p.montant, 0);
@@ -337,106 +379,78 @@ export async function generateDocumentPdf(
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
     if (solde > 0) {
-      pdf.setTextColor(196, 82, 42);
-      pdf.text(`Solde restant : ${formatFCFA(solde)}`, pageW - 15, payFinalY + 8, { align: "right" });
+      pdf.setTextColor(...C_ORANGE);
+      pdf.text(`Solde restant : ${formatFCFA(solde)}`, pageW - MR, payFinalY + 8, { align: "right" });
     } else {
-      pdf.setTextColor(22, 163, 74);
-      pdf.text("✓ Intégralement payé", pageW - 15, payFinalY + 8, { align: "right" });
+      pdf.setTextColor(...C_GREEN);
+      pdf.text("✓ Intégralement payé", pageW - MR, payFinalY + 8, { align: "right" });
     }
+    ty = payFinalY + 16;
   }
 
-  // === NOTES ===
-  if (doc.notes) {
-    const notesY = (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
-      ? (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable.finalY + 18
-      : ty + 6;
+  // ══════════════════════════════════════════════════════════════════
+  // NOTES
+  // ══════════════════════════════════════════════════════════════════
+  if (doc.notes && ty < pageH - 40) {
+    pdf.setDrawColor(...C_BORDER);
+    pdf.setLineWidth(0.3);
+    pdf.line(ML, ty - 2, pageW - MR, ty - 2);
 
-    if (notesY < pageH - 30) {
-      pdf.setDrawColor(230, 225, 220);
-      pdf.setLineWidth(0.3);
-      pdf.line(15, notesY - 4, pageW - 15, notesY - 4);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(...C_GRAY);
+    pdf.text("NOTES & CONDITIONS", ML, ty + 4);
 
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8);
-      pdf.setTextColor(...gray);
-      pdf.text("NOTES & CONDITIONS", 15, notesY);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.setTextColor(...dark);
-      pdf.text(doc.notes, 15, notesY + 5, { maxWidth: pageW - 30 });
-    }
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(...C_DARK);
+    pdf.text(doc.notes, ML, ty + 10, { maxWidth: pageW - 30 });
   }
 
-  // === TAMPON + SIGNATURE ===
-  const stampZoneY = pageH - 60; // Fixed zone above footer
+  // ══════════════════════════════════════════════════════════════════
+  // TAMPON + SIGNATURE
+  // ══════════════════════════════════════════════════════════════════
+  const stampZoneY = pageH - 58;
 
-  const loadStampOrSig = async (url: string | null | undefined): Promise<string | null> => {
-    if (!url) return null;
-    return loadImage(url);
-  };
-
-  const [tamponsData, signatureData] = await Promise.all([
-    loadStampOrSig(userProfile.tampon_url),
-    loadStampOrSig(userProfile.signature_url),
-  ]);
-
-  if (signatureData || tamponsData) {
-    // Signature line label (left)
-    if (signatureData) {
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      pdf.setTextColor(...gray);
-      pdf.text("Signature", 15, stampZoneY);
-      try {
-        pdf.addImage(signatureData, "PNG", 15, stampZoneY + 3, 40, 20);
-      } catch { /* skip if image format unsupported */ }
-    }
-
-    // Tampon (right side)
-    if (tamponsData) {
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      pdf.setTextColor(...gray);
-      pdf.text("Cachet / Tampon", pageW - 55, stampZoneY);
-      try {
-        pdf.addImage(tamponsData, "PNG", pageW - 55, stampZoneY + 3, 40, 20);
-      } catch { /* skip if image format unsupported */ }
-    }
+  if (signatureData) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(...C_GRAY);
+    pdf.text("Signature", ML, stampZoneY);
+    try { pdf.addImage(signatureData, "PNG", ML, stampZoneY + 3, 40, 20); } catch { /* skip */ }
   }
 
-  // === FOOTER ===
-  pdf.setDrawColor(230, 225, 220);
+  if (tamponData) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(...C_GRAY);
+    pdf.text("Cachet / Tampon", pageW - 55, stampZoneY);
+    try { pdf.addImage(tamponData, "PNG", pageW - 55, stampZoneY + 3, 40, 20); } catch { /* skip */ }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════════════════════
+  pdf.setDrawColor(...C_BORDER);
   pdf.setLineWidth(0.3);
-  pdf.line(15, pageH - 18, pageW - 15, pageH - 18);
+  pdf.line(ML, pageH - 18, pageW - MR, pageH - 18);
 
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(...gray);
   pdf.setFont("helvetica", "normal");
-  const footerName = userProfile.agence_nom || `${userProfile.prenom} ${userProfile.nom}`;
-  pdf.text(footerName, 15, pageH - 12);
-  pdf.text(userProfile.email, 15, pageH - 8);
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...C_GRAY);
+  pdf.text("Digal · Plateforme SaaS pour CM", ML, pageH - 12);
+  pdf.text("contact@digal.sn · digal.sn", ML, pageH - 8);
 
-  // Digal logo in footer
-  const digalLogoData = await loadSvgAsPng(
-    "/logos/Logo%20Digal-iconorange_avec_baseline_noir.svg",
-    200, 96
-  );
-  if (digalLogoData) {
-    try {
-      pdf.addImage(digalLogoData, "PNG", pageW - 35, pageH - 16, 20, 9.6);
-    } catch {
-      pdf.setTextColor(180, 180, 180);
-      pdf.text("Généré avec Digal", pageW - 15, pageH - 10, { align: "right" });
+  // Footer: Digal icon (right)
+  if (digalIconData) {
+    try { pdf.addImage(digalIconData, "PNG", pageW - 24, pageH - 16, 10, 10); } catch {
+      pdf.setTextColor(200, 200, 200);
+      pdf.text("Digal", pageW - MR, pageH - 10, { align: "right" });
     }
   } else {
-    pdf.setTextColor(180, 180, 180);
-    pdf.text("Généré avec Digal", pageW - 15, pageH - 10, { align: "right" });
+    pdf.setTextColor(200, 200, 200);
+    pdf.text("Digal", pageW - MR, pageH - 10, { align: "right" });
   }
-
-  // Bottom accent bar
-  pdf.setFillColor(...accent);
-  pdf.rect(0, pageH - 3, pageW, 3, "F");
 
   return pdf;
 }

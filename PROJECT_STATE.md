@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-16_
-_Prompt courant : 38 — Refonte pricing + noms plans + remises_
+_Prompt courant : 40 — Refonte PDF factures style épuré_
 
 ---
 
@@ -110,6 +110,7 @@ _Prompt courant : 38 — Refonte pricing + noms plans + remises_
 | Lignes de facturation | ✅ Complet | Avec BRS et TVA |
 | Calcul taxes (BRS + TVA) | ✅ Complet | `calculateTotals()` |
 | Remise sur facture | ✅ Complet (prompt-38) | Champ remise % dans modal, PDF ligne verte, auto-calculé sur factures_licence |
+| Refonte PDF style épuré | ✅ Complet (prompt-40) | facturation-pdf.ts + AdminFacturation receipt : palette #E8511A, header logo+numéro+badge, 2 colonnes info, table DESCRIPTION/QTÉ/PRIX UNIT./MONTANT, totaux right-aligned, footer Digal |
 | Conversion devis → facture | ✅ Complet | |
 | Enregistrement paiements | ✅ Complet | |
 | Statuts (brouillon/envoyé/payé/...) | ✅ Complet | 7 statuts |
