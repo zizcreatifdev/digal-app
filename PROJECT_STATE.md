@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-16_
-_Prompt courant : 41 — Plan Elite sur mesure_
+_Prompt courant : 44 — Countdown configurable depuis Admin_
 
 ---
 
@@ -257,13 +257,14 @@ _Prompt courant : 41 — Plan Elite sur mesure_
 | Campagnes emails | ✅ Complet | |
 | Logs de sécurité | ✅ Complet | |
 | TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
+| Paramètres plateforme | ✅ Complet (prompt-44) | /admin/plateforme — widget countdown : date+heure, toggle show/hide, aperçu jours restants |
 
 ---
 
 ### Module LANDING PAGE — 100% ✅
 | Composant | État | Notes |
 |-----------|------|-------|
-| Hero + countdown | ✅ | |
+| Hero + countdown | ✅ (prompt-44) | Countdown configurable via Admin ; toggle show/hide ; état lancé → CTA "Créer mon compte" |
 | Problem / Solution | ✅ | |
 | MockupsSection | ✅ (prompt-10) | 4 cartes animées |
 | Pricing | ✅ (prompt-41) | Toggle 3 options Mensuel/6mois/Annuel, badges -X% sur toggle, "au lieu de", taglines par plan, nouveaux noms |
@@ -369,3 +370,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | bugs | Fix 4 bugs : bouton Facture ClientDetail, TeamJournal refonte équipe, route journal, lien Login AdminSetup | 2026-04-16 |
 | 38 | Nouveaux noms plans (Découverte/CM Pro/Studio/Elite), toggle pricing 3 options + -X% + taglines, remise sur factures | 2026-04-16 |
 | 41 | Plan Elite sur mesure : carte "Tarif sur mesure" + EliteContactModal (6 champs, insert elite_requests), AdminWaitlist onglets + tableau Demandes Elite, migration SQL | 2026-04-16 |
+| 44 | Countdown configurable : migration launch_date+show_countdown, AdminPlateforme widget (date, toggle, aperçu), useCountdown showCountdown, HeroSection lancé → CTA "Créer mon compte" | 2026-04-16 |
