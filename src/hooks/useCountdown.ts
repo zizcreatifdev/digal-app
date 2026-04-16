@@ -12,22 +12,25 @@ export function useCountdown() {
   const [targetDate, setTargetDate] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isLaunched, setIsLaunched] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchLaunchDate() {
+    async function fetchSettings() {
       const { data } = await supabase
         .from("site_settings")
-        .select("value")
-        .eq("key", "launch_date")
-        .single();
+        .select("key, value")
+        .in("key", ["launch_date", "show_countdown"]);
 
-      if (data?.value) {
-        setTargetDate(new Date(data.value));
+      if (data) {
+        const launchRow = data.find((r) => r.key === "launch_date");
+        const showRow = data.find((r) => r.key === "show_countdown");
+        if (launchRow?.value) setTargetDate(new Date(launchRow.value));
+        if (showRow) setShowCountdown(showRow.value !== "false");
       }
       setLoading(false);
     }
-    fetchLaunchDate();
+    fetchSettings();
   }, []);
 
   useEffect(() => {
@@ -56,5 +59,5 @@ export function useCountdown() {
     return () => clearInterval(interval);
   }, [targetDate]);
 
-  return { timeLeft, isLaunched, loading };
+  return { timeLeft, isLaunched, showCountdown, loading };
 }

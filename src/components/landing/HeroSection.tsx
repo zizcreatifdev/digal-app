@@ -5,7 +5,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { useCountdown } from "@/hooks/useCountdown";
 
 export function HeroSection() {
-  const { timeLeft, isLaunched, loading } = useCountdown();
+  const { timeLeft, isLaunched, showCountdown, loading } = useCountdown();
 
   const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -32,25 +32,36 @@ export function HeroSection() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-          <Button size="lg" className="gap-2 px-8 text-base w-full sm:w-auto" asChild>
-            <Link to="/waitlist">
-              Rejoindre la liste d'attente
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="outline" size="lg" className="px-8 text-base w-full sm:w-auto" asChild>
-            <a href="#fonctionnalites">Découvrir Digal</a>
-          </Button>
+          {isLaunched ? (
+            <Button size="lg" className="gap-2 px-8 text-base w-full sm:w-auto" asChild>
+              <Link to="/waitlist">
+                Créer mon compte
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button size="lg" className="gap-2 px-8 text-base w-full sm:w-auto" asChild>
+                <Link to="/waitlist">
+                  Rejoindre la liste d'attente
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" className="px-8 text-base w-full sm:w-auto" asChild>
+                <a href="#fonctionnalites">Découvrir Digal</a>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Countdown */}
-        {!loading && (
+        {!loading && showCountdown && (
           <div className="mb-8">
             {isLaunched ? (
               <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-6 py-3">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-serif font-bold text-foreground">
-                  Digal est lancé, rejoignez-nous
+                  Digal est lancé — rejoignez-nous !
                 </span>
               </div>
             ) : (

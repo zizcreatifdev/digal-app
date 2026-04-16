@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, ClipboardList, KeyRound, Mail, Receipt,
-  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog,
+  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog, Settings2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +38,7 @@ const otherItems = [
   { title: "Guides plateforme", url: "/admin/guides", icon: BookOpen },
   { title: "Documentation", url: "/admin/documentation", icon: FileText },
   { title: "Sécurité & Journal", url: "/admin/securite", icon: ShieldCheck },
+  { title: "Paramètres plateforme", url: "/admin/plateforme", icon: Settings2 },
 ];
 
 export function AdminSidebar() {
