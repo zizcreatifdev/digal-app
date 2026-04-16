@@ -57,6 +57,7 @@ export function AppSidebar() {
   const userPlan = profile?.plan ?? null;
   // User is freemium only if role is freemium AND no plan is set
   const isFreemium = userRole === "freemium" && !userPlan;
+  const isSolo = userRole === "solo";
   const userName = profile ? `${profile.prenom} ${profile.nom}` : user?.email?.split("@")[0] ?? "Utilisateur";
   const initials = profile ? (profile.prenom[0] + profile.nom[0]).toUpperCase() : "DG";
 
@@ -100,6 +101,9 @@ export function AppSidebar() {
               <SidebarMenu>
                 {mainItems.map((item) => {
                   const isLocked = item.locked && isFreemium;
+                  // Équipe: visually locked for freemium/solo but still navigable
+                  const isTeamVisuallyLocked =
+                    item.url === "/dashboard/equipe" && (isFreemium || isSolo);
 
                   if (isLocked) {
                     return (
@@ -133,7 +137,19 @@ export function AppSidebar() {
                           activeClassName="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
-                          {!collapsed && <span className="font-sans">{item.title}</span>}
+                          {!collapsed && (
+                            isTeamVisuallyLocked ? (
+                              <span className="flex items-center gap-2 font-sans">
+                                {item.title}
+                                <Lock className="h-3 w-3" />
+                                <span className="text-[9px] font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full leading-none">
+                                  PRO
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="font-sans">{item.title}</span>
+                            )
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

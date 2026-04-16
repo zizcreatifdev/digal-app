@@ -11,7 +11,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendActivationEmail } from "@/lib/emails";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Users, Crown } from "lucide-react";
+import { Loader2, Plus, Trash2, Users, Lock } from "lucide-react";
+import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 
 interface UserRow {
   id: string;
@@ -50,6 +51,7 @@ const TeamJournal = () => {
   const [inviteRole, setInviteRole] = useState("cm");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [upgradeLimitOpen, setUpgradeLimitOpen] = useState(false);
 
   const loadTeam = async () => {
     if (!user) return;
@@ -161,22 +163,81 @@ const TeamJournal = () => {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : isFreemiumOrSolo ? (
-          /* Upgrade message for Freemium / Solo */
-          <Card>
-            <CardContent className="py-16 text-center space-y-4">
-              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <Crown className="h-7 w-7 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold font-serif">Disponible en version Agence</h2>
-              <p className="text-muted-foreground font-sans max-w-sm mx-auto">
-                La gestion d&apos;équipe (CM, Créateurs) est réservée aux comptes Agence.
-                Passez en Agence pour inviter et gérer vos collaborateurs.
-              </p>
-              <Button className="mt-2">
-                <Crown className="h-4 w-4 mr-2" /> Passer en Agence
-              </Button>
-            </CardContent>
-          </Card>
+          /* Locked view for Découverte / CM Pro */
+          <>
+            {/* Invite card — disabled */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-serif flex items-center gap-2">
+                  <Users className="h-5 w-5" /> Inviter un membre
+                </CardTitle>
+                <CardDescription>Envoyez un lien d&apos;activation par email</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  onClick={() => setUpgradeLimitOpen(true)}
+                  className="gap-2"
+                >
+                  <Lock className="h-4 w-4" />
+                  Inviter un membre
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Mock members table — greyed */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-serif">Membres de l&apos;équipe</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Membre</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Rôle</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { label: "Community Manager", role: "cm" },
+                      { label: "Créateur de contenu", role: "createur" },
+                    ].map(({ label, role }) => (
+                      <TableRow key={role} className="opacity-40 pointer-events-none select-none">
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center">
+                              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                            <span className="text-muted-foreground font-sans">— — —</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm font-sans">— — —</TableCell>
+                        <TableCell>
+                          <Badge className="text-xs border bg-muted text-muted-foreground border-transparent">
+                            {label}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <p className="text-xs text-muted-foreground font-sans text-center mt-4">
+                  Disponible avec les plans{" "}
+                  <span className="font-semibold text-foreground">Studio</span> et{" "}
+                  <span className="font-semibold text-foreground">Elite</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <FreemiumLimitModal
+              open={upgradeLimitOpen}
+              onOpenChange={setUpgradeLimitOpen}
+              title="Fonctionnalité Studio & Elite"
+              description="Invitez des CM et Créateurs dans votre agence pour collaborer sur vos clients."
+            />
+          </>
         ) : (
           <>
             {/* Invite form — Agence only */}
