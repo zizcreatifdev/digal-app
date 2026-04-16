@@ -23,7 +23,6 @@ const ClientsPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -36,9 +35,8 @@ const ClientsPage = () => {
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data, error }) => {
-      if (!error) setProfile(data ?? null);
-      setProfileLoaded(true);
-    });
+        if (!error && data) setProfile(data);
+      });
   }, [user]);
 
   const { isFreemium } = getAccountAccess(profile);
@@ -78,8 +76,10 @@ const ClientsPage = () => {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleAddClick = () => {
-    // Only block if the profile has finished loading AND user is confirmed freemium
-    if (profileLoaded && isFreemium && activeClients.length >= maxClients) {
+    // Only apply the freemium limit when the profile row is confirmed (non-null).
+    // If profile is still loading or has no DB row, always open the add modal.
+    const isConfirmedFreemium = profile?.role === "freemium" && !profile?.plan;
+    if (isConfirmedFreemium && activeClients.length >= maxClients) {
       setLimitModalOpen(true);
     } else {
       setModalOpen(true);
