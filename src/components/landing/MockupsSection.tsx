@@ -154,7 +154,7 @@ export function MockupsSection() {
           <div className="inline-flex items-center gap-3 bg-white border border-border rounded-full px-6 py-3 shadow-sm">
             <Users className="h-4 w-4 text-primary" />
             <span className="text-sm font-sans text-foreground">
-              Conçu pour les Digital Managers et Community Managers sénégalais(e)s · <span className="font-semibold text-primary">100% en FCFA</span>
+              Conçu pour les Digital Managers et Community Managers d'Afrique francophone · <span className="font-semibold text-primary">100% en FCFA</span>
             </span>
           </div>
         </div>
