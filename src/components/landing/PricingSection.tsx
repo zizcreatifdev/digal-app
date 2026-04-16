@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export function PricingSection() {
   const [selectedDuree, setSelectedDuree] = useState(6);
 
   // Load plan_configs (public read, no auth needed)
-  const { data: planConfigs } = useQuery({
+  const { data: planConfigs, error: planConfigsError } = useQuery({
     queryKey: ["plan-configs-public"],
     queryFn: async () => {
       // plan_configs not yet in generated types — cast required
@@ -109,7 +109,12 @@ export function PricingSection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // (planConfigs used only for price lookups — toggle always shows SHOWN_DURATIONS)
+  // ── Debug logging ─────────────────────────────────────────
+  useEffect(() => {
+    console.log("[PricingSection] planConfigs:", planConfigs);
+    console.log("[PricingSection] planConfigsError:", planConfigsError);
+    console.log("[PricingSection] selectedDuree:", selectedDuree);
+  }, [planConfigs, planConfigsError, selectedDuree]);
 
   // Get configured price for a plan at the selected duration
   const getConfigPrice = (slug: string, duree: number): number | null => {
@@ -128,9 +133,10 @@ export function PricingSection() {
   };
 
   // Discount % for toggle badge, using user-specified formula: raw% - 5
+  // Falls back to plans.prix_semestriel when planConfigs has no data
   const getToggleDiscountPct = (duree: number): number | null => {
     if (duree <= 1) return null;
-    // Average across plans that have both monthly and target duration configs
+    // Primary: from plan_configs
     const planTypes = ["solo", "agence_standard", "agence_pro"];
     const percentages: number[] = [];
     for (const pt of planTypes) {
@@ -140,9 +146,19 @@ export function PricingSection() {
       const raw = Math.round(((monthly.prix_fcfa * duree - target.prix_fcfa) / (monthly.prix_fcfa * duree)) * 100);
       percentages.push(raw - 5);
     }
-    if (percentages.length === 0) return null;
-    // All plans have the same effective %, use the first
-    return percentages[0];
+    if (percentages.length > 0) return percentages[0];
+    // Fallback for 6 months: compute from plans.prix_semestriel vs prix_mensuel
+    if (duree === 6 && plans && plans.length > 0) {
+      const pcts: number[] = [];
+      for (const p of plans) {
+        if (!SLUG_TO_PLAN_TYPE[p.slug ?? ""]) continue; // skip freemium
+        if (!p.prix_semestriel || p.prix_semestriel <= 0 || p.prix_mensuel <= 0) continue;
+        const raw = Math.round(((p.prix_mensuel * 6 - p.prix_semestriel) / (p.prix_mensuel * 6)) * 100);
+        if (raw > 5) pcts.push(raw - 5);
+      }
+      if (pcts.length > 0) return pcts[0];
+    }
+    return null;
   };
 
   // Per-plan savings % for the savings badge below price
@@ -220,22 +236,63 @@ export function PricingSection() {
             {plans?.map((plan) => {
               const slug = plan.slug ?? "";
               const configPrice = getConfigPrice(slug, selectedDuree);
-              const monthlyPrice = getMonthlyPrice(slug);
-              const savingsPct = getSavingsPct(slug, selectedDuree);
 
-              // Price to display: use plan_configs if available, else fallback to plans table
-              const displayPrice = configPrice !== null
-                ? configPrice
+              // Effective multi-month price:
+              // 1) plan_configs  2) plans.prix_semestriel for 6m  3) null (monthly only)
+              const effectivePrice: number | null = (() => {
+                if (configPrice !== null) return configPrice;
+                if (
+                  selectedDuree === 6 &&
+                  plan.prix_semestriel != null &&
+                  plan.prix_semestriel > 0
+                ) return plan.prix_semestriel;
+                return null;
+              })();
+
+              console.log(
+                `[PricingSection] ${slug} configPrice(${selectedDuree}):`,
+                configPrice,
+                "effectivePrice:", effectivePrice,
+              );
+
+              // Monthly reference (from plan_configs or plans table)
+              const monthlyRef = getMonthlyPrice(slug) ?? plan.prix_mensuel;
+
+              // Display price: use effective multi-month price, promo, or monthly
+              const displayPrice = effectivePrice !== null
+                ? effectivePrice
                 : (plan.promo_active && plan.promo_prix_mensuel != null
                     ? plan.promo_prix_mensuel
                     : plan.prix_mensuel);
 
-              const hasPromo = configPrice === null && plan.promo_active && plan.promo_prix_mensuel != null;
+              const hasPromo = effectivePrice === null && plan.promo_active && plan.promo_prix_mensuel != null;
+              const hasMultiMonthPrice = effectivePrice !== null && selectedDuree > 1;
 
-              // "au lieu de" full price for multi-month durations
-              const auLieuDe = selectedDuree > 1 && configPrice !== null && monthlyPrice !== null
-                ? monthlyPrice * selectedDuree
+              // Suffix: show multi-month label only when we actually have a multi-month price
+              const priceSuffixDisplay = hasMultiMonthPrice ? priceSuffix(selectedDuree) : "/mois";
+
+              // "au lieu de": show full undiscounted price for multi-month selections
+              const auLieuDe = hasMultiMonthPrice && monthlyRef > 0
+                ? monthlyRef * selectedDuree
                 : null;
+
+              // Savings %: from plan_configs, then from prix_semestriel fallback
+              const savingsPct = (() => {
+                const fromConfig = getSavingsPct(slug, selectedDuree);
+                if (fromConfig !== null) return fromConfig;
+                if (
+                  selectedDuree === 6 &&
+                  plan.prix_semestriel != null &&
+                  plan.prix_semestriel > 0 &&
+                  plan.prix_mensuel > 0
+                ) {
+                  const raw = Math.round(
+                    ((plan.prix_mensuel * 6 - plan.prix_semestriel) / (plan.prix_mensuel * 6)) * 100
+                  );
+                  return raw > 5 ? raw - 5 : null;
+                }
+                return null;
+              })();
 
               // Display name override
               const displayName = PLAN_DISPLAY_NAMES[slug] ?? plan.nom;
@@ -273,7 +330,7 @@ export function PricingSection() {
                       </span>
                       {displayPrice > 0 && (
                         <span className={`text-sm font-sans ${plan.highlighted ? "text-background/60" : "text-muted-foreground"}`}>
-                          {configPrice !== null ? priceSuffix(selectedDuree) : "/mois"}
+                          {priceSuffixDisplay}
                         </span>
                       )}
                     </div>
