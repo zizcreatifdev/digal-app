@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, CheckCircle2, XCircle, Loader2 } from "lucide-react";
@@ -64,7 +65,7 @@ const AdminSetup = () => {
               <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
               <p className="text-sm text-muted-foreground">
                 Le compte Owner a déjà été créé. Connectez-vous sur{" "}
-                <a href="/login" className="text-primary hover:underline font-medium">/login</a>.
+                <Link to="/login" className="text-primary hover:underline font-medium">/login</Link>.
               </p>
             </div>
           ) : success ? (
@@ -73,7 +74,7 @@ const AdminSetup = () => {
               <p className="font-medium text-green-700">Compte Owner créé avec succès</p>
               <p className="text-sm text-muted-foreground">
                 Rendez-vous sur{" "}
-                <a href="/login" className="text-primary hover:underline font-medium">/login</a>{" "}
+                <Link to="/login" className="text-primary hover:underline font-medium">/login</Link>{" "}
                 pour vous connecter avec <strong>ziza@digal.sn</strong>
               </p>
             </div>

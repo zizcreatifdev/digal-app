@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,22 @@ import { DocumentList } from "@/components/facturation/DocumentList";
 
 export default function Facturation() {
   const { user } = useAuth();
+  const location = useLocation();
   const [tab, setTab] = useState("devis");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [createType, setCreateType] = useState<"devis" | "facture" | null>(null);
+  const [preselectedClientId, setPreselectedClientId] = useState<string | undefined>(undefined);
+
+  // Auto-open create modal when navigated from client detail page
+  useEffect(() => {
+    const state = location.state as { clientId?: string; openCreate?: boolean } | null;
+    if (state?.openCreate && state.clientId) {
+      setPreselectedClientId(state.clientId);
+      setCreateType("facture");
+      setTab("factures");
+    }
+  }, [location.state]);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -83,8 +96,9 @@ export default function Facturation() {
       {createType && (
         <CreateDocumentModal
           open={!!createType}
-          onOpenChange={(open) => !open && setCreateType(null)}
+          onOpenChange={(open) => { if (!open) { setCreateType(null); setPreselectedClientId(undefined); } }}
           type={createType}
+          preselectedClientId={preselectedClientId}
           onCreated={load}
         />
       )}

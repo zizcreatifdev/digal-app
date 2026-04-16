@@ -168,7 +168,7 @@ const App = () => (
             <Route
               path="/dashboard/journal"
               element={
-                <AuthGuard allowedProfileRoles={["owner", "admin", "dm", "solo", "agence_standard", "agence_pro"]}>
+                <AuthGuard>
                   <Journal />
                 </AuthGuard>
               }

@@ -175,7 +175,7 @@ const ClientDetail = () => {
             <Button size="sm" variant="outline" onClick={() => setKpiModalOpen(true)}>
               <BarChart3 className="h-4 w-4" /> Rapport KPI
             </Button>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/facturation", { state: { clientId: client.id, openCreate: true } })}>
               <Receipt className="h-4 w-4" /> Facture
             </Button>
             <Button size="sm" variant="outline" onClick={() => setEditModalOpen(true)}>
