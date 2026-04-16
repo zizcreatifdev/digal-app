@@ -318,7 +318,7 @@ const ClientDetail = () => {
       <FreemiumLimitModal
         open={archiveLimitModalOpen}
         onOpenChange={setArchiveLimitModalOpen}
-        description={`Les comptes Freemium peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients. Activez une licence pour archiver sans limite.`}
+        description={`Les comptes Découverte peuvent archiver au maximum ${FREEMIUM_ARCHIVE_LIMIT} clients. Activez une licence pour archiver sans limite.`}
       />
     </DashboardLayout>
   );

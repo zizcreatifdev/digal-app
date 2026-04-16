@@ -617,8 +617,8 @@ function TeamTab() {
 
   const ROLE_LABELS: Record<string, string> = {
     dm: "DM",
-    freemium: "Freemium",
-    solo_standard: "Solo Standard",
+    freemium: "Découverte",
+    solo_standard: "CM Pro",
     solo_pro: "Solo Pro",
     agence_starter: "DM Agence",
     agence_standard: "DM",
@@ -868,7 +868,7 @@ function TemplatesTab() {
       <FreemiumLimitModal
         open={templateLimitModalOpen}
         onOpenChange={setTemplateLimitModalOpen}
-        description={`Les comptes Freemium peuvent créer au maximum ${FREEMIUM_TEMPLATE_LIMIT} modèles de posts. Activez une licence pour en créer sans limite.`}
+        description={`Les comptes Découverte peuvent créer au maximum ${FREEMIUM_TEMPLATE_LIMIT} modèles de posts. Activez une licence pour en créer sans limite.`}
       />
     </div>
   );
@@ -876,10 +876,10 @@ function TemplatesTab() {
 
 /* ──────────────────────── LICENSE TAB ──────────────────────── */
 const PLAN_LABELS: Record<string, string> = {
-  freemium: "Freemium",
-  solo: "Solo Standard",
-  agence_standard: "Agence Standard",
-  agence_pro: "Agence Pro",
+  freemium: "Découverte",
+  solo: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
   dm: "Directeur Marketing",
   cm: "Community Manager",
   createur: "Créateur de contenu",
@@ -954,7 +954,7 @@ function LicenseTab() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm">Plan actuel</span>
-            <Badge>{PLAN_LABELS[profile?.role ?? "freemium"] ?? profile?.role ?? "Freemium"}</Badge>
+            <Badge>{PLAN_LABELS[profile?.role ?? "freemium"] ?? profile?.role ?? "Découverte"}</Badge>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Expiration</span>

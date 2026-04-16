@@ -80,10 +80,10 @@ interface PlanConfig {
 /* ─── Constants ──────────────────────────────────────────── */
 
 const PLAN_LABELS: Record<string, string> = {
-  freemium: "Freemium",
-  solo: "Solo Standard",
-  agence_standard: "Agence Standard",
-  agence_pro: "Agence Pro",
+  freemium: "Découverte",
+  solo: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
 };
 
 const METHODE_LABELS = ["Wave", "Orange Money", "YAS", "Virement", "Cash"];
@@ -296,7 +296,7 @@ export default function AdminComptes() {
     const header = "Nom,Email,Rôle,Inscription,Expiration,Statut\n";
     const rows = users.map((u) => {
       const expired = u.licence_expiration && new Date(u.licence_expiration) < new Date();
-      const statut = u.role === "freemium" ? "Freemium" : expired ? "Expiré" : "Actif";
+      const statut = u.role === "freemium" ? "Découverte" : expired ? "Expiré" : "Actif";
       return [
         `"${u.prenom} ${u.nom}"`,
         `"${u.email}"`,
@@ -321,7 +321,7 @@ export default function AdminComptes() {
 
   const getStatusBadge = (u: UserProfile) => {
     if (u.role === "owner" || u.role === "dm") return <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>;
-    if (!u.licence_expiration) return <Badge variant="outline">Freemium</Badge>;
+    if (!u.licence_expiration) return <Badge variant="outline">Découverte</Badge>;
     const exp = new Date(u.licence_expiration);
     if (exp < new Date()) return <Badge className="bg-red-100 text-red-700">Expiré</Badge>;
     return <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>;
@@ -332,9 +332,9 @@ export default function AdminComptes() {
       owner: { label: "Owner", cls: "bg-primary/10 text-primary border-primary/30" },
       dm: { label: "DM", cls: "bg-primary/10 text-primary border-primary/30" },
       solo: { label: "Solo", cls: "bg-blue-100 text-blue-700" },
-      freemium: { label: "Freemium", cls: "bg-muted text-muted-foreground" },
-      agence_standard: { label: "Agence Std", cls: "bg-purple-100 text-purple-700" },
-      agence_pro: { label: "Agence Pro", cls: "bg-purple-100 text-purple-700" },
+      freemium: { label: "Découverte", cls: "bg-muted text-muted-foreground" },
+      agence_standard: { label: "Studio", cls: "bg-purple-100 text-purple-700" },
+      agence_pro: { label: "Elite", cls: "bg-purple-100 text-purple-700" },
       cm: { label: "CM", cls: "bg-gray-100 text-gray-700" },
       createur: { label: "Créateur", cls: "bg-sky-100 text-sky-700" },
     };
@@ -366,6 +366,16 @@ export default function AdminComptes() {
       const yymm = now.toISOString().slice(0, 7).replace("-", "");
       const rand = Math.floor(Math.random() * 9000) + 1000;
       const numero = `FAC-DIG-${yymm}-${rand}`;
+
+      // Calculate remise for multi-month plans vs monthly pricing
+      const monthlyConfig = (planConfigs ?? []).find((c) => c.plan_type === plan && c.duree_mois === 1);
+      const remisePct = (duree > 1 && monthlyConfig)
+        ? Math.max(0, Math.round(((monthlyConfig.prix_fcfa * duree - prix) / (monthlyConfig.prix_fcfa * duree)) * 100) - 5)
+        : 0;
+      const montantRemise = (duree > 1 && monthlyConfig && remisePct > 0)
+        ? Math.round(monthlyConfig.prix_fcfa * duree * remisePct / 100)
+        : 0;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("documents")
@@ -375,11 +385,13 @@ export default function AdminComptes() {
           type: "facture_licence",
           statut: "en_attente",
           numero,
-          sous_total: prix,
+          sous_total: monthlyConfig ? monthlyConfig.prix_fcfa * duree : prix,
           montant_tva: 0,
           montant_brs: 0,
           taux_tva: 0,
           taux_brs: 0,
+          remise_pct: remisePct,
+          montant_remise: montantRemise,
           total: prix,
           date_emission: now.toISOString().slice(0, 10),
           notes: `Licence Digal ${PLAN_LABELS[plan] ?? plan} - ${duree} mois`,
@@ -652,10 +664,10 @@ export default function AdminComptes() {
                 >
                   <SelectTrigger><SelectValue placeholder="Choisir un plan" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="freemium">Freemium</SelectItem>
-                    <SelectItem value="solo_standard">Solo Standard</SelectItem>
-                    <SelectItem value="agence_standard">Agence Standard</SelectItem>
-                    <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                    <SelectItem value="freemium">Découverte</SelectItem>
+                    <SelectItem value="solo_standard">CM Pro</SelectItem>
+                    <SelectItem value="agence_standard">Studio</SelectItem>
+                    <SelectItem value="agence_pro">Elite</SelectItem>
                   </SelectContent>
                 </Select>
                 {createForm.watch("plan") !== "freemium" && (
@@ -860,10 +872,10 @@ export default function AdminComptes() {
                           <Select value={planNewPlan} onValueChange={(v) => { setPlanNewPlan(v); setPlanNewDuree(getDurationsForPlan(v)[0]?.duree_mois ?? 6); }}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="freemium">Freemium</SelectItem>
-                              <SelectItem value="solo">Solo Standard</SelectItem>
-                              <SelectItem value="agence_standard">Agence Standard</SelectItem>
-                              <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                              <SelectItem value="freemium">Découverte</SelectItem>
+                              <SelectItem value="solo">CM Pro</SelectItem>
+                              <SelectItem value="agence_standard">Studio</SelectItem>
+                              <SelectItem value="agence_pro">Elite</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -915,7 +927,7 @@ export default function AdminComptes() {
                           {generateInvoice.isPending || revokeWithLog.isPending
                             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             : <Receipt className="h-3.5 w-3.5" />}
-                          {planNewPlan === "freemium" ? "Rétrograder en Freemium" : "Générer la facture"}
+                          {planNewPlan === "freemium" ? "Rétrograder en Découverte" : "Générer la facture"}
                         </Button>
                       </div>
                     )}
@@ -993,7 +1005,7 @@ export default function AdminComptes() {
                         <AlertDialogHeader>
                           <AlertDialogTitle className="font-serif">Révoquer la licence ?</AlertDialogTitle>
                           <AlertDialogDescription className="font-sans">
-                            {selected.prenom} {selected.nom} repassera en Freemium immédiatement.
+                            {selected.prenom} {selected.nom} repassera en Découverte immédiatement.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

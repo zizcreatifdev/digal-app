@@ -30,7 +30,7 @@ const ROLE_LABELS: Record<string, string> = {
   agence_pro: "DM Agence Pro",
   cm: "CM",
   createur: "Créateur",
-  freemium: "Freemium",
+  freemium: "Découverte",
   solo: "Solo",
 };
 

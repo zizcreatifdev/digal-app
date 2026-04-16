@@ -246,7 +246,7 @@ const Dashboard = () => {
                       <Badge variant="warning" className="text-[10px]">
                         {stats?.activeClients ?? 0}/2
                       </Badge>
-                      <span className="text-xs text-muted-foreground font-sans">limite Freemium</span>
+                      <span className="text-xs text-muted-foreground font-sans">limite Découverte</span>
                     </div>
                   )}
                   {!isFreemium && (stats?.clientsThisMonth ?? 0) > 0 && (
@@ -409,7 +409,7 @@ const Dashboard = () => {
           </DialogHeader>
           <p className="text-sm font-sans text-muted-foreground">
             {expiryDaysLeft <= 0
-              ? "Votre licence a expiré. Vous êtes repassé en mode Freemium. Activez une clé pour continuer à accéder à toutes les fonctionnalités."
+              ? "Votre licence a expiré. Vous êtes repassé en mode Découverte. Activez une clé pour continuer à accéder à toutes les fonctionnalités."
               : `Il vous reste ${expiryDaysLeft} jour${expiryDaysLeft > 1 ? "s" : ""} avant l'expiration de votre licence. Pensez à la renouveler.`}
           </p>
           <DialogFooter className="gap-2">

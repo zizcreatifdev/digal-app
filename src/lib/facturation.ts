@@ -25,6 +25,8 @@ export interface Document {
   taux_tva: number;
   montant_tva: number;
   total: number;
+  remise_pct: number;
+  montant_remise: number;
   methodes_paiement: string[];
   notes: string | null;
   converted_from_id: string | null;
@@ -153,6 +155,8 @@ export async function createDocument(
     taux_tva: number;
     montant_tva: number;
     total: number;
+    remise_pct?: number;
+    montant_remise?: number;
     methodes_paiement: string[];
     notes: string;
     converted_from_id?: string | null;

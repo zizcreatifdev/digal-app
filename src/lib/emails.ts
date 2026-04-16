@@ -101,10 +101,10 @@ export async function sendActivationEmail(
   activation_link: string
 ): Promise<void> {
   const labelMap: Record<string, string> = {
-    solo: "Solo",
-    agence: "Agence",
-    agence_standard: "Agence Standard",
-    agence_pro: "Agence Pro",
+    solo: "CM Pro",
+    agence: "Studio",
+    agence_standard: "Studio",
+    agence_pro: "Elite",
   };
   return sendEmail({
     type: "activation",

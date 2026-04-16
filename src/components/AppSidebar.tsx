@@ -194,7 +194,7 @@ export function AppSidebar() {
                         : "bg-primary text-primary-foreground"
                     )}
                   >
-                    {isFreemium ? "Freemium" : (userPlan || userRole)}
+                    {isFreemium ? "Découverte" : (userPlan || userRole)}
                   </Badge>
                 </div>
               </div>

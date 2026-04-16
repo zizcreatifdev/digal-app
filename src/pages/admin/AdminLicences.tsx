@@ -23,9 +23,9 @@ interface PlanConfig {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  solo: "Solo Standard",
-  agence_standard: "Agence Standard",
-  agence_pro: "Agence Pro",
+  solo: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
 };
 
 const TYPE_SHORT: Record<string, string> = {
@@ -318,9 +318,9 @@ export default function AdminLicences() {
                 <Select value={genType} onValueChange={setGenType} disabled={!!generatedKey}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="solo">Solo Standard</SelectItem>
-                    <SelectItem value="agence_standard">Agence Standard</SelectItem>
-                    <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                    <SelectItem value="solo">CM Pro</SelectItem>
+                    <SelectItem value="agence_standard">Studio</SelectItem>
+                    <SelectItem value="agence_pro">Elite</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -441,9 +441,9 @@ export default function AdminLicences() {
                 <Select value={selectedPlan} onValueChange={setSelectedPlan}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="solo">Solo Standard</SelectItem>
-                    <SelectItem value="agence_standard">Agence Standard</SelectItem>
-                    <SelectItem value="agence_pro">Agence Pro</SelectItem>
+                    <SelectItem value="solo">CM Pro</SelectItem>
+                    <SelectItem value="agence_standard">Studio</SelectItem>
+                    <SelectItem value="agence_pro">Elite</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

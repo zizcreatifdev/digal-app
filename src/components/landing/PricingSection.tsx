@@ -28,6 +28,21 @@ const SLUG_TO_PLAN_TYPE: Record<string, string> = {
   agence_pro: "agence_pro",
 };
 
+// Display name overrides (DB role values unchanged)
+const PLAN_DISPLAY_NAMES: Record<string, string> = {
+  freemium: "Découverte",
+  solo_standard: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
+};
+
+const PLAN_TAGLINES: Record<string, string> = {
+  freemium: "Commencez gratuitement, sans engagement",
+  solo_standard: "Pour le Community Manager sérieux",
+  agence_standard: "Votre équipe et vous, dans un seul endroit",
+  agence_pro: "Pour les agences qui visent le sommet",
+};
+
 const AGENCE_FEATURE_MAP: Record<string, string> = {
   "1 DM + 3 membres": "1 DM + Community Managers + Créateurs (graphistes/vidéastes)",
   "1 DM + 7 membres": "1 DM + jusqu'à 6 membres (CM + Créateurs)",
@@ -85,8 +100,10 @@ export function PricingSection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Unique active durations across all plan types
-  const durations = [...new Set((planConfigs ?? []).map((c) => c.duree_mois))].sort((a, b) => a - b);
+  // Unique active durations across all plan types, filtered to Mensuel / 6 mois / Annuel
+  const allDurations = [...new Set((planConfigs ?? []).map((c) => c.duree_mois))].sort((a, b) => a - b);
+  const SHOWN_DURATIONS = [1, 6, 12];
+  const durations = allDurations.filter((d) => SHOWN_DURATIONS.includes(d));
 
   // Get configured price for a plan at the selected duration
   const getConfigPrice = (slug: string, duree: number): number | null => {
@@ -96,7 +113,33 @@ export function PricingSection() {
     return config?.prix_fcfa ?? null;
   };
 
-  // Calculate savings vs monthly × duree
+  // Monthly base price for a plan
+  const getMonthlyPrice = (slug: string): number | null => {
+    const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
+    if (!planType) return null;
+    const monthly = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === 1);
+    return monthly?.prix_fcfa ?? null;
+  };
+
+  // Discount % for toggle badge, using user-specified formula: raw% - 5
+  const getToggleDiscountPct = (duree: number): number | null => {
+    if (duree <= 1) return null;
+    // Average across plans that have both monthly and target duration configs
+    const planTypes = ["solo", "agence_standard", "agence_pro"];
+    const percentages: number[] = [];
+    for (const pt of planTypes) {
+      const monthly = (planConfigs ?? []).find((c) => c.plan_type === pt && c.duree_mois === 1);
+      const target = (planConfigs ?? []).find((c) => c.plan_type === pt && c.duree_mois === duree);
+      if (!monthly || !target) continue;
+      const raw = Math.round(((monthly.prix_fcfa * duree - target.prix_fcfa) / (monthly.prix_fcfa * duree)) * 100);
+      percentages.push(raw - 5);
+    }
+    if (percentages.length === 0) return null;
+    // All plans have the same effective %, use the first
+    return percentages[0];
+  };
+
+  // Per-plan savings % for the savings badge below price
   const getSavingsPct = (slug: string, duree: number): number | null => {
     if (duree <= 1) return null;
     const planType = SLUG_TO_PLAN_TYPE[slug ?? ""];
@@ -104,14 +147,13 @@ export function PricingSection() {
     const monthly = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === 1);
     const target = (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
     if (!monthly || !target) return null;
-    const base = monthly.prix_fcfa * duree;
-    const savings = Math.round(((base - target.prix_fcfa) / base) * 100);
-    return savings > 0 ? savings : null;
+    const raw = Math.round(((monthly.prix_fcfa * duree - target.prix_fcfa) / (monthly.prix_fcfa * duree)) * 100);
+    return raw > 5 ? raw - 5 : null;
   };
 
   const durationLabel = (d: number) => {
     if (d === 1) return "Mensuel";
-    if (d === 12) return "1 an";
+    if (d === 12) return "Annuel";
     return `${d} mois`;
   };
 
@@ -137,20 +179,28 @@ export function PricingSection() {
         {durations.length > 1 && (
           <div className="flex justify-center mb-10">
             <div className="inline-flex bg-muted rounded-lg p-1 gap-1">
-              {durations.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setSelectedDuree(d)}
-                  className={`px-4 py-2 text-sm font-sans rounded-md transition-all ${
-                    selectedDuree === d
-                      ? "bg-background shadow text-foreground font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {durationLabel(d)}
-                </button>
-              ))}
+              {durations.map((d) => {
+                const discountPct = getToggleDiscountPct(d);
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setSelectedDuree(d)}
+                    className={`relative px-4 py-2 text-sm font-sans rounded-md transition-all ${
+                      selectedDuree === d
+                        ? "bg-background shadow text-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {durationLabel(d)}
+                    {discountPct !== null && (
+                      <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-1.5 py-0.5">
+                        -{discountPct}%
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -164,8 +214,10 @@ export function PricingSection() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {plans?.map((plan) => {
-              const configPrice = getConfigPrice(plan.slug ?? "", selectedDuree);
-              const savingsPct = getSavingsPct(plan.slug ?? "", selectedDuree);
+              const slug = plan.slug ?? "";
+              const configPrice = getConfigPrice(slug, selectedDuree);
+              const monthlyPrice = getMonthlyPrice(slug);
+              const savingsPct = getSavingsPct(slug, selectedDuree);
 
               // Price to display: use plan_configs if available, else fallback to plans table
               const displayPrice = configPrice !== null
@@ -175,6 +227,15 @@ export function PricingSection() {
                     : plan.prix_mensuel);
 
               const hasPromo = configPrice === null && plan.promo_active && plan.promo_prix_mensuel != null;
+
+              // "au lieu de" full price for multi-month durations
+              const auLieuDe = selectedDuree > 1 && configPrice !== null && monthlyPrice !== null
+                ? monthlyPrice * selectedDuree
+                : null;
+
+              // Display name override
+              const displayName = PLAN_DISPLAY_NAMES[slug] ?? plan.nom;
+              const tagline = PLAN_TAGLINES[slug] ?? null;
 
               return (
                 <Card
@@ -193,9 +254,14 @@ export function PricingSection() {
                     </div>
                   )}
                   <CardContent className="p-6 flex flex-col flex-1">
-                    <p className={`text-sm font-sans font-semibold mb-3 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
-                      {plan.nom}
+                    <p className={`text-sm font-sans font-semibold mb-0.5 ${plan.highlighted ? "text-background/70" : "text-muted-foreground"}`}>
+                      {displayName}
                     </p>
+                    {tagline && (
+                      <p className={`text-[11px] font-sans mb-3 leading-snug ${plan.highlighted ? "text-background/50" : "text-muted-foreground/70"}`}>
+                        {tagline}
+                      </p>
+                    )}
 
                     <div className="mb-1 flex items-baseline gap-2">
                       <span className="text-3xl font-bold font-serif">
@@ -207,6 +273,13 @@ export function PricingSection() {
                         </span>
                       )}
                     </div>
+
+                    {/* "au lieu de" for multi-month */}
+                    {auLieuDe !== null && auLieuDe !== displayPrice && (
+                      <p className={`text-xs font-sans mb-1 line-through ${plan.highlighted ? "text-background/40" : "text-muted-foreground/60"}`}>
+                        au lieu de {auLieuDe.toLocaleString("fr-FR")} FCFA
+                      </p>
+                    )}
 
                     {/* Savings badge */}
                     {savingsPct !== null && (
@@ -233,7 +306,7 @@ export function PricingSection() {
                     <div className="mb-5" />
 
                     {(() => {
-                      const isAgence = plan.slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
+                      const isAgence = slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
                       return (
                         <>
                           <ul className="space-y-2.5 mb-2 flex-1">

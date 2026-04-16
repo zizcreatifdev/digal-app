@@ -32,9 +32,9 @@ interface PlanConfig {
 const PLAN_TYPES = ["solo", "agence_standard", "agence_pro"] as const;
 
 const PLAN_TYPE_LABELS: Record<string, string> = {
-  solo: "Solo Standard",
-  agence_standard: "Agence Standard",
-  agence_pro: "Agence Pro",
+  solo: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
 };
 
 /* ─── Component ─────────────────────────────────────────────── */
