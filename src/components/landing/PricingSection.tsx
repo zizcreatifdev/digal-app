@@ -138,7 +138,7 @@ function AgenceRolesAccordion({ highlighted, isElite }: { highlighted: boolean; 
 export function PricingSection() {
   const navigate = useNavigate();
   const { data: plans, isLoading } = usePlans();
-  const [selectedDuree, setSelectedDuree] = useState(6);
+  const [selectedDuree, setSelectedDuree] = useState(1);
   const [eliteModalOpen, setEliteModalOpen] = useState(false);
 
   // Load plan_configs (public read, no auth needed)
