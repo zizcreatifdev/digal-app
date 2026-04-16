@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Link, Receipt, FileBarChart, Users } from "lucide-react";
+import { Calendar, Link, Receipt, FileBarChart, Users, Zap } from "lucide-react";
 
 const features = [
   {
@@ -26,6 +26,11 @@ const features = [
     icon: Users,
     title: "Gestion d'équipe agence",
     description: "Invitez vos collaborateurs, assignez des clients et suivez la charge de travail. Permissions granulaires par rôle.",
+  },
+  {
+    icon: Zap,
+    title: "Stockage éphémère intelligent",
+    description: "Vos médias disparaissent automatiquement après la date de publication. Zéro accumulation, zéro coût caché. Texte et historique conservés indéfiniment.",
   },
 ];
 

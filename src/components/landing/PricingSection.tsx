@@ -549,8 +549,17 @@ export function PricingSection() {
           </div>
         )}
 
+        {/* Stockage éphémère — mention sous les cartes */}
+        <p className="text-center mt-8 text-sm font-sans text-muted-foreground flex items-center justify-center gap-2">
+          <Check className="h-4 w-4 shrink-0 text-primary" />
+          <span>
+            <span className="font-medium text-foreground">Stockage éphémère intelligent</span>
+            {" — médias supprimés après publication, zéro coût de stockage caché"}
+          </span>
+        </p>
+
         {plans?.some(p => p.promo_active && p.promo_label) && (
-          <p className="text-center mt-8 text-sm font-sans text-muted-foreground flex items-center justify-center gap-1.5">
+          <p className="text-center mt-4 text-sm font-sans text-muted-foreground flex items-center justify-center gap-1.5">
             <PartyPopper className="h-4 w-4 text-primary" /> {plans.find(p => p.promo_active)?.promo_label}
           </p>
         )}

@@ -1,5 +1,7 @@
 import { Post, POST_STATUTS, RESEAU_COLORS, RESEAU_LABELS } from "@/lib/posts";
 import { Badge } from "@/components/ui/badge";
+import { Clock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PostCardProps {
   post: Post;
@@ -16,6 +18,26 @@ export function PostCard({ post, compact = false, onClick }: PostCardProps) {
     onClick?.(post);
   };
 
+  const isPublie = post.statut === "publie";
+
+  const ephemereTooltip = isPublie ? (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex items-center gap-0.5 cursor-default"
+            style={{ color: "#E8511A" }}
+          >
+            <Clock className="h-3 w-3" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs max-w-[200px] text-center">
+          Médias supprimés dans 24h · Texte et historique conservés
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  ) : null;
+
   if (compact) {
     return (
       <div
@@ -28,6 +50,7 @@ export function PostCard({ post, compact = false, onClick }: PostCardProps) {
             {statut.label}
           </span>
         )}
+        {ephemereTooltip}
       </div>
     );
   }
@@ -47,11 +70,14 @@ export function PostCard({ post, compact = false, onClick }: PostCardProps) {
         <p className="text-xs font-sans text-foreground line-clamp-2 mt-1">{post.texte}</p>
       )}
       <div className="flex items-center justify-between mt-2">
-        {statut && (
-          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold font-sans ${statut.color}`}>
-            {statut.label}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {statut && (
+            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold font-sans ${statut.color}`}>
+              {statut.label}
+            </span>
+          )}
+          {ephemereTooltip}
+        </div>
         <span className="text-[10px] text-muted-foreground font-sans">
           {new Date(post.date_publication).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
         </span>
