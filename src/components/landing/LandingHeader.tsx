@@ -13,7 +13,7 @@ export function LandingHeader() {
           <img
             src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
             alt="Digal"
-            className="h-12 w-auto"
+            className="h-14 w-auto"
           />
         </div>
 
