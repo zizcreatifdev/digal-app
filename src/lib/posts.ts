@@ -23,11 +23,26 @@ export const POST_STATUTS = [
   { id: "idee", label: "Idée", color: "bg-muted text-muted-foreground" },
   { id: "en_production", label: "En production", color: "bg-blue-100 text-blue-700" },
   { id: "en_attente_validation", label: "En attente validation", color: "bg-orange-100 text-orange-700" },
+  { id: "lien_envoye", label: "Lien envoyé", color: "bg-blue-100 text-blue-700" },
   { id: "programme_valide", label: "Validé client", color: "bg-emerald-100 text-emerald-700" },
   { id: "valide", label: "Validé", color: "bg-green-100 text-green-700" },
   { id: "publie", label: "Publié", color: "bg-purple-100 text-purple-700" },
+  { id: "archive", label: "Archivé", color: "bg-gray-100 text-gray-500" },
   { id: "refuse", label: "Refusé", color: "bg-red-100 text-red-700" },
 ] as const;
+
+export const POST_STATUT_HEX: Record<string, string> = {
+  brouillon: "#9ca3af",
+  idee: "#9ca3af",
+  en_production: "#60a5fa",
+  en_attente_validation: "#f97316",
+  lien_envoye: "#3b82f6",
+  programme_valide: "#22c55e",
+  valide: "#22c55e",
+  publie: "#15803d",
+  archive: "#4b5563",
+  refuse: "#ef4444",
+};
 
 /** Règle 1 : vérifie les prérequis avant de soumettre un brouillon en validation. */
 export function getMissingFieldsForSubmission(

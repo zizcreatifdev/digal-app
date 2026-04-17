@@ -23,9 +23,10 @@ interface EditorialCalendarProps {
   clientName: string;
   clientColor: string;
   activeNetworks: string[];
+  onGenerateLink?: () => void;
 }
 
-export function EditorialCalendar({ clientId, clientName, clientColor, activeNetworks }: EditorialCalendarProps) {
+export function EditorialCalendar({ clientId, clientName, clientColor, activeNetworks, onGenerateLink }: EditorialCalendarProps) {
   const [view, setView] = useState<"semaine" | "mois">("semaine");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [posts, setPosts] = useState<Post[]>([]);
@@ -100,6 +101,10 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
   const handlePostClick = (post: Post) => {
     setEditPost(post);
     setEditModalOpen(true);
+  };
+
+  const handleStatusChange = (_postId: string, _newStatut: string) => {
+    loadPosts();
   };
 
   const title = view === "semaine"
@@ -213,7 +218,7 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
                   );
                 })}
                 {postsForDay(day).map((post) => (
-                  <PostCard key={post.id} post={post} onClick={handlePostClick} />
+                  <PostCard key={post.id} post={post} onClick={handlePostClick} onStatusChange={handleStatusChange} onGenerateLink={onGenerateLink} />
                 ))}
               </div>
             </div>
@@ -262,7 +267,7 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
                       );
                     })}
                     {dayPosts.slice(0, 2).map((post) => (
-                      <PostCard key={post.id} post={post} compact onClick={handlePostClick} />
+                      <PostCard key={post.id} post={post} compact onClick={handlePostClick} onStatusChange={handleStatusChange} onGenerateLink={onGenerateLink} />
                     ))}
                     {dayPosts.length > 2 && (
                       <p className="text-[9px] text-muted-foreground font-sans">+{dayPosts.length - 2} autres</p>

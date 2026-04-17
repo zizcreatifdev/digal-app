@@ -101,7 +101,7 @@ const PreviewPage = () => {
         Promise.all([
           supabase.from("clients").select("*").eq("id", linkData.client_id).single(),
           supabase.from("users").select("nom, prenom, agence_nom, logo_url").eq("user_id", linkData.user_id).maybeSingle(),
-          supabase.from("posts").select("*").eq("client_id", linkData.client_id).eq("statut", "en_attente_validation").gte("date_publication", linkData.periode_debut).lte("date_publication", linkData.periode_fin).order("date_publication", { ascending: true }),
+          supabase.from("posts").select("*").eq("client_id", linkData.client_id).in("statut", ["en_attente_validation", "lien_envoye"]).gte("date_publication", linkData.periode_debut).lte("date_publication", linkData.periode_fin).order("date_publication", { ascending: true }),
           fetchPreviewActions(linkData.id).catch(() => [] as PreviewAction[]),
         ]),
         timeout,

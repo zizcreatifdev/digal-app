@@ -63,7 +63,7 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
         .from("posts")
         .select("id")
         .eq("client_id", clientId)
-        .eq("statut", "en_attente_validation")
+        .in("statut", ["en_attente_validation", "lien_envoye"])
         .gte("date_publication", pStart.toISOString())
         .lte("date_publication", pEnd.toISOString())
         .limit(1);
@@ -80,6 +80,14 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
       setGeneratedUrl(getPreviewUrl(link.slug));
       toast.success("Lien de validation créé");
       logPreviewAction(user.id, "Lien de validation généré", clientName, link.id);
+      // Mettre les posts en_attente_validation → lien_envoye pour la période
+      await supabase
+        .from("posts")
+        .update({ statut: "lien_envoye" })
+        .eq("client_id", clientId)
+        .eq("statut", "en_attente_validation")
+        .gte("date_publication", pStart.toISOString())
+        .lte("date_publication", pEnd.toISOString());
     } catch (err: unknown) {
       toast.error((err as Error).message || "Erreur lors de la création du lien");
     } finally {

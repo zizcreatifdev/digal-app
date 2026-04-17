@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Link2, BarChart3, Receipt, Archive, Loader2,
-  Calendar, FolderOpen, Activity, Pencil, Lock,
+  Calendar, FolderOpen, Activity, Pencil, Lock, CheckCircle2,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
 import { useState, useEffect } from "react";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
 import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
@@ -39,6 +40,7 @@ const ClientDetail = () => {
   const [slugEdit, setSlugEdit] = useState<string | null>(null);
   const [savingSlug, setSavingSlug] = useState(false);
   const [profile, setProfile] = useState<{ role: string; plan: string | null } | null>(null);
+  const [monthProgress, setMonthProgress] = useState<{ total: number; validated: number } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -64,6 +66,25 @@ const ClientDetail = () => {
         if (!error && data) setProfile(data);
       });
   }, [user]);
+
+  useEffect(() => {
+    if (!id) return;
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    supabase
+      .from("posts")
+      .select("statut")
+      .eq("client_id", id)
+      .gte("date_publication", start.toISOString())
+      .lte("date_publication", end.toISOString())
+      .then(({ data }) => {
+        if (!data) return;
+        const validated = data.filter((p) =>
+          ["programme_valide", "publie"].includes(p.statut)
+        ).length;
+        setMonthProgress({ total: data.length, validated });
+      });
+  }, [id]);
 
   const isFreemium = profile?.role === "freemium" && !profile?.plan;
 
@@ -217,6 +238,30 @@ const ClientDetail = () => {
           </div>
         </div>
 
+        {/* Progression du contenu — mois en cours */}
+        {monthProgress !== null && monthProgress.total > 0 && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <p className="text-sm font-semibold font-sans">Contenu ce mois</p>
+              </div>
+              <span className="text-sm font-semibold font-mono text-primary">
+                {monthProgress.validated}/{monthProgress.total}
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.round((monthProgress.validated / monthProgress.total) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground font-sans">
+              {monthProgress.validated} post{monthProgress.validated !== 1 ? "s" : ""} validé{monthProgress.validated !== 1 ? "s" : ""} sur {monthProgress.total} ce mois
+            </p>
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="calendrier">
           <TabsList>
@@ -240,6 +285,7 @@ const ClientDetail = () => {
               clientName={client.nom}
               clientColor={client.couleur_marque}
               activeNetworks={networks.map((n) => n.reseau)}
+              onGenerateLink={() => setPreviewModalOpen(true)}
             />
           </TabsContent>
 
