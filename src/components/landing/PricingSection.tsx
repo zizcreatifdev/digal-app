@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, ArrowRight, Tag, PartyPopper, Shield, Users, Palette, Star, ChevronDown, ChevronUp } from "lucide-react";
-import { usePlans } from "@/hooks/usePlans";
+import { usePlans, Plan } from "@/hooks/usePlans";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,8 +67,8 @@ const AGENCE_ROLES = [
 const SHOWN_DURATIONS = [1, 6, 12];
 
 // Fixed features for the Elite (agence_pro) card — replaces DB data
-const ELITE_FEATURES = [
-  "Membres illimités",
+// "Membres" line is generated dynamically from plan.max_membres
+const ELITE_FEATURES_BASE = [
   "Tout Studio inclus",
   "Support prioritaire dédié",
   "Onboarding personnalisé",
@@ -83,6 +83,22 @@ const FALLBACK_PRICES: Record<string, Record<number, number>> = {
   agence_standard:  { 1: 35000,  6: 175000, 12: 330000 },
   agence_pro:       { 1: 55000,  6: 275000, 12: 520000 },
 };
+
+/* ─── Helpers ───────────────────────────────────────────── */
+
+function getMemberText(plan: Plan): string {
+  const slug = plan.slug ?? "";
+  const max = plan.max_membres;
+  if (slug === "freemium") return "1 utilisateur uniquement";
+  if (slug === "solo" || slug === "solo_standard") return "1 utilisateur (vous)";
+  if (slug === "agence_pro") {
+    return max == null ? "Membres illimités" : `1 DM + jusqu'à ${max - 1} membres (CM + Créateurs)`;
+  }
+  if (slug === "agence_standard") {
+    return max != null ? `1 DM + jusqu'à ${max - 1} membres (CM + Créateurs)` : "1 DM + Community Managers + Créateurs";
+  }
+  return "";
+}
 
 /* ─── Sub-components ─────────────────────────────────────── */
 
@@ -488,7 +504,11 @@ export function PricingSection() {
                     {isElite ? (
                       <>
                         <ul className="space-y-2.5 mb-2 flex-1">
-                          {ELITE_FEATURES.map((f) => (
+                          <li className="flex items-start gap-2 text-sm font-sans">
+                            <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#E8511A" }} />
+                            <span className="text-white/80">{getMemberText(plan)}</span>
+                          </li>
+                          {ELITE_FEATURES_BASE.map((f) => (
                             <li key={f} className="flex items-start gap-2 text-sm font-sans">
                               <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#E8511A" }} />
                               <span className="text-white/80">{f}</span>
@@ -500,9 +520,16 @@ export function PricingSection() {
                     ) : (
                       (() => {
                         const isAgence = slug?.includes("agence") || plan.nom?.toLowerCase().includes("agence");
+                        const memberText = getMemberText(plan);
                         return (
                           <>
                             <ul className="space-y-2.5 mb-2 flex-1">
+                              {memberText && (
+                                <li className="flex items-start gap-2 text-sm font-sans">
+                                  <Check className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                                  <span className={plan.highlighted ? "text-background/80" : ""}>{memberText}</span>
+                                </li>
+                              )}
                               {plan.features.map((f) => {
                                 const renamed = FEATURE_RENAME_MAP[f] ?? f;
                                 const display = isAgence ? (AGENCE_FEATURE_MAP[renamed] ?? renamed) : renamed;

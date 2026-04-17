@@ -103,8 +103,8 @@ describe("isFreemium correctement dérivé via getAccountAccess", () => {
     expect(canCreateTemplate(3, isFreemium)).toBe(false);
   });
 
-  it("rôle solo → isFreemium=false, aucune limite", () => {
-    const { isFreemium } = getAccountAccess({ role: "solo", plan: "solo" });
+  it("rôle solo_standard → isFreemium=false, aucune limite", () => {
+    const { isFreemium } = getAccountAccess({ role: "solo_standard", plan: "solo_standard" });
     expect(isFreemium).toBe(false);
     expect(canCreateClient(100, isFreemium)).toBe(true);
     expect(canArchiveClient(100, isFreemium)).toBe(true);

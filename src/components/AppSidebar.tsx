@@ -57,7 +57,7 @@ export function AppSidebar() {
   const userPlan = profile?.plan ?? null;
   // User is freemium only if role is freemium AND no plan is set
   const isFreemium = userRole === "freemium" && !userPlan;
-  const isSolo = userRole === "solo";
+  const isSolo = userRole === "solo" || userRole === "solo_standard";
   const userName = profile ? `${profile.prenom} ${profile.nom}` : user?.email?.split("@")[0] ?? "Utilisateur";
   const initials = profile ? (profile.prenom[0] + profile.nom[0]).toUpperCase() : "DG";
 

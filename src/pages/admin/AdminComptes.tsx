@@ -97,8 +97,16 @@ interface PlanConfig {
 const PLAN_LABELS: Record<string, string> = {
   freemium: "Découverte",
   solo: "CM Pro",
+  solo_standard: "CM Pro",
   agence_standard: "Studio",
   agence_pro: "Elite",
+};
+
+// Maps plan_configs.plan_type → plans.slug (users.role/plan field)
+const PLAN_TYPE_TO_SLUG: Record<string, string> = {
+  solo: "solo_standard",
+  agence_standard: "agence_standard",
+  agence_pro: "agence_pro",
 };
 
 const METHODE_LABELS = ["Wave", "Orange Money", "YAS", "Virement", "Cash"];
@@ -505,11 +513,12 @@ export default function AdminComptes() {
     }) => {
       const newExp = new Date();
       newExp.setMonth(newExp.getMonth() + duree);
+      const planSlug = PLAN_TYPE_TO_SLUG[plan] ?? plan;
       const [docErr, userErr] = await Promise.all([
         supabase.from("documents").update({ statut: "payee" }).eq("id", invoiceId).then((r) => r.error),
         supabase.from("users").update({
-          role: plan,
-          plan,
+          role: planSlug,
+          plan: planSlug,
           licence_expiration: newExp.toISOString(),
         }).eq("id", targetUser.id).then((r) => r.error),
       ]);
@@ -901,7 +910,7 @@ export default function AdminComptes() {
                   {selected && (
                     <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                       selected.role === "owner" || selected.role === "dm" ? "bg-primary text-primary-foreground" :
-                      selected.role === "solo" ? "bg-blue-600 text-white" :
+                      (selected.role === "solo" || selected.role === "solo_standard") ? "bg-blue-600 text-white" :
                       selected.role === "agence_standard" ? "bg-purple-600 text-white" :
                       selected.role === "agence_pro" ? "bg-indigo-700 text-white" :
                       "bg-muted text-muted-foreground"

@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ChevronDown, ChevronUp, X, Check, User, Users, CalendarDays, Link2, FileText, Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface ChecklistStep {
   id: number;
@@ -30,6 +33,15 @@ const STEPS_CONFIG: Omit<ChecklistStep, "done">[] = [
   { id: 5, label: "Crée ton premier devis", description: "Découvre le module facturation", badge: "Pro complet 🎉", icon: FileText, href: "/dashboard/facturation" },
 ];
 
+const TEAM_STEP: Omit<ChecklistStep, "done"> = {
+  id: 0,
+  label: "Configure ton équipe",
+  description: "Répartis les CM et créateurs",
+  badge: "Équipe configurée",
+  icon: Users,
+  href: "/dashboard/parametres?tab=equipe",
+};
+
 interface BadgeInfo {
   stepLabel: string;
   badgeName: string;
@@ -42,10 +54,16 @@ export function OnboardingChecklist() {
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [dbLoaded, setDbLoaded] = useState(false);
+  const [isAgenceUser, setIsAgenceUser] = useState(false);
+  const [maxMembres, setMaxMembres] = useState<number | null>(null);
   const [steps, setSteps] = useState<ChecklistStep[]>(
     STEPS_CONFIG.map((s) => ({ ...s, done: false }))
   );
   const [badgeModal, setBadgeModal] = useState<BadgeInfo | null>(null);
+  const [teamConfigOpen, setTeamConfigOpen] = useState(false);
+  const [nbCmInput, setNbCmInput] = useState("0");
+  const [nbCreateursInput, setNbCreateursInput] = useState("0");
+  const [savingTeam, setSavingTeam] = useState(false);
   // Ref to track which badge names are already known (celebrated)
   const knownBadgesRef = useRef<Set<string>>(new Set());
 
@@ -55,7 +73,7 @@ export function OnboardingChecklist() {
     const load = async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase.from("users") as any)
-        .select("onboarding_completed, onboarding_badges")
+        .select("onboarding_completed, onboarding_badges, role, plan, nb_cm, nb_createurs")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -67,10 +85,31 @@ export function OnboardingChecklist() {
 
       const badges: string[] = Array.isArray(data?.onboarding_badges) ? data.onboarding_badges : [];
       knownBadgesRef.current = new Set(badges);
+
+      const isAgence = data?.role === "dm" || data?.role?.startsWith("agence");
+      setIsAgenceUser(isAgence);
+      setNbCmInput(String(data?.nb_cm ?? 0));
+      setNbCreateursInput(String(data?.nb_createurs ?? 0));
+
+      if (isAgence && data?.plan) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: planData } = await (supabase as any)
+          .from("plans")
+          .select("max_membres")
+          .eq("slug", data.plan)
+          .maybeSingle();
+        setMaxMembres(planData?.max_membres ?? null);
+      }
+
       setDbLoaded(true);
     };
     load();
   }, [user]);
+
+  // Build active steps list (add TEAM_STEP for agence users)
+  const activeStepsConfig = isAgenceUser
+    ? [TEAM_STEP, ...STEPS_CONFIG]
+    : STEPS_CONFIG;
 
   // Check progress from DB
   useEffect(() => {
@@ -78,14 +117,19 @@ export function OnboardingChecklist() {
 
     const checkProgress = async () => {
       const [profileRes, clientsRes, postsRes, linksRes, devisRes] = await Promise.all([
-        supabase.from("users").select("prenom, nom, logo_url").eq("user_id", user.id).maybeSingle(),
+        supabase.from("users").select("prenom, nom, logo_url, nb_cm, nb_createurs").eq("user_id", user.id).maybeSingle(),
         supabase.from("clients").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("preview_links").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("documents").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("type", "devis"),
       ]);
 
+      const teamConfigured = isAgenceUser
+        ? ((profileRes.data?.nb_cm ?? 0) > 0 || (profileRes.data?.nb_createurs ?? 0) > 0)
+        : false;
+
       const doneMap: Record<number, boolean> = {
+        0: teamConfigured,
         1: !!(profileRes.data?.prenom && profileRes.data?.nom && profileRes.data?.logo_url),
         2: (clientsRes.count ?? 0) > 0,
         3: (postsRes.count ?? 0) > 0,
@@ -93,15 +137,15 @@ export function OnboardingChecklist() {
         5: (devisRes.count ?? 0) > 0,
       };
 
-      setSteps((prev) => prev.map((s) => ({ ...s, done: doneMap[s.id] ?? false })));
+      setSteps(activeStepsConfig.map((s) => ({ ...s, done: doneMap[s.id] ?? false })));
 
       // Detect newly completed badges (done but not yet celebrated)
-      const newlyCompleted = STEPS_CONFIG.filter(
+      const newlyCompleted = activeStepsConfig.filter(
         (s) => doneMap[s.id] && !knownBadgesRef.current.has(s.badge)
       );
 
       if (newlyCompleted.length > 0) {
-        const allNowDone = Object.values(doneMap).every(Boolean);
+        const allNowDone = activeStepsConfig.every((s) => doneMap[s.id]);
         const first = newlyCompleted[0];
         setBadgeModal({ stepLabel: first.label, badgeName: first.badge, isLast: allNowDone });
 
@@ -118,11 +162,35 @@ export function OnboardingChecklist() {
     };
 
     checkProgress();
-  }, [user, dismissed, dbLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, dismissed, dbLoaded, isAgenceUser]);
 
   const completedCount = steps.filter((s) => s.done).length;
-  const allDone = completedCount === steps.length;
-  const progress = (completedCount / steps.length) * 100;
+  const allDone = completedCount === steps.length && steps.length > 0;
+  const progress = steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
+
+  const totalUsed = 1 + parseInt(nbCmInput || "0") + parseInt(nbCreateursInput || "0");
+  const quota = maxMembres ?? 0;
+
+  const handleSaveTeam = async () => {
+    if (!user) return;
+    const nbCm = parseInt(nbCmInput || "0");
+    const nbCreateurs = parseInt(nbCreateursInput || "0");
+    if (isNaN(nbCm) || isNaN(nbCreateurs)) { toast.error("Valeurs invalides"); return; }
+    if (maxMembres !== null && 1 + nbCm + nbCreateurs > maxMembres) {
+      toast.error(`Quota dépassé (max ${maxMembres} membres dont 1 DM)`);
+      return;
+    }
+    setSavingTeam(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("users") as any)
+      .update({ nb_cm: nbCm, nb_createurs: nbCreateurs })
+      .eq("user_id", user.id);
+    setSavingTeam(false);
+    if (error) { toast.error("Erreur de sauvegarde"); return; }
+    toast.success("Équipe configurée !");
+    setTeamConfigOpen(false);
+  };
 
   const handleDismiss = async () => {
     localStorage.setItem(DISMISS_KEY, "true");
@@ -139,7 +207,7 @@ export function OnboardingChecklist() {
   // Auto-dismiss after all done (4 s delay)
   useEffect(() => {
     if (allDone && completedCount > 0 && dbLoaded) {
-      const t = setTimeout(handleDismiss, 4000);
+      const t = setTimeout(() => void handleDismiss(), 4000);
       return () => clearTimeout(t);
     }
   }, [allDone, completedCount, dbLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -200,7 +268,10 @@ export function OnboardingChecklist() {
                       ) : (
                         <button
                           className="text-[10px] text-primary hover:underline font-sans mt-0.5"
-                          onClick={() => navigate(step.href)}
+                          onClick={() => {
+                            if (step.id === 0) setTeamConfigOpen(true);
+                            else navigate(step.href);
+                          }}
                         >
                           {step.description} →
                         </button>
@@ -235,6 +306,61 @@ export function OnboardingChecklist() {
           </>
         )}
       </div>
+
+      {/* Team config modal */}
+      <Dialog open={teamConfigOpen} onOpenChange={setTeamConfigOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Configure ton équipe</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+              <span className="text-sm font-sans font-medium">Digital Manager (DM)</span>
+              <span className="text-sm font-semibold text-muted-foreground">1 (fixe)</span>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-sans text-sm">Community Managers (CM)</Label>
+              <Input
+                type="number"
+                min="0"
+                max={maxMembres != null ? maxMembres - 1 : 99}
+                value={nbCmInput}
+                onChange={(e) => setNbCmInput(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-sans text-sm">Créateurs (graphistes / vidéastes)</Label>
+              <Input
+                type="number"
+                min="0"
+                max={maxMembres != null ? maxMembres - 1 : 99}
+                value={nbCreateursInput}
+                onChange={(e) => setNbCreateursInput(e.target.value)}
+              />
+            </div>
+            {maxMembres != null && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-sans text-muted-foreground">
+                  <span>Postes utilisés</span>
+                  <span className={totalUsed > quota ? "text-destructive font-semibold" : ""}>
+                    {totalUsed} / {quota}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${totalUsed > quota ? "bg-destructive" : "bg-primary"}`}
+                    style={{ width: `${Math.min(100, (totalUsed / quota) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <Button className="w-full" disabled={savingTeam} onClick={() => void handleSaveTeam()}>
+              {savingTeam ? <Users className="h-4 w-4 animate-pulse mr-2" /> : null}
+              Enregistrer la configuration
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Badge unlock modal */}
       <Dialog open={!!badgeModal} onOpenChange={(v) => { if (!v) setBadgeModal(null); }}>

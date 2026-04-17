@@ -16,6 +16,7 @@ export interface Plan {
   highlighted: boolean;
   badge: string | null;
   cta_text: string;
+  max_membres: number | null;
 }
 
 export function usePlans() {

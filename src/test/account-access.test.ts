@@ -57,11 +57,11 @@ describe("getAccountAccess", () => {
 
   // ── Rôles payants non-privilégiés ────────────────────────────────────────
 
-  it("identifie 'solo' comme non-freemium et non-privilégié", () => {
-    const access = getAccountAccess({ role: "solo" });
+  it("identifie 'solo_standard' comme non-freemium et non-privilégié", () => {
+    const access = getAccountAccess({ role: "solo_standard" });
     expect(access.isPrivileged).toBe(false);
     expect(access.isFreemium).toBe(false);
-    expect(access.role).toBe("solo");
+    expect(access.role).toBe("solo_standard");
   });
 
   it("identifie 'agence_standard' comme non-freemium et non-privilégié", () => {
@@ -79,12 +79,12 @@ describe("getAccountAccess", () => {
   // ── Retour de plan ────────────────────────────────────────────────────────
 
   it("retourne le plan tel quel si fourni", () => {
-    const access = getAccountAccess({ role: "solo", plan: "agence_pro" });
+    const access = getAccountAccess({ role: "solo_standard", plan: "agence_pro" });
     expect(access.plan).toBe("agence_pro");
   });
 
   it("retourne plan null si absent", () => {
-    const access = getAccountAccess({ role: "solo" });
+    const access = getAccountAccess({ role: "solo_standard" });
     expect(access.plan).toBeNull();
   });
 

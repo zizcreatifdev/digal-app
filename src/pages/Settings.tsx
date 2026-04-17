@@ -560,12 +560,29 @@ function TeamTab() {
   const [profile, setProfile] = useState<UserRow | null>(null);
   const [teamMembers, setTeamMembers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [teamNbCm, setTeamNbCm] = useState(0);
+  const [teamNbCreateurs, setTeamNbCreateurs] = useState(0);
+  const [maxMembres, setMaxMembres] = useState<number | null>(null);
+  const [savingTeam, setSavingTeam] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data: prof } = await supabase.from("users").select("*").eq("user_id", user.id).maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: prof } = await (supabase.from("users") as any).select("*").eq("user_id", user.id).maybeSingle();
       setProfile(prof);
+      setTeamNbCm(prof?.nb_cm ?? 0);
+      setTeamNbCreateurs(prof?.nb_createurs ?? 0);
+
+      if (prof?.plan) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: planData } = await (supabase as any)
+          .from("plans")
+          .select("max_membres")
+          .eq("slug", prof.plan)
+          .maybeSingle();
+        setMaxMembres(planData?.max_membres ?? null);
+      }
 
       if (prof?.agence_id) {
         const { data: team } = await supabase.from("users").select("*").eq("agence_id", prof.agence_id).order("created_at");
@@ -580,6 +597,22 @@ function TeamTab() {
   }, [user]);
 
   const isAgence = profile?.role === "dm" || profile?.role?.startsWith("agence");
+  const totalUsed = 1 + teamNbCm + teamNbCreateurs;
+  const quota = maxMembres ?? 0;
+  const overQuota = maxMembres !== null && totalUsed > maxMembres;
+
+  const handleSaveTeam = async () => {
+    if (!user) return;
+    if (overQuota) { toast.error(`Quota dépassé (max ${maxMembres} membres)`); return; }
+    setSavingTeam(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("users") as any)
+      .update({ nb_cm: teamNbCm, nb_createurs: teamNbCreateurs })
+      .eq("user_id", user.id);
+    setSavingTeam(false);
+    if (error) toast.error("Erreur de sauvegarde");
+    else toast.success("Configuration équipe mise à jour");
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail || !profile) return;
@@ -740,9 +773,70 @@ function TeamTab() {
       </Card>
 
       {isAgence && (
-        <Button variant="outline" onClick={() => toast.info("Demande envoyée à l'administrateur")}>
-          Demander plus de membres
-        </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif flex items-center gap-2">
+              <UsersIcon className="h-5 w-5" /> Répartition équipe
+            </CardTitle>
+            <CardDescription>
+              Configurez le nombre de CM et Créateurs dans votre plan
+              {maxMembres != null ? ` (${maxMembres} postes max)` : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+              <span className="text-sm font-sans font-medium">Digital Manager (DM)</span>
+              <span className="text-sm font-semibold text-muted-foreground">1 (fixe)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-sans text-sm">Community Managers</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max={maxMembres != null ? maxMembres - 1 : undefined}
+                  value={teamNbCm}
+                  onChange={(e) => setTeamNbCm(parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-sans text-sm">Créateurs</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max={maxMembres != null ? maxMembres - 1 : undefined}
+                  value={teamNbCreateurs}
+                  onChange={(e) => setTeamNbCreateurs(parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            {maxMembres != null && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-sans text-muted-foreground">
+                  <span>Postes utilisés</span>
+                  <span className={overQuota ? "text-destructive font-semibold" : ""}>
+                    {totalUsed} / {quota}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${overQuota ? "bg-destructive" : "bg-primary"}`}
+                    style={{ width: `${Math.min(100, (totalUsed / quota) * 100)}%` }}
+                  />
+                </div>
+                {overQuota && (
+                  <p className="text-xs text-destructive font-sans">
+                    Quota dépassé. Réduisez le nombre de membres ou passez à un plan supérieur.
+                  </p>
+                )}
+              </div>
+            )}
+            <Button onClick={() => void handleSaveTeam()} disabled={savingTeam || overQuota}>
+              {savingTeam && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Mettre à jour
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -913,7 +1007,7 @@ function LicenseTab() {
       setProfile(data);
       if (data?.id) loadHistory(data.id);
     });
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleActivate = async () => {
     const key = keyInput.trim().toUpperCase();

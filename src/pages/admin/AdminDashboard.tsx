@@ -73,6 +73,7 @@ interface EngagementKpis {
 
 const roleToPlanSlug: Record<string, string> = {
   solo: "solo_standard",
+  solo_standard: "solo_standard",
   dm: "agence_standard",
   agence_standard: "agence_standard",
   agence_pro: "agence_pro",
@@ -106,7 +107,7 @@ async function fetchKpis(planPrices: Record<string, number>): Promise<KpiData> {
     return sum + (planPrices[slug] ?? 0);
   }, 0);
 
-  const soloActive = activeUsers.filter((u) => u.role === "solo").length;
+  const soloActive = activeUsers.filter((u) => u.role === "solo" || u.role === "solo_standard").length;
   const agenceActive = activeUsers.filter(
     (u) => u.role === "dm" || u.role === "agence_standard" || u.role === "agence_pro"
   ).length;

@@ -24,6 +24,7 @@ interface PlanConfig {
 
 const TYPE_LABELS: Record<string, string> = {
   solo: "CM Pro",
+  solo_standard: "CM Pro",
   agence_standard: "Studio",
   agence_pro: "Elite",
 };
@@ -49,7 +50,7 @@ export default function AdminLicences() {
   // Activate existing user dialog
   const [showActivate, setShowActivate] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState("solo");
+  const [selectedPlan, setSelectedPlan] = useState("solo_standard");
   const [duree, setDuree] = useState("6");
 
   // Generate key dialog
@@ -441,7 +442,7 @@ export default function AdminLicences() {
                 <Select value={selectedPlan} onValueChange={setSelectedPlan}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="solo">CM Pro</SelectItem>
+                    <SelectItem value="solo_standard">CM Pro</SelectItem>
                     <SelectItem value="agence_standard">Studio</SelectItem>
                     <SelectItem value="agence_pro">Elite</SelectItem>
                   </SelectContent>
