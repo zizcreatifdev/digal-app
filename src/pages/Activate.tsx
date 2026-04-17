@@ -105,10 +105,11 @@ export default function Activate() {
   };
 
   const typeLabel: Record<string, string> = {
-    solo: "Solo",
-    agence: "Agence",
-    agence_standard: "Agence Standard",
-    agence_pro: "Agence Pro",
+    solo: "CM Pro",
+    agence: "Studio",
+    agence_standard: "Studio",
+    agence_pro: "Elite",
+    freemium: "Découverte",
   };
 
   return (

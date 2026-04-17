@@ -26,13 +26,13 @@ interface UserRow {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  dm: "DM",
-  agence_standard: "DM",
-  agence_pro: "DM Agence Pro",
-  cm: "CM",
+  dm: "Digital Manager",
+  agence_standard: "Digital Manager",
+  agence_pro: "DM Elite",
+  cm: "Community Manager",
   createur: "Créateur",
   freemium: "Découverte",
-  solo: "Solo",
+  solo: "CM Pro",
 };
 
 function getRoleBadgeClass(role: string): string {

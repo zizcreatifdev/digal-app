@@ -55,7 +55,7 @@ export function TeamRolesSection() {
         <div className="flex justify-center">
           <Badge variant="outline" className="px-4 py-1.5 text-xs font-sans border-primary/30 text-primary gap-2">
             <Shield className="h-3 w-3" />
-            Disponible sur Agence Standard et Pro
+            Disponible sur Studio et Elite
           </Badge>
         </div>
       </div>

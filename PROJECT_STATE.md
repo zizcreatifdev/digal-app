@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-16_
-_Prompt courant : 44 — Countdown configurable depuis Admin_
+_Dernière mise à jour : 2026-04-17_
+_Prompt courant : 46 — Fix cohérence noms plans partout_
 
 ---
 
@@ -371,3 +371,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 38 | Nouveaux noms plans (Découverte/CM Pro/Studio/Elite), toggle pricing 3 options + -X% + taglines, remise sur factures | 2026-04-16 |
 | 41 | Plan Elite sur mesure : carte "Tarif sur mesure" + EliteContactModal (6 champs, insert elite_requests), AdminWaitlist onglets + tableau Demandes Elite, migration SQL | 2026-04-16 |
 | 44 | Countdown configurable : migration launch_date+show_countdown, AdminPlateforme widget (date, toggle, aperçu), useCountdown showCountdown, HeroSection lancé → CTA "Créer mon compte" | 2026-04-16 |
+| audit-2 | Audit lecture seule : 8 problèmes critiques noms plans, 6 migrations en attente prod | 2026-04-17 |
+| 45 | Fix AdminPlans : PLAN_SLUG_NAMES, query plan_configs + filtre .in(), prix depuis plan_configs (duree=1), "Tarif sur mesure" Elite | 2026-04-16 |
+| 46 | Fix cohérence noms plans : 7 fichiers corrigés, src/lib/plan-labels.ts centralisé, migration UPDATE plans.nom, MIGRATIONS_PENDING.md | 2026-04-17 |

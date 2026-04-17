@@ -274,7 +274,7 @@ function getAlertMessage(alert: AlertEntry): string {
       `Bonjour ${alert.prenom},`,
       "",
       `Vous utilisez Digal depuis ${alert.daysSince} jours en version gratuite.`,
-      "Passez à la version Solo Standard et débloquez :",
+      "Passez à CM Pro et débloquez :",
       "la facturation FCFA, la comptabilité et les rapports KPI.",
       "",
       "Licence 6 mois : 75 000 FCFA",

@@ -163,9 +163,11 @@ export default function AdminContrats() {
   };
 
   const planLabels: Record<string, string> = {
-    solo_standard: "Solo Standard",
-    agence_standard: "Agence Standard",
-    agence_pro: "Agence Pro",
+    solo: "CM Pro",
+    solo_standard: "CM Pro",
+    agence_standard: "Studio",
+    agence_pro: "Elite",
+    freemium: "Découverte",
   };
 
   return (

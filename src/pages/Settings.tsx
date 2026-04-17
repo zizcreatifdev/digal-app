@@ -616,14 +616,15 @@ function TeamTab() {
   };
 
   const ROLE_LABELS: Record<string, string> = {
-    dm: "DM",
+    dm: "Digital Manager",
     freemium: "Découverte",
+    solo: "CM Pro",
     solo_standard: "CM Pro",
-    solo_pro: "Solo Pro",
-    agence_starter: "DM Agence",
-    agence_standard: "DM",
-    agence_pro: "DM Agence Pro",
-    cm: "CM",
+    solo_pro: "CM Pro",
+    agence_starter: "Studio",
+    agence_standard: "Digital Manager",
+    agence_pro: "DM Elite",
+    cm: "Community Manager",
     createur: "Créateur",
   };
 
