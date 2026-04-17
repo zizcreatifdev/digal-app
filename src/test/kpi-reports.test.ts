@@ -22,9 +22,9 @@ describe("hasMetrics", () => {
     expect(hasMetrics(metriques)).toBe(false);
   });
 
-  it("retourne false si toutes les valeurs sont 0", () => {
+  it("retourne true si toutes les valeurs sont 0 (valeur saisie intentionnelle)", () => {
     const metriques: KpiMetriques = { instagram: { abonnes: 0, portee: 0 } };
-    expect(hasMetrics(metriques)).toBe(false);
+    expect(hasMetrics(metriques)).toBe(true);
   });
 
   it("retourne false si toutes les valeurs sont undefined", () => {
@@ -76,12 +76,14 @@ describe("getFilledMetrics", () => {
     expect(getFilledMetrics({})).toEqual([]);
   });
 
-  it("filtre les valeurs à 0", () => {
+  it("inclut les valeurs à 0 (valeur saisie intentionnelle)", () => {
     const metrics: NetworkMetrics = { abonnes: 0, portee: 1_000 };
     const result = getFilledMetrics(metrics);
-    expect(result).toHaveLength(1);
-    expect(result[0].key).toBe("portee");
-    expect(result[0].value).toBe(1_000);
+    expect(result).toHaveLength(2);
+    const portee = result.find((r) => r.key === "portee");
+    const abonnes = result.find((r) => r.key === "abonnes");
+    expect(portee?.value).toBe(1_000);
+    expect(abonnes?.value).toBe(0);
   });
 
   it("filtre les valeurs undefined", () => {

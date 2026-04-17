@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-17_
-_Prompt courant : 48A — Logique statuts posts verrouillés_
+_Prompt courant : 50 — Fix bugs BUGS_REPORT_
 
 ---
 
@@ -61,7 +61,7 @@ _Prompt courant : 48A — Logique statuts posts verrouillés_
 
 ---
 
-### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-48A)
+### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-48B)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Vue calendrier mensuelle | ✅ Complet | `EditorialCalendar` |
@@ -69,6 +69,9 @@ _Prompt courant : 48A — Logique statuts posts verrouillés_
 | Modifier un post | ✅ Complet | `EditPostModal` |
 | Workflow statuts | ✅ Complet | brouillon→en_attente_validation→programme_valide→publie |
 | Statuts verrouillés (48A) | ✅ Complet | Règles 1/2/3/4/5 — transitions validées |
+| Couleur bordure par statut (48B) | ✅ Complet | `POST_STATUT_HEX` dans PostCard |
+| Boutons contextuels PostCard (48B) | ✅ Complet | Soumettre / Générer lien / En attente / Publier |
+| Barre progression mois ClientDetail (48B) | ✅ Complet | programme_valide + publie / total |
 | Upload média post | ✅ Complet | Supabase Storage `post-media` |
 | Blocs périodes de production | ✅ Complet (prompt-07) | 4 types colorés |
 | Filtres par client/réseau | ✅ Complet | |
@@ -142,7 +145,7 @@ _Prompt courant : 48A — Logique statuts posts verrouillés_
 
 ---
 
-### Module RAPPORTS KPI — 95% ✅ (prompt-29)
+### Module RAPPORTS KPI — 100% ✅ (prompt-49)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Création rapport KPI | ✅ Complet | |
@@ -156,9 +159,10 @@ _Prompt courant : 48A — Logique statuts posts verrouillés_
 | Période Personnalisée | ✅ Complet (prompt-29) | 2 date pickers libres |
 | Points forts / axes | ✅ Complet | |
 | Export PDF | ✅ Complet | `kpi-pdf.ts` + labels période adapt. |
-| Historique rapports | ✅ Complet | |
+| Historique rapports | ✅ Complet | `formatMoisLabel` pour tous les formats |
+| Période Depuis le début (49) | ✅ Complet | Stats auto BDD + PDF cumulatif + tableaux mensuels |
 | Protection route /rapports | ✅ Complet (prompt-06) | |
-| Tests | ✅ 18/18 | `kpi-reports.test.ts` |
+| Tests | ✅ 137/137 | `kpi-reports.test.ts` — 0 inclus dans métriques |
 
 ---
 
@@ -294,7 +298,7 @@ _Prompt courant : 48A — Logique statuts posts verrouillés_
 | Métrique | État |
 |----------|------|
 | Erreurs ESLint | ✅ 0 erreur |
-| Warnings ESLint | 15 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Warnings ESLint | 13 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
 | Tests unitaires | ✅ 137/137 passent |
 | Fichiers de tests | 10 fichiers |
 | TypeScript | 0 erreur (strict) |
@@ -310,6 +314,10 @@ _Prompt courant : 48A — Logique statuts posts verrouillés_
 | 2 | ~~Double fetch session dans useAuth (race condition)~~ | ✅ Corrigé (prompt-32) |
 | 3 | ~~Export CSV comptabilité non implémenté~~ | ✅ Implémenté (prompt-32) |
 | 4 | RESEND_API_KEY + VAPID keys à configurer en production | CRITIQUE (config) |
+| 5 | ~~Notification refus lien vers route inexistante~~ | ✅ Corrigé (prompt-50) — `/calendrier` retiré |
+| 6 | ~~Race condition PDF KpiReportsPage setTimeout~~ | ✅ Corrigé (prompt-50) — `handleDirectDownload(report)` |
+| 7 | ~~Settings agence_standard → "Digital Manager"~~ | ✅ Corrigé (prompt-50) — "Studio" |
+| 8 | ~~Valeur 0 filtrée des PDFs KPI~~ | ✅ Corrigé (prompt-50) — 0 est une valeur valide |
 
 ---
 
@@ -378,3 +386,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 47 | Refonte PDF factures CM : header branding CM, bloc client dans modal, footer Digal centré | 2026-04-17 |
 | fix | Notifications cliquables + select colonnes explicites | 2026-04-17 |
 | 48A | Statuts posts verrouillés : brouillon+programme_valide, Règles 1-5 (submission, preview filter, validation→programme_valide, refus→brouillon+notif CM, publie depuis programme_valide uniquement) | 2026-04-17 |
+| 48B | UI statuts : POST_STATUT_HEX, boutons contextuels PostCard, barre progression mensuelle ClientDetail | 2026-04-17 |
+| 49 | KPI cumulatif "Depuis le début" : CumulativeStats, fetchCumulativeStats, formatMoisLabel, generateCumulativeKpiPdf, CreateKpiReportModal depuis_debut | 2026-04-17 |
+| 50 | Fix 9 bugs : notif lien 404, race condition PDF, label Studio, logo PDF, valeur 0, AdminDoc, rôles fantômes, PricingSection, PROJECT_STATE | 2026-04-17 |

@@ -11,7 +11,6 @@ import { createPreviewLink, getPreviewUrl, PERIOD_OPTIONS, PeriodOption, getPeri
 import { supabase } from "@/integrations/supabase/client";
 import { logPreviewAction } from "@/lib/activity-logs";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, Link2 } from "lucide-react";
 import { format } from "date-fns";

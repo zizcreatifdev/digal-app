@@ -13,6 +13,7 @@ import { KpiReportPreviewModal } from "@/components/kpi/KpiReportPreviewModal";
 import type { KpiReportPreviewData } from "@/components/kpi/KpiReportPreview";
 import { generateKpiPdf } from "@/lib/kpi-pdf";
 import type { KpiReport } from "@/lib/kpi-reports";
+import { formatMoisLabel } from "@/lib/kpi-reports";
 
 function getPrevMonth(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
@@ -85,6 +86,19 @@ const KpiReportsPage = () => {
     pdf.save(`KPI-${previewData.clientName}-${previewData.report.mois}.pdf`);
   };
 
+  const handleDirectDownload = async (report: KpiReport) => {
+    const prevMonth = getPrevMonth(report.mois);
+    const prevReport = reports.find((r) => r.mois === prevMonth) ?? null;
+    const pdf = await generateKpiPdf(
+      report,
+      selectedClientData?.nom ?? "",
+      selectedClientData?.logo_url ?? null,
+      cmName,
+      prevReport
+    );
+    pdf.save(`KPI-${selectedClientData?.nom ?? ""}-${report.mois}.pdf`);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -129,7 +143,7 @@ const KpiReportsPage = () => {
               <Card key={r.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{r.mois}</CardTitle>
+                    <CardTitle className="text-base capitalize">{formatMoisLabel(r.mois)}</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </CardHeader>
@@ -141,10 +155,7 @@ const KpiReportsPage = () => {
                     <Button variant="outline" size="sm" onClick={() => handlePreview(r)}>
                       <Eye className="h-3 w-3 mr-1" /> Aperçu
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      handlePreview(r);
-                      setTimeout(handleDownload, 100);
-                    }}>
+                    <Button variant="outline" size="sm" onClick={() => handleDirectDownload(r)}>
                       <Download className="h-3 w-3 mr-1" /> PDF
                     </Button>
                   </div>

@@ -43,7 +43,7 @@ const sections = [
       "Les plans sont gérés dans Admin > Formules & Tarifs",
       "Les modifications s'appliquent immédiatement sur toute la plateforme (landing, pricing, facturation owner)",
       "Possibilité d'activer des promotions avec prix réduit et badge promo",
-      "4 formules : Freemium, Solo Standard, Agence Standard, Agence Pro",
+      "4 formules : Découverte, CM Pro, Studio, Elite",
     ],
   },
   {

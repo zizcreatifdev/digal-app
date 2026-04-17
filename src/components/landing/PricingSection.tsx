@@ -48,6 +48,8 @@ const PLAN_TAGLINES: Record<string, string> = {
 const FEATURE_RENAME_MAP: Record<string, string> = {
   "Tout Solo Standard inclus": "Tout CM Pro inclus",
   "Tout Solo Pro inclus": "Tout CM Pro inclus",
+  "Tout Agence Standard inclus": "Tout Studio inclus",
+  "Tout Agence Pro inclus": "Tout Elite inclus",
 };
 
 const AGENCE_FEATURE_MAP: Record<string, string> = {
