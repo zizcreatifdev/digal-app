@@ -150,7 +150,7 @@ export function CreatePostModal({
         hashtags: hashtags || null,
         media_url: urls[0] ?? null,
         media_urls: urls,
-        statut: "en_production",
+        statut: "brouillon",
         assigne_a: null,
         review_comment: null,
       });

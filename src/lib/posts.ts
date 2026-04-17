@@ -19,13 +19,29 @@ export interface Post {
 }
 
 export const POST_STATUTS = [
+  { id: "brouillon", label: "Brouillon", color: "bg-slate-100 text-slate-600" },
   { id: "idee", label: "Idée", color: "bg-muted text-muted-foreground" },
   { id: "en_production", label: "En production", color: "bg-blue-100 text-blue-700" },
   { id: "en_attente_validation", label: "En attente validation", color: "bg-orange-100 text-orange-700" },
+  { id: "programme_valide", label: "Validé client", color: "bg-emerald-100 text-emerald-700" },
   { id: "valide", label: "Validé", color: "bg-green-100 text-green-700" },
   { id: "publie", label: "Publié", color: "bg-purple-100 text-purple-700" },
   { id: "refuse", label: "Refusé", color: "bg-red-100 text-red-700" },
 ] as const;
+
+/** Règle 1 : vérifie les prérequis avant de soumettre un brouillon en validation. */
+export function getMissingFieldsForSubmission(
+  texte: string | null,
+  mediaUrls: string[],
+  datePublication: string | null,
+  reseau: string | null
+): string[] {
+  const missing: string[] = [];
+  if (!texte?.trim() && mediaUrls.length === 0) missing.push("texte ou fichier média");
+  if (!datePublication) missing.push("date de publication");
+  if (!reseau) missing.push("réseau social");
+  return missing;
+}
 
 export const RESEAU_COLORS: Record<string, string> = {
   instagram: "border-l-pink-500",

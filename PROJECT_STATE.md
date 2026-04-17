@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-17_
-_Prompt courant : 46 — Fix cohérence noms plans partout_
+_Prompt courant : 48A — Logique statuts posts verrouillés_
 
 ---
 
@@ -61,13 +61,14 @@ _Prompt courant : 46 — Fix cohérence noms plans partout_
 
 ---
 
-### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-27)
+### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-48A)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Vue calendrier mensuelle | ✅ Complet | `EditorialCalendar` |
-| Créer un post | ✅ Complet | `CreatePostModal` |
+| Créer un post | ✅ Complet | `CreatePostModal` — statut initial "brouillon" |
 | Modifier un post | ✅ Complet | `EditPostModal` |
-| Workflow statuts | ✅ Complet | idee→en_production→validation→publie |
+| Workflow statuts | ✅ Complet | brouillon→en_attente_validation→programme_valide→publie |
+| Statuts verrouillés (48A) | ✅ Complet | Règles 1/2/3/4/5 — transitions validées |
 | Upload média post | ✅ Complet | Supabase Storage `post-media` |
 | Blocs périodes de production | ✅ Complet (prompt-07) | 4 types colorés |
 | Filtres par client/réseau | ✅ Complet | |
@@ -374,3 +375,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | audit-2 | Audit lecture seule : 8 problèmes critiques noms plans, 6 migrations en attente prod | 2026-04-17 |
 | 45 | Fix AdminPlans : PLAN_SLUG_NAMES, query plan_configs + filtre .in(), prix depuis plan_configs (duree=1), "Tarif sur mesure" Elite | 2026-04-16 |
 | 46 | Fix cohérence noms plans : 7 fichiers corrigés, src/lib/plan-labels.ts centralisé, migration UPDATE plans.nom, MIGRATIONS_PENDING.md | 2026-04-17 |
+| 47 | Refonte PDF factures CM : header branding CM, bloc client dans modal, footer Digal centré | 2026-04-17 |
+| fix | Notifications cliquables + select colonnes explicites | 2026-04-17 |
+| 48A | Statuts posts verrouillés : brouillon+programme_valide, Règles 1-5 (submission, preview filter, validation→programme_valide, refus→brouillon+notif CM, publie depuis programme_valide uniquement) | 2026-04-17 |

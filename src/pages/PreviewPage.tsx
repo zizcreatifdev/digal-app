@@ -101,7 +101,7 @@ const PreviewPage = () => {
         Promise.all([
           supabase.from("clients").select("*").eq("id", linkData.client_id).single(),
           supabase.from("users").select("nom, prenom, agence_nom, logo_url").eq("user_id", linkData.user_id).maybeSingle(),
-          supabase.from("posts").select("*").eq("client_id", linkData.client_id).gte("date_publication", linkData.periode_debut).lte("date_publication", linkData.periode_fin).order("date_publication", { ascending: true }),
+          supabase.from("posts").select("*").eq("client_id", linkData.client_id).eq("statut", "en_attente_validation").gte("date_publication", linkData.periode_debut).lte("date_publication", linkData.periode_fin).order("date_publication", { ascending: true }),
           fetchPreviewActions(linkData.id).catch(() => [] as PreviewAction[]),
         ]),
         timeout,
@@ -142,9 +142,9 @@ const PreviewPage = () => {
     setSubmitting(true);
     try {
       await submitPreviewAction(link.id, postId, "valide");
-      await supabase.from("posts").update({ statut: "valide" }).eq("id", postId);
+      await supabase.from("posts").update({ statut: "programme_valide" }).eq("id", postId);
       addActionLocally(postId, "valide");
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, statut: "valide" } : p));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, statut: "programme_valide" } : p));
       toast.success("Post validé !");
     } catch {
       toast.error("Erreur");
@@ -158,9 +158,17 @@ const PreviewPage = () => {
     setSubmitting(true);
     try {
       await submitPreviewAction(link.id, postId, "refuse", comment);
-      await supabase.from("posts").update({ statut: "refuse" }).eq("id", postId);
+      await supabase.from("posts").update({ statut: "brouillon" }).eq("id", postId);
       addActionLocally(postId, "refuse", comment);
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, statut: "refuse" } : p));
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, statut: "brouillon" } : p));
+      // Règle 5 : notifier le CM avec le commentaire du client
+      await supabase.from("notifications").insert({
+        user_id: link.user_id,
+        titre: `${client?.nom ?? "Client"} a refusé un post`,
+        message: comment || "Aucun commentaire.",
+        type: "warning",
+        lien: `/dashboard/clients/${link.client_id}/calendrier`,
+      });
       toast.success("Post refusé");
       setRefusePostId(null);
       setRefuseComment("");
@@ -178,10 +186,10 @@ const PreviewPage = () => {
       const pending = posts.filter((p) => !getPostAction(p.id));
       for (const post of pending) {
         await submitPreviewAction(link.id, post.id, "valide");
-        await supabase.from("posts").update({ statut: "valide" }).eq("id", post.id);
+        await supabase.from("posts").update({ statut: "programme_valide" }).eq("id", post.id);
         addActionLocally(post.id, "valide");
       }
-      setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "valide" : p.statut })));
+      setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "programme_valide" : p.statut })));
       toast.success("Tous les posts validés !");
     } catch {
       toast.error("Erreur");
@@ -197,10 +205,18 @@ const PreviewPage = () => {
       const pending = posts.filter((p) => !getPostAction(p.id));
       for (const post of pending) {
         await submitPreviewAction(link.id, post.id, "refuse", comment);
-        await supabase.from("posts").update({ statut: "refuse" }).eq("id", post.id);
+        await supabase.from("posts").update({ statut: "brouillon" }).eq("id", post.id);
         addActionLocally(post.id, "refuse", comment);
       }
-      setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "refuse" : p.statut })));
+      setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "brouillon" : p.statut })));
+      // Règle 5 : notifier le CM avec le commentaire global du client
+      await supabase.from("notifications").insert({
+        user_id: link.user_id,
+        titre: `${client?.nom ?? "Client"} a refusé ${pending.length} post(s)`,
+        message: comment || "Aucun commentaire.",
+        type: "warning",
+        lien: `/dashboard/clients/${link.client_id}/calendrier`,
+      });
       toast.success("Tous les posts refusés");
       setShowRefuseAll(false);
       setRefuseComment("");

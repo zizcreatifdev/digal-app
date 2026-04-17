@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { RESEAUX } from "@/lib/clients";
-import { Post, POST_STATUTS, RESEAU_LABELS, updatePost, deletePost, uploadPostMedia } from "@/lib/posts";
+import { Post, POST_STATUTS, RESEAU_LABELS, updatePost, deletePost, uploadPostMedia, getMissingFieldsForSubmission } from "@/lib/posts";
 import { fetchPreviewActions, PreviewAction } from "@/lib/preview-links";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -142,6 +142,22 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
 
   const handleSave = async () => {
     if (!user) return;
+
+    // Règle 1 : brouillon → en_attente_validation nécessite média/texte + date + réseau
+    if (statut === "en_attente_validation" && post.statut === "brouillon") {
+      const missing = getMissingFieldsForSubmission(texte, existingUrls, datePublication, reseau);
+      if (missing.length > 0) {
+        toast.error(`Champs manquants pour la validation : ${missing.join(", ")}`);
+        return;
+      }
+    }
+
+    // Règle 4 : publie uniquement depuis programme_valide
+    if (statut === "publie" && post.statut !== "programme_valide") {
+      toast.error("Ce post doit être validé par le client avant d'être marqué comme publié");
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Compress + upload new files

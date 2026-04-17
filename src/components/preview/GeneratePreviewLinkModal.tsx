@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createPreviewLink, getPreviewUrl, PERIOD_OPTIONS, PeriodOption, getPeriodDates } from "@/lib/preview-links";
+import { supabase } from "@/integrations/supabase/client";
 import { logPreviewAction } from "@/lib/activity-logs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +57,22 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
     if (!user) return;
     setLoading(true);
     try {
+      // Règle 2 : vérifier qu'il y a des posts en_attente_validation pour la période
+      const { start: pStart, end: pEnd } = getPeriodDates(period);
+      const { data: pendingPosts } = await supabase
+        .from("posts")
+        .select("id")
+        .eq("client_id", clientId)
+        .eq("statut", "en_attente_validation")
+        .gte("date_publication", pStart.toISOString())
+        .lte("date_publication", pEnd.toISOString())
+        .limit(1);
+      if (!pendingPosts || pendingPosts.length === 0) {
+        toast.error("Aucun post à valider. Soumettez d'abord vos posts pour validation.");
+        setLoading(false);
+        return;
+      }
+
       const link = await createPreviewLink(clientId, user.id, period, {
         clientSlug: clientSlug ?? null,
         welcomeMessage: welcomeMessage.trim() || undefined,
