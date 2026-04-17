@@ -20,10 +20,11 @@ import { logActivity } from "@/lib/activity-logs";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
   Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
-  CreditCard, Receipt, PauseCircle, CheckCircle2,
+  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
+import { Switch } from "@/components/ui/switch";
 
 const createAccountSchema = z.object({
   prenom: z.string().min(1, "Prénom requis"),
@@ -32,11 +33,25 @@ const createAccountSchema = z.object({
   password: z.string().min(8, "Minimum 8 caractères"),
   confirmPassword: z.string().min(1, "Confirmation requise"),
   type_compte: z.enum(["solo", "agence"]),
-  plan: z.enum(["freemium", "solo_standard", "agence_standard", "agence_pro"]),
+  plan: z.enum(["freemium", "solo", "agence_standard", "agence_pro"]),
   agence_nom: z.string().optional(),
+  duree_mois: z.number().optional(),
+  offert: z.boolean().optional(),
+  raison_offert: z.string().optional(),
+  methode_paiement: z.string().optional(),
+  reference_transaction: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
+}).superRefine((data, ctx) => {
+  if (data.plan !== "freemium") {
+    if (!data.duree_mois) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Durée requise", path: ["duree_mois"] });
+    }
+    if (!data.offert && !data.methode_paiement) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Méthode de paiement requise", path: ["methode_paiement"] });
+    }
+  }
 });
 
 type CreateAccountForm = z.infer<typeof createAccountSchema>;
@@ -132,11 +147,12 @@ export default function AdminComptes() {
 
   const createForm = useForm<CreateAccountForm>({
     resolver: zodResolver(createAccountSchema),
-    defaultValues: { type_compte: "solo", plan: "freemium" },
+    defaultValues: { type_compte: "solo", plan: "freemium", offert: false, methode_paiement: "Wave" },
   });
 
   const createAccount = useMutation({
     mutationFn: async (values: CreateAccountForm) => {
+      // 1. Create Auth user + profile via edge function
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
           prenom: values.prenom,
@@ -149,13 +165,82 @@ export default function AdminComptes() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data;
+
+      // Découverte: done
+      if (values.plan === "freemium") return "freemium" as const;
+
+      // 2. Retrieve the created profile to get user_id
+      const { data: userProfile, error: profileErr } = await supabase
+        .from("users")
+        .select("id, user_id")
+        .eq("email", values.email)
+        .single();
+      if (profileErr || !userProfile) throw new Error("Profil introuvable après création");
+
+      // 3. Set licence_expiration
+      const licenceExp = new Date();
+      licenceExp.setMonth(licenceExp.getMonth() + (values.duree_mois!));
+      const { error: updateErr } = await supabase
+        .from("users")
+        .update({ licence_expiration: licenceExp.toISOString() })
+        .eq("id", userProfile.id);
+      if (updateErr) throw updateErr;
+
+      // 4. Create document facture_licence (statut: payee)
+      const now = new Date();
+      const yymm = now.toISOString().slice(0, 7).replace("-", "");
+      const rand = Math.floor(Math.random() * 9000) + 1000;
+      const numero = `FAC-DIG-${yymm}-${rand}`;
+      const isOffert = values.offert ?? false;
+      const prix = isOffert ? 0 : getPriceForPlanDuree(values.plan, values.duree_mois!);
+
+      const notesParts = [`Licence Digal ${PLAN_LABELS[values.plan] ?? values.plan} — ${values.duree_mois} mois`];
+      if (isOffert) {
+        notesParts.push(`Offert${values.raison_offert ? " — " + values.raison_offert : ""}`);
+      } else {
+        if (values.methode_paiement) notesParts.push(values.methode_paiement);
+        if (values.reference_transaction) notesParts.push(values.reference_transaction);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: docErr } = await (supabase as any).from("documents").insert({
+        user_id: userProfile.user_id,
+        client_id: null,
+        type: "facture_licence",
+        statut: "payee",
+        numero,
+        sous_total: prix,
+        montant_tva: 0,
+        montant_brs: 0,
+        taux_tva: 0,
+        taux_brs: 0,
+        remise_pct: 0,
+        montant_remise: 0,
+        total: prix,
+        date_emission: now.toISOString().slice(0, 10),
+        notes: notesParts.join(" · "),
+      });
+      if (docErr) throw docErr;
+
+      // 5. Log activity
+      await logActivity(
+        userProfile.user_id,
+        "account_created",
+        "auth",
+        `Compte créé par admin : ${PLAN_LABELS[values.plan] ?? values.plan}${isOffert ? " (offert)" : ` — ${values.methode_paiement ?? ""}`}`,
+        "user",
+        userProfile.id,
+      );
+
+      return isOffert ? "offert" as const : "payant" as const;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
-      toast.success("Compte créé avec succès");
+      if (result === "offert") toast.success("Compte créé + licence offerte");
+      else if (result === "payant") toast.success("Compte créé + facture générée");
+      else toast.success("Compte créé avec succès");
       setCreateOpen(false);
-      createForm.reset({ type_compte: "solo", plan: "freemium" });
+      createForm.reset({ type_compte: "solo", plan: "freemium", offert: false, methode_paiement: "Wave" });
     },
     onError: (err: Error) => toast.error(err.message ?? "Erreur lors de la création"),
   });
@@ -357,6 +442,9 @@ export default function AdminComptes() {
 
   const getSelectedConfig = (planType: string, duree: number) =>
     (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree);
+
+  const getPriceForPlanDuree = (planType: string, duree: number) =>
+    (planConfigs ?? []).find((c) => c.plan_type === planType && c.duree_mois === duree)?.prix_fcfa ?? 0;
 
   const generateInvoice = useMutation({
     mutationFn: async ({ targetUser, plan, duree, prix }: {
@@ -588,14 +676,15 @@ export default function AdminComptes() {
         )}
 
         {/* Modal création de compte */}
-        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) createForm.reset({ type_compte: "solo", plan: "freemium" }); }}>
-          <DialogContent className="max-w-lg">
+        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) createForm.reset({ type_compte: "solo", plan: "freemium", offert: false, methode_paiement: "Wave" }); }}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-serif flex items-center gap-2">
                 <UserPlus className="h-5 w-5" /> Créer un compte
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit((v) => createAccount.mutate(v))} className="space-y-4 font-sans">
+              {/* Identité */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="prenom" className="text-xs">Prénom *</Label>
@@ -638,6 +727,7 @@ export default function AdminComptes() {
                 </div>
               </div>
 
+              {/* Type compte */}
               <div className="space-y-2">
                 <Label className="text-xs">Type de compte *</Label>
                 <RadioGroup
@@ -656,25 +746,128 @@ export default function AdminComptes() {
                 </RadioGroup>
               </div>
 
+              {/* Plan */}
               <div className="space-y-1">
                 <Label className="text-xs">Plan *</Label>
                 <Select
-                  defaultValue="freemium"
-                  onValueChange={(v) => createForm.setValue("plan", v as CreateAccountForm["plan"])}
+                  value={createForm.watch("plan")}
+                  onValueChange={(v) => {
+                    const plan = v as CreateAccountForm["plan"];
+                    createForm.setValue("plan", plan);
+                    const durations = getDurationsForPlan(plan);
+                    createForm.setValue("duree_mois", durations[0]?.duree_mois);
+                    createForm.setValue("offert", false);
+                    createForm.setValue("methode_paiement", "Wave");
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="Choisir un plan" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="freemium">Découverte</SelectItem>
-                    <SelectItem value="solo_standard">CM Pro</SelectItem>
+                    <SelectItem value="solo">CM Pro</SelectItem>
                     <SelectItem value="agence_standard">Studio</SelectItem>
                     <SelectItem value="agence_pro">Elite</SelectItem>
                   </SelectContent>
                 </Select>
-                {createForm.watch("plan") !== "freemium" && (
-                  <p className="text-xs text-muted-foreground">Licence active, expiration dans 6 mois</p>
+              </div>
+
+              {/* Sections plans payants — animation smooth */}
+              <div className={`space-y-4 overflow-hidden transition-all duration-300 ${createForm.watch("plan") !== "freemium" ? "max-h-[700px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}>
+
+                {/* Durée & Prix */}
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <p className="text-xs font-semibold flex items-center gap-1.5">
+                    <CreditCard className="h-3.5 w-3.5 text-primary" /> Durée &amp; Prix
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Durée</Label>
+                    <Select
+                      value={createForm.watch("duree_mois") !== undefined ? String(createForm.watch("duree_mois")) : ""}
+                      onValueChange={(v) => createForm.setValue("duree_mois", Number(v))}
+                    >
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Choisir une durée" /></SelectTrigger>
+                      <SelectContent>
+                        {getDurationsForPlan(createForm.watch("plan")).map((c) => (
+                          <SelectItem key={c.duree_mois} value={String(c.duree_mois)}>
+                            {c.duree_mois === 1 ? "1 mois" : `${c.duree_mois} mois`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {createForm.formState.errors.duree_mois && (
+                      <p className="text-xs text-destructive">{createForm.formState.errors.duree_mois.message}</p>
+                    )}
+                  </div>
+                  {createForm.watch("duree_mois") && (
+                    <p className="text-sm text-muted-foreground">
+                      Prix :{" "}
+                      <span className="font-semibold text-foreground">
+                        {getPriceForPlanDuree(createForm.watch("plan"), createForm.watch("duree_mois")!).toLocaleString("fr-FR")} FCFA
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Toggle Offrir */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-normal cursor-pointer">Offrir cette licence</Label>
+                  </div>
+                  <Switch
+                    checked={createForm.watch("offert") ?? false}
+                    onCheckedChange={(v) => createForm.setValue("offert", v)}
+                  />
+                </div>
+
+                {/* Offert OU Paiement */}
+                {createForm.watch("offert") ? (
+                  <div className="space-y-3">
+                    <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-2">
+                      <Gift className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <p className="text-xs font-semibold text-emerald-800">Facture 0 FCFA — Offert</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Raison (optionnel)</Label>
+                      <Input
+                        className="h-8 text-xs"
+                        placeholder="Ex: Partenariat, promotion lancement..."
+                        {...createForm.register("raison_offert")}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border p-3 space-y-3">
+                    <p className="text-xs font-semibold flex items-center gap-1.5">
+                      <Receipt className="h-3.5 w-3.5 text-primary" /> Paiement
+                    </p>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Méthode</Label>
+                      <Select
+                        value={createForm.watch("methode_paiement") ?? "Wave"}
+                        onValueChange={(v) => createForm.setValue("methode_paiement", v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {METHODE_LABELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {createForm.formState.errors.methode_paiement && (
+                        <p className="text-xs text-destructive">{createForm.formState.errors.methode_paiement.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Référence transaction (optionnel)</Label>
+                      <Input
+                        className="h-8 text-xs"
+                        placeholder="Ex: WV-2026-XXXX"
+                        {...createForm.register("reference_transaction")}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
+              {/* Agence */}
               <div className="space-y-1">
                 <Label htmlFor="agence_nom" className="text-xs">Nom de l'agence / entreprise</Label>
                 <Input id="agence_nom" {...createForm.register("agence_nom")} placeholder="Optionnel" />
@@ -685,8 +878,15 @@ export default function AdminComptes() {
                   Annuler
                 </Button>
                 <Button type="submit" size="sm" disabled={createAccount.isPending} className="font-sans">
-                  {createAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                  Créer le compte
+                  {createAccount.isPending
+                    ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    : <UserPlus className="h-4 w-4 mr-2" />
+                  }
+                  {createForm.watch("plan") === "freemium"
+                    ? "Créer le compte"
+                    : createForm.watch("offert")
+                      ? "Créer + offrir"
+                      : "Créer + facturer"}
                 </Button>
               </div>
             </form>

@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-17_
-_Prompt courant : 50 — Fix bugs BUGS_REPORT_
+_Prompt courant : 51 — Formulaire création compte Admin enrichi_
 
 ---
 
@@ -389,3 +389,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 48B | UI statuts : POST_STATUT_HEX, boutons contextuels PostCard, barre progression mensuelle ClientDetail | 2026-04-17 |
 | 49 | KPI cumulatif "Depuis le début" : CumulativeStats, fetchCumulativeStats, formatMoisLabel, generateCumulativeKpiPdf, CreateKpiReportModal depuis_debut | 2026-04-17 |
 | 50 | Fix 9 bugs : notif lien 404, race condition PDF, label Studio, logo PDF, valeur 0, AdminDoc, rôles fantômes, PricingSection, PROJECT_STATE | 2026-04-17 |
+| 51 | Formulaire création compte enrichi : Durée & Prix depuis plan_configs, toggle Offrir, section Paiement, facture_licence auto à la création | 2026-04-17 |
