@@ -13,6 +13,7 @@ import { KpiReportPreviewModal } from "@/components/kpi/KpiReportPreviewModal";
 import type { KpiReportPreviewData } from "@/components/kpi/KpiReportPreview";
 import { generateKpiPdf } from "@/lib/kpi-pdf";
 import type { KpiReport } from "@/lib/kpi-reports";
+import { formatMoisLabel } from "@/lib/kpi-reports";
 
 function getPrevMonth(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
@@ -129,7 +130,7 @@ const KpiReportsPage = () => {
               <Card key={r.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{r.mois}</CardTitle>
+                    <CardTitle className="text-base capitalize">{formatMoisLabel(r.mois)}</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </CardHeader>

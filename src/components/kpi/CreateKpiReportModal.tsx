@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown, Eye } from "lucide-react";
+import { FileDown, Eye, Loader2 } from "lucide-react";
 import { logKpiAction } from "@/lib/activity-logs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,8 +15,11 @@ import {
   NETWORK_METRICS_CONFIG,
   saveKpiReport,
   fetchKpiReports,
+  fetchCumulativeStats,
+  CumulativeStats,
+  MonthlyKpiRow,
 } from "@/lib/kpi-reports";
-import { generateKpiPdf } from "@/lib/kpi-pdf";
+import { generateKpiPdf, generateCumulativeKpiPdf } from "@/lib/kpi-pdf";
 import { KpiReportPreviewModal } from "./KpiReportPreviewModal";
 import type { KpiReportPreviewData } from "./KpiReportPreview";
 
@@ -30,7 +33,7 @@ interface Props {
   onCreated: () => void;
 }
 
-type PeriodType = "mensuel" | "trimestriel" | "personnalise";
+type PeriodType = "mensuel" | "trimestriel" | "personnalise" | "depuis_debut";
 
 function getCurrentMonth() {
   const now = new Date();
@@ -57,15 +60,22 @@ function generateMonthOptions(): { value: string; label: string }[] {
 }
 
 function getPrevMonth(ym: string): string | null {
-  if (!/^\d{4}-\d{2}$/.test(ym)) return null; // Only works for monthly format
+  if (!/^\d{4}-\d{2}$/.test(ym)) return null;
   const [y, m] = ym.split("-").map(Number);
   if (m === 1) return `${y - 1}-12`;
   return `${y}-${String(m - 1).padStart(2, "0")}`;
 }
 
-function getMoisValue(periodType: PeriodType, mois: string, customDebut: string, customFin: string): string {
+function getMoisValue(
+  periodType: PeriodType,
+  mois: string,
+  customDebut: string,
+  customFin: string,
+  clientCreatedAt: string
+): string {
   if (periodType === "trimestriel") return getCurrentQuarter();
   if (periodType === "personnalise" && customDebut && customFin) return `${customDebut}/${customFin}`;
+  if (periodType === "depuis_debut" && clientCreatedAt) return `depuis:${clientCreatedAt.slice(0, 10)}`;
   return mois;
 }
 
@@ -92,6 +102,12 @@ export function CreateKpiReportModal({
   const [previewData, setPreviewData] = useState<KpiReportPreviewData | null>(null);
   const [cmName, setCmName] = useState<string>("");
 
+  // Cumulative stats state
+  const [clientCreatedAt, setClientCreatedAt] = useState<string>("");
+  const [cumulativeStats, setCumulativeStats] = useState<CumulativeStats | null>(null);
+  const [cumulativeMonthlyData, setCumulativeMonthlyData] = useState<MonthlyKpiRow[]>([]);
+  const [loadingCumul, setLoadingCumul] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -103,6 +119,23 @@ export function CreateKpiReportModal({
         setCmName(profile ? `${profile.prenom} ${profile.nom}` : user.email?.split("@")[0] ?? "CM");
       });
   }, [user]);
+
+  useEffect(() => {
+    if (!open || periodType !== "depuis_debut") return;
+    setLoadingCumul(true);
+    Promise.all([fetchCumulativeStats(clientId), fetchKpiReports(clientId)])
+      .then(([stats, reports]) => {
+        setClientCreatedAt(stats.date_debut);
+        setCumulativeStats(stats);
+        setCumulativeMonthlyData(
+          reports
+            .filter((r) => !r.mois.startsWith("depuis:"))
+            .map((r) => ({ mois: r.mois, data: r.metriques }))
+        );
+      })
+      .catch(() => toast.error("Erreur lors du chargement des statistiques"))
+      .finally(() => setLoadingCumul(false));
+  }, [open, periodType, clientId]);
 
   const monthOptions = generateMonthOptions();
 
@@ -132,7 +165,7 @@ export function CreateKpiReportModal({
   };
 
   const buildPreviewData = async (): Promise<KpiReportPreviewData> => {
-    const effectiveMois = getMoisValue(periodType, mois, customDateDebut, customDateFin);
+    const effectiveMois = getMoisValue(periodType, mois, customDateDebut, customDateFin, clientCreatedAt);
     const allReports = await fetchKpiReports(clientId);
     const prevMonth = getPrevMonth(effectiveMois);
     const previousReport = prevMonth ? (allReports.find((r) => r.mois === prevMonth) ?? null) : null;
@@ -178,31 +211,61 @@ export function CreateKpiReportModal({
 
   const handleSaveAndDownload = async () => {
     if (!user) return;
-    const effectiveMois = getMoisValue(periodType, mois, customDateDebut, customDateFin);
+    const effectiveMois = getMoisValue(periodType, mois, customDateDebut, customDateFin, clientCreatedAt);
+
     if (periodType === "personnalise" && (!customDateDebut || !customDateFin)) {
       toast.error("Veuillez sélectionner une date de début et de fin");
       return;
     }
+    if (periodType === "depuis_debut" && !cumulativeStats) {
+      toast.error("Les statistiques ne sont pas encore chargées");
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await buildPreviewData();
       const reportId = await saveKpiReport({
         user_id: user.id,
         client_id: clientId,
         mois: effectiveMois,
-        metriques,
+        metriques: periodType === "depuis_debut" ? {} : metriques,
         points_forts: pointsForts,
         axes_amelioration: axesAmelioration,
         objectifs,
       });
 
-      const pdf = await generateKpiPdf(
-        { ...data.report, id: reportId },
-        clientName,
-        clientLogoUrl,
-        cmName,
-        data.previousReport
-      );
+      let pdf;
+      if (periodType === "depuis_debut" && cumulativeStats) {
+        pdf = await generateCumulativeKpiPdf(
+          {
+            id: reportId,
+            user_id: user.id,
+            client_id: clientId,
+            mois: effectiveMois,
+            metriques: {},
+            points_forts: pointsForts,
+            axes_amelioration: axesAmelioration,
+            objectifs,
+            pdf_url: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          clientName,
+          clientLogoUrl,
+          cmName,
+          cumulativeStats,
+          cumulativeMonthlyData
+        );
+      } else {
+        const data = await buildPreviewData();
+        pdf = await generateKpiPdf(
+          { ...data.report, id: reportId },
+          clientName,
+          clientLogoUrl,
+          cmName,
+          data.previousReport
+        );
+      }
 
       pdf.save(`KPI-${clientName}-${effectiveMois}.pdf`);
       toast.success("Rapport KPI généré et téléchargé");
@@ -239,11 +302,11 @@ export function CreateKpiReportModal({
                     <SelectItem value="mensuel">Mensuel</SelectItem>
                     <SelectItem value="trimestriel">Trimestriel</SelectItem>
                     <SelectItem value="personnalise">Personnalisé</SelectItem>
+                    <SelectItem value="depuis_debut">Depuis le début</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Monthly select */}
               {periodType === "mensuel" && (
                 <div className="sm:col-span-2">
                   <Label>Mois</Label>
@@ -260,7 +323,6 @@ export function CreateKpiReportModal({
                 </div>
               )}
 
-              {/* Quarterly info */}
               {periodType === "trimestriel" && (
                 <div className="sm:col-span-2 flex items-end">
                   <p className="text-sm text-muted-foreground font-sans pb-2">
@@ -269,7 +331,6 @@ export function CreateKpiReportModal({
                 </div>
               )}
 
-              {/* Custom date pickers */}
               {periodType === "personnalise" && (
                 <>
                   <div>
@@ -293,9 +354,58 @@ export function CreateKpiReportModal({
                   </div>
                 </>
               )}
+
+              {periodType === "depuis_debut" && clientCreatedAt && (
+                <div className="sm:col-span-2 flex items-end">
+                  <p className="text-sm text-muted-foreground font-sans pb-2">
+                    Depuis le {new Date(clientCreatedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {networksToShow.map((netKey) => {
+            {/* Cumulative stats display */}
+            {periodType === "depuis_debut" && (
+              <div className="space-y-4">
+                {loadingCumul ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : cumulativeStats ? (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statistiques cumulées</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: "Durée", value: `${cumulativeStats.nb_mois} mois` },
+                        { label: "Posts publiés", value: String(cumulativeStats.total_posts_publies) },
+                        { label: "Taux approbation", value: `${cumulativeStats.taux_approbation}%` },
+                        { label: "Liens générés", value: String(cumulativeStats.total_liens) },
+                        { label: "Moy. posts/mois", value: String(cumulativeStats.moyenne_posts_par_mois) },
+                        { label: "Meilleur mois", value: cumulativeStats.meilleur_mois ?? "—" },
+                      ].map((s) => (
+                        <div key={s.label} className="rounded-lg border bg-muted/40 p-3">
+                          <p className="text-[10px] text-muted-foreground font-sans">{s.label}</p>
+                          <p className="text-lg font-bold font-mono mt-0.5">{s.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {cumulativeStats.temps_moyen_validation_h !== null && (
+                      <p className="text-xs text-muted-foreground font-sans">
+                        Temps moyen de validation : <span className="font-semibold text-foreground">{cumulativeStats.temps_moyen_validation_h}h</span>
+                      </p>
+                    )}
+                    {cumulativeMonthlyData.length > 0 && (
+                      <p className="text-xs text-muted-foreground font-sans">
+                        Le PDF inclura les métriques mensuelles de <span className="font-semibold text-foreground">{cumulativeMonthlyData.length} rapport{cumulativeMonthlyData.length > 1 ? "s" : ""}</span> existant{cumulativeMonthlyData.length > 1 ? "s" : ""}.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* Network metric inputs (hidden for depuis_debut) */}
+            {periodType !== "depuis_debut" && networksToShow.map((netKey) => {
               const config = NETWORK_METRICS_CONFIG[netKey];
               if (!config) return null;
 
@@ -321,11 +431,11 @@ export function CreateKpiReportModal({
             })}
 
             <div>
-              <Label>Points forts du mois</Label>
+              <Label>Points forts</Label>
               <Textarea
                 value={pointsForts}
                 onChange={(e) => setPointsForts(e.target.value)}
-                placeholder="Les points marquants de ce mois..."
+                placeholder="Les points marquants de cette période..."
                 rows={3}
               />
             </div>
@@ -339,22 +449,24 @@ export function CreateKpiReportModal({
               />
             </div>
             <div>
-              <Label>Objectifs mois prochain</Label>
+              <Label>Objectifs</Label>
               <Textarea
                 value={objectifs}
                 onChange={(e) => setObjectifs(e.target.value)}
-                placeholder="Objectifs pour le mois suivant..."
+                placeholder="Objectifs pour la suite..."
                 rows={3}
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-              <Button variant="secondary" onClick={handlePreview}>
-                <Eye className="h-4 w-4 mr-1" /> Aperçu
-              </Button>
-              <Button onClick={handleSaveAndDownload} disabled={loading}>
-                <FileDown className="h-4 w-4 mr-1" />
+              {periodType !== "depuis_debut" && (
+                <Button variant="secondary" onClick={handlePreview}>
+                  <Eye className="h-4 w-4 mr-1" /> Aperçu
+                </Button>
+              )}
+              <Button onClick={handleSaveAndDownload} disabled={loading || (periodType === "depuis_debut" && loadingCumul)}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <FileDown className="h-4 w-4 mr-1" />}
                 {loading ? "Génération..." : "Sauvegarder et télécharger"}
               </Button>
             </div>
