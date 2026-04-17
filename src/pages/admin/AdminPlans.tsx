@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Tag, Sparkles, Check, X, Plus, Loader2 } from "lucide-react";
+import { Pencil, Tag, Sparkles, Check, X, Plus, Loader2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllPlans, Plan } from "@/hooks/usePlans";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +98,40 @@ const AdminPlans = () => {
     },
     {}
   );
+
+  /* ── Max membres state ────────────────────────────────── */
+  const [maxMembresInput, setMaxMembresInput] = useState<Record<string, string>>({});
+  const [maxMembresIllimite, setMaxMembresIllimite] = useState<Record<string, boolean>>({});
+  const [savingMaxMembres, setSavingMaxMembres] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!plans) return;
+    const inputs: Record<string, string> = {};
+    const illimite: Record<string, boolean> = {};
+    for (const p of plans) {
+      inputs[p.id] = p.max_membres != null ? String(p.max_membres) : "";
+      illimite[p.id] = p.max_membres == null && (p.slug === "agence_standard" || p.slug === "agence_pro");
+    }
+    setMaxMembresInput(inputs);
+    setMaxMembresIllimite(illimite);
+  }, [plans]);
+
+  const saveMaxMembres = async (plan: Plan) => {
+    setSavingMaxMembres((s) => ({ ...s, [plan.id]: true }));
+    const isIllimite = maxMembresIllimite[plan.id];
+    const value = isIllimite ? null : parseInt(maxMembresInput[plan.id] ?? "");
+    if (!isIllimite && (isNaN(value as number) || (value as number) < 1)) {
+      toast.error("Nombre de membres invalide");
+      setSavingMaxMembres((s) => ({ ...s, [plan.id]: false }));
+      return;
+    }
+    const { error } = await supabase.from("plans").update({ max_membres: value } as unknown as Parameters<ReturnType<typeof supabase.from>["update"]>[0]).eq("id", plan.id);
+    setSavingMaxMembres((s) => ({ ...s, [plan.id]: false }));
+    if (error) { toast.error("Erreur de sauvegarde"); return; }
+    toast.success("Membres mis à jour");
+    queryClient.invalidateQueries({ queryKey: ["plans"] });
+    queryClient.invalidateQueries({ queryKey: ["all-plans"] });
+  };
 
   /* ── Plan configs mutations ───────────────────────────── */
 
@@ -290,6 +324,49 @@ const AdminPlans = () => {
                         </li>
                       ))}
                     </ul>
+
+                    {(plan.slug === "agence_standard" || plan.slug === "agence_pro") && (
+                      <div className="mt-4 pt-4 border-t border-border space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-semibold font-sans">Membres maximum</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={maxMembresIllimite[plan.id] ?? false}
+                            onCheckedChange={(v) => setMaxMembresIllimite((s) => ({ ...s, [plan.id]: v }))}
+                          />
+                          <Label className="font-sans text-sm">Illimité</Label>
+                        </div>
+                        {!maxMembresIllimite[plan.id] && (
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              min="2"
+                              max="100"
+                              className="w-24 h-8 text-sm"
+                              value={maxMembresInput[plan.id] ?? ""}
+                              onChange={(e) => setMaxMembresInput((s) => ({ ...s, [plan.id]: e.target.value }))}
+                            />
+                            <p className="text-xs text-muted-foreground font-sans">dont 1 DM obligatoire inclus</p>
+                            {maxMembresInput[plan.id] && !isNaN(parseInt(maxMembresInput[plan.id])) && (
+                              <p className="text-xs text-primary font-sans">
+                                Postes libres : {Math.max(0, parseInt(maxMembresInput[plan.id]) - 1)} (CM + Créateurs)
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={savingMaxMembres[plan.id]}
+                          onClick={() => saveMaxMembres(plan)}
+                        >
+                          {savingMaxMembres[plan.id] ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                          Enregistrer
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

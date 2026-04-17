@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-17_
-_Prompt courant : 50 — Fix bugs BUGS_REPORT_
+_Prompt courant : 52 — Membres configurables par plan_
 
 ---
 
@@ -38,6 +38,7 @@ _Prompt courant : 50 — Fix bugs BUGS_REPORT_
 | TOTP 2FA pour admin | ✅ Complet | `AdminTotpGate` — enrollment QR + vérification |
 | Onboarding wizard | ✅ Complet | 4 étapes, skip possible |
 | Checklist onboarding 5 étapes | ✅ Complet (prompt-29) | `OnboardingChecklist` floating, badges DB, modal félicitations |
+| Étape onboarding équipe (agence) | ✅ Complet (prompt-52) | Étape 0 "Configure ton équipe" pour rôle DM/agence, modal nb_cm/nb_createurs |
 | Waitlist | ✅ Complet | Page publique |
 | Tests routes | ✅ Complet (prompt-11) | 19 tests dans `routes.test.ts` |
 
@@ -223,6 +224,7 @@ _Prompt courant : 50 — Fix bugs BUGS_REPORT_
 |----------------|------|-------|
 | Profil utilisateur | ✅ Complet | |
 | Invitation équipe | ✅ Complet (prompt-32) | Token activation_tokens + email Resend + activate-account gère rôle + agence_id |
+| Répartition équipe (nb_cm/nb_createurs) | ✅ Complet (prompt-52) | Card "Répartition équipe" dans TeamTab, quota/progression, save users.nb_cm/nb_createurs |
 | Clé licence | ✅ Complet | |
 | Historique licences | ✅ Complet | |
 | Tampon + signature | ✅ Complet (prompt-08) | |
@@ -258,6 +260,7 @@ _Prompt courant : 50 — Fix bugs BUGS_REPORT_
 | Gestion waitlist + Demandes Elite | ✅ Complet (prompt-41) | Onglets : Liste d'attente + Demandes Elite ; tableau Elite avec statuts colorés, select inline, copier contact, compteurs |
 | Gestion plans tarifaires | ✅ Complet | |
 | Configurations tarifaires (plan_configs) | ✅ Complet (prompt-36) | Durées/prix par plan, toggle actif/populaire, inline edit, ajout |
+| Membres max par plan (agence) | ✅ Complet (prompt-52) | Input max_membres + toggle Illimité dans AdminPlans, sauvegarde plans.max_membres |
 | Gestion contrats | ✅ Complet | |
 | Campagnes emails | ✅ Complet | |
 | Logs de sécurité | ✅ Complet | |
@@ -274,6 +277,7 @@ _Prompt courant : 50 — Fix bugs BUGS_REPORT_
 | MockupsSection | ✅ (prompt-10) | 4 cartes animées |
 | Pricing | ✅ (prompt-41) | Toggle 3 options Mensuel/6mois/Annuel, badges -X% sur toggle, "au lieu de", taglines par plan, nouveaux noms |
 | Elite sur mesure | ✅ (prompt-41) | Carte Elite : "Tarif sur mesure" + "Demander un devis" → EliteContactModal |
+| Texte membres dynamique | ✅ (prompt-52) | getMemberText() depuis plans.max_membres — remplace textes hardcodés |
 | EliteContactModal | ✅ (prompt-41) | Form 6 champs, insert table elite_requests, toast 24h |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
@@ -298,7 +302,7 @@ _Prompt courant : 50 — Fix bugs BUGS_REPORT_
 | Métrique | État |
 |----------|------|
 | Erreurs ESLint | ✅ 0 erreur |
-| Warnings ESLint | 13 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Warnings ESLint | 12 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
 | Tests unitaires | ✅ 137/137 passent |
 | Fichiers de tests | 10 fichiers |
 | TypeScript | 0 erreur (strict) |
