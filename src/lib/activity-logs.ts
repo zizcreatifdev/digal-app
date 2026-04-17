@@ -9,7 +9,18 @@ export interface ActivityLog {
   metadata: Record<string, unknown>;
   entity_type: string | null;
   entity_id: string | null;
+  ip_address: string | null;
   created_at: string;
+}
+
+export async function getClientIp(): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.rpc("get_client_ip");
+    if (error) return null;
+    return (data as string | null) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -43,7 +54,8 @@ export async function logActivity(
   detail?: string,
   entityType?: string,
   entityId?: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  ipAddress?: string | null
 ) {
   try {
     await supabase.from("activity_logs").insert({
@@ -54,6 +66,7 @@ export async function logActivity(
       entity_type: entityType ?? null,
       entity_id: entityId ?? null,
       metadata: metadata ?? {},
+      ip_address: ipAddress ?? null,
     });
   } catch {
     // Silent fail: logging should never break the app
@@ -91,8 +104,8 @@ export async function fetchActivityLogs(
 }
 
 // Convenience helpers
-export const logAuth = (userId: string, action: string) =>
-  logActivity(userId, action, "auth");
+export const logAuth = (userId: string, action: string, ipAddress?: string | null) =>
+  logActivity(userId, action, "auth", undefined, undefined, undefined, undefined, ipAddress);
 
 export const logPostAction = (userId: string, action: string, detail: string, postId?: string) =>
   logActivity(userId, action, "post", detail, "post", postId);

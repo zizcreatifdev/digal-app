@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { logActivity } from "@/lib/activity-logs";
+import { logActivity, getClientIp } from "@/lib/activity-logs";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +93,8 @@ export default function Activate() {
 
       const { data: { user: newUser } } = await supabase.auth.getUser();
       if (newUser) {
-        await logActivity(newUser.id, "login_success", "auth", "Première connexion via activation");
+        const ip = await getClientIp();
+        await logActivity(newUser.id, "login_success", "auth", "Première connexion via activation", undefined, undefined, undefined, ip);
       }
 
       setPageState("success");

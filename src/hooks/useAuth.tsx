@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
-import { logAuth } from "@/lib/activity-logs";
+import { logAuth, getClientIp } from "@/lib/activity-logs";
 
 interface AuthContextType {
   session: Session | null;
@@ -75,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (!error && data.user) {
-      logAuth(data.user.id, "login_success");
+      const ip = await getClientIp();
+      logAuth(data.user.id, "login_success", ip);
     }
     return { error: error as Error | null };
   };

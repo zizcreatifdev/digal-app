@@ -8,6 +8,7 @@ import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getClientIp } from "@/lib/activity-logs";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -31,12 +32,14 @@ const Login = () => {
 
   const logSecurityEvent = async (action: string, success: boolean, detail?: string) => {
     try {
+      const ip = await getClientIp();
       await supabase.from("security_logs").insert({
         email,
         action,
         success,
         detail,
         user_agent: navigator.userAgent,
+        ip_address: ip,
       });
     } catch { /* intentional silent fail */ }
   };

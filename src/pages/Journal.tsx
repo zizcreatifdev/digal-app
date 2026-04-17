@@ -95,6 +95,7 @@ export default function Journal() {
                   <TableHead>Type</TableHead>
                   <TableHead>Action</TableHead>
                   <TableHead>Détail</TableHead>
+                  <TableHead>IP</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -111,6 +112,9 @@ export default function Journal() {
                     <TableCell className="font-medium text-sm">{log.action}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
                       {log.detail ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {log.ip_address ?? "-"}
                     </TableCell>
                   </TableRow>
                 ))}
