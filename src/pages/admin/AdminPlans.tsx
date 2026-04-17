@@ -31,6 +31,14 @@ interface PlanConfig {
 
 const PLAN_TYPES = ["solo", "agence_standard", "agence_pro"] as const;
 
+// Maps plans.slug → plan_configs.plan_type
+const SLUG_TO_PLAN_TYPE: Record<string, string> = {
+  solo: "solo",
+  solo_standard: "solo",
+  agence_standard: "agence_standard",
+  agence_pro: "agence_pro",
+};
+
 const PLAN_TYPE_LABELS: Record<string, string> = {
   solo: "CM Pro",
   agence_standard: "Studio",
@@ -83,7 +91,6 @@ const AdminPlans = () => {
       const { data, error } = await (supabase as any)
         .from("plan_configs")
         .select("*")
-        .in("plan_type", ["solo", "agence_standard", "agence_pro"])
         .order("plan_type")
         .order("duree_mois");
       if (error) throw error;
@@ -93,8 +100,9 @@ const AdminPlans = () => {
 
   const configsByType = (planConfigs ?? []).reduce<Record<string, PlanConfig[]>>(
     (acc, c) => {
-      if (!acc[c.plan_type]) acc[c.plan_type] = [];
-      acc[c.plan_type].push(c);
+      const key = SLUG_TO_PLAN_TYPE[c.plan_type] ?? c.plan_type;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(c);
       return acc;
     },
     {}
@@ -239,8 +247,9 @@ const AdminPlans = () => {
   const formatFCFA = (n: number) => n.toLocaleString("fr-FR") + " FCFA";
 
   const getMonthlyPrice = (slug: string): number | null => {
+    const planType = SLUG_TO_PLAN_TYPE[slug] ?? slug;
     const config = (planConfigs ?? []).find(
-      (c) => c.plan_type === slug && Number(c.duree_mois) === 1
+      (c) => (SLUG_TO_PLAN_TYPE[c.plan_type] ?? c.plan_type) === planType && Number(c.duree_mois) === 1
     );
     return config ? config.prix_fcfa : null;
   };
