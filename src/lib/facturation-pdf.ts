@@ -8,6 +8,8 @@ export interface PdfUserProfile {
   nom: string;
   email: string;
   agence_nom?: string | null;
+  telephone?: string | null;
+  ninea?: string | null;
   logo_url?: string | null;
   tampon_url?: string | null;
   signature_url?: string | null;
@@ -100,9 +102,8 @@ export async function generateDocumentPdf(
   const title = isFacture ? "FACTURE" : "DEVIS";
 
   // ── Load all images in parallel ─────────────────────────────────
-  const [digalLogoData, digalIconData, tamponData, signatureData, userLogoData] =
+  const [digalIconData, tamponData, signatureData, userLogoData] =
     await Promise.all([
-      loadSvgAsPng("/logos/Logo_Digal_iconorange_ettext_ennoir_svg.svg", 500, 250),
       loadSvgAsPng("/logos/Logo%20Digal-icon_orange_sansbaseline.svg", 100, 100),
       userProfile.tampon_url ? loadImage(userProfile.tampon_url) : Promise.resolve(null),
       userProfile.signature_url ? loadImage(userProfile.signature_url) : Promise.resolve(null),
@@ -113,19 +114,27 @@ export async function generateDocumentPdf(
   // HEADER
   // ══════════════════════════════════════════════════════════════════
 
-  // Left: Digal logo (50×25mm) then optional user logo below
-  if (digalLogoData) {
-    try { pdf.addImage(digalLogoData, "PNG", ML, 12, 50, 25); } catch { /* fallback below */ }
-  } else {
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(20);
-    pdf.setTextColor(...C_DARK);
-    pdf.text("Digal", ML, 28);
-  }
+  // Left: CM / Agency branding
+  let headerLeftY = 14;
 
   if (userLogoData) {
-    try { pdf.addImage(userLogoData, "PNG", ML, 40, 25, 12); } catch { /* skip */ }
+    try { pdf.addImage(userLogoData, "PNG", ML, headerLeftY, 30, 15); headerLeftY += 19; }
+    catch { /* skip logo, show name only */ }
   }
+
+  const displayName = userProfile.agence_nom || `${userProfile.prenom} ${userProfile.nom}`;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(userLogoData ? 10 : 12);
+  pdf.setTextColor(...C_DARK);
+  pdf.text(displayName, ML, headerLeftY);
+  headerLeftY += 5.5;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8.5);
+  pdf.setTextColor(...C_GRAY);
+  if (userProfile.telephone) { pdf.text(userProfile.telephone, ML, headerLeftY); headerLeftY += 4.5; }
+  pdf.text(userProfile.email, ML, headerLeftY); headerLeftY += 4.5;
+  if (userProfile.ninea) { pdf.text(`NINEA : ${userProfile.ninea}`, ML, headerLeftY); }
 
   // Right: document type label (uppercase gray small)
   pdf.setFont("helvetica", "bold");
@@ -429,27 +438,31 @@ export async function generateDocumentPdf(
   }
 
   // ══════════════════════════════════════════════════════════════════
-  // FOOTER
+  // FOOTER — mention discrète centrée
   // ══════════════════════════════════════════════════════════════════
   pdf.setDrawColor(...C_BORDER);
   pdf.setLineWidth(0.3);
   pdf.line(ML, pageH - 18, pageW - MR, pageH - 18);
 
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(...C_GRAY);
-  pdf.text("Digal · Plateforme SaaS pour CM", ML, pageH - 12);
-  pdf.text("contact@digal.sn · digal.sn", ML, pageH - 8);
+  pdf.setFontSize(7);
+  pdf.setTextColor(190, 190, 190);
 
-  // Footer: Digal icon (right)
+  const footerStr = "Propulsé par · digal.sn";
+  const iconW = 4.5;
+  const iconH = 4.5;
+  const gap = 1.5;
+  const tw = pdf.getStringUnitWidth(footerStr) * 7 / pdf.internal.scaleFactor;
+  const totalW = iconW + gap + tw;
+  const startX = (pageW - totalW) / 2;
+  const iconY = pageH - 13.5;
+  const textY = pageH - 10;
+
   if (digalIconData) {
-    try { pdf.addImage(digalIconData, "PNG", pageW - 24, pageH - 16, 10, 10); } catch {
-      pdf.setTextColor(200, 200, 200);
-      pdf.text("Digal", pageW - MR, pageH - 10, { align: "right" });
-    }
+    try { pdf.addImage(digalIconData, "PNG", startX, iconY, iconW, iconH); } catch { /* skip */ }
+    pdf.text(footerStr, startX + iconW + gap, textY);
   } else {
-    pdf.setTextColor(200, 200, 200);
-    pdf.text("Digal", pageW - MR, pageH - 10, { align: "right" });
+    pdf.text(footerStr, pageW / 2, textY, { align: "center" });
   }
 
   return pdf;

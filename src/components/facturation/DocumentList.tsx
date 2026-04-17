@@ -64,20 +64,30 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
       const { document: doc, lines, payments } = await fetchDocumentWithLines(docId);
 
       // Fetch user profile for emitter info (including tampon + signature)
-      const { data: profile } = await supabase
-        .from("users")
-        .select("prenom, nom, email, agence_nom, logo_url, tampon_url, signature_url")
-        .eq("user_id", doc.user_id)
-        .single();
+      const [profileResult, clientResult, settingsResult] = await Promise.all([
+        supabase
+          .from("users")
+          .select("prenom, nom, email, agence_nom, logo_url, tampon_url, signature_url")
+          .eq("user_id", doc.user_id)
+          .single(),
+        supabase
+          .from("clients")
+          .select("nom, contact_nom, contact_email, contact_telephone, facturation_adresse")
+          .eq("id", doc.client_id)
+          .single(),
+        supabase
+          .from("site_settings")
+          .select("key, value")
+          .in("key", ["billing_telephone", "billing_ninea"]),
+      ]);
 
-      // Fetch client details
-      const { data: client } = await supabase
-        .from("clients")
-        .select("nom, contact_nom, contact_email, contact_telephone, facturation_adresse")
-        .eq("id", doc.client_id)
-        .single();
+      const profile = profileResult.data;
+      const client = clientResult.data;
+      const billingSettings = settingsResult.data ?? [];
+      const telephone = billingSettings.find((s) => s.key === "billing_telephone")?.value ?? null;
+      const ninea = billingSettings.find((s) => s.key === "billing_ninea")?.value ?? null;
 
-      const userProfile = profile ?? { prenom: "", nom: "", email: "" };
+      const userProfile = { ...(profile ?? { prenom: "", nom: "", email: "" }), telephone, ninea };
       const clientInfo = client ?? { nom: doc.clients?.nom ?? "Client" };
 
       const pdf = await generateDocumentPdf(doc, lines, payments, clientInfo, userProfile);

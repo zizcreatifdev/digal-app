@@ -26,6 +26,11 @@ interface Client {
   nom: string;
 }
 
+interface ClientContact {
+  contact_email: string | null;
+  contact_telephone: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -65,6 +70,7 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
   const [notes, setNotes] = useState("");
   const [remisePct, setRemisePct] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [clientContact, setClientContact] = useState<ClientContact | null>(null);
   // Boost depenses
   const [boostDepenses, setBoostDepenses] = useState<Depense[]>([]);
   const [includedBoosts, setIncludedBoosts] = useState<Set<string>>(new Set());
@@ -79,6 +85,17 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
   useEffect(() => {
     if (preselectedClientId) setClientId(preselectedClientId);
   }, [preselectedClientId]);
+
+  // Load client contact info when client changes
+  useEffect(() => {
+    if (!clientId) { setClientContact(null); return; }
+    supabase
+      .from("clients")
+      .select("contact_email, contact_telephone")
+      .eq("id", clientId)
+      .single()
+      .then(({ data }) => setClientContact(data ?? null));
+  }, [clientId]);
 
   // Load boost depenses when client changes
   useEffect(() => {
@@ -209,6 +226,12 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
                   ))}
                 </SelectContent>
               </Select>
+              {clientId && clientContact && (clientContact.contact_email || clientContact.contact_telephone) && (
+                <div className="mt-1.5 rounded-md bg-muted/40 border border-border px-3 py-1.5 text-[11px] font-sans text-muted-foreground space-y-0.5">
+                  {clientContact.contact_email && <p>Email : {clientContact.contact_email}</p>}
+                  {clientContact.contact_telephone && <p>Tél : {clientContact.contact_telephone}</p>}
+                </div>
+              )}
             </div>
             <div>
               <Label>Numéro</Label>
