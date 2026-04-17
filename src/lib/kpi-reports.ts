@@ -171,7 +171,7 @@ export async function saveKpiReport(report: {
 
 export function hasMetrics(metriques: KpiMetriques): boolean {
   return Object.values(metriques).some(
-    (net) => net && Object.values(net).some((v) => v !== undefined && v !== null && v !== 0)
+    (net) => net && Object.values(net).some((v) => v !== undefined && v !== null)
   );
 }
 
@@ -285,7 +285,7 @@ export async function fetchCumulativeStats(clientId: string): Promise<Cumulative
 export function getFilledMetrics(networkMetrics: NetworkMetrics | undefined): { key: string; label: string; value: number }[] {
   if (!networkMetrics) return [];
   return Object.entries(networkMetrics)
-    .filter(([, v]) => v !== undefined && v !== 0 && v !== null)
+    .filter(([, v]) => v !== undefined && v !== null)
     .map(([key, value]) => {
       // Find the label from config
       for (const net of Object.values(NETWORK_METRICS_CONFIG)) {

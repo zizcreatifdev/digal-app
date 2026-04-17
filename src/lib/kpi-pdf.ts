@@ -265,6 +265,29 @@ export async function generateCumulativeKpiPdf(
   stats: CumulativeStats,
   monthly: MonthlyKpiRow[]
 ) {
+  // ─── PRE-LOAD CLIENT LOGO ───────────────────────────────────
+  let clientLogoPng: string | null = null;
+  if (clientLogoUrl) {
+    try {
+      const resp = await fetch(clientLogoUrl);
+      const blob = await resp.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      clientLogoPng = await new Promise<string | null>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 96; canvas.height = 96;
+          const ctx = canvas.getContext("2d");
+          if (ctx) { ctx.clearRect(0, 0, 96, 96); ctx.drawImage(img, 0, 0, 96, 96); }
+          URL.revokeObjectURL(objectUrl);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); };
+        img.src = objectUrl;
+      });
+    } catch { /* silent fail — fall back to initials */ }
+  }
+
   const pdf = new jsPDF("p", "mm", "a4");
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -278,12 +301,18 @@ export async function generateCumulativeKpiPdf(
   pdf.setFillColor(212, 113, 74);
   pdf.rect(pageW / 2, 0, pageW / 2, 32, "F");
 
+  // Client logo or initial
   pdf.setFillColor(255, 255, 255);
   pdf.circle(22, 16, 8, "F");
-  pdf.setTextColor(accent[0], accent[1], accent[2]);
-  pdf.setFontSize(14);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(clientName.charAt(0).toUpperCase(), 22, 19, { align: "center" });
+  if (clientLogoPng) {
+    try { pdf.addImage(clientLogoPng, "PNG", 14, 8, 16, 16); } catch { /* fall back to initials */ }
+  }
+  if (!clientLogoPng) {
+    pdf.setTextColor(accent[0], accent[1], accent[2]);
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(clientName.charAt(0).toUpperCase(), 22, 19, { align: "center" });
+  }
 
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(15);
@@ -358,7 +387,7 @@ export async function generateCumulativeKpiPdf(
   for (const [netKey, config] of Object.entries(NETWORK_METRICS_CONFIG)) {
     const hasData = sortedMonthly.some((row) => {
       const netData = row.data[netKey as keyof KpiMetriques];
-      return netData && Object.values(netData).some((v) => v !== undefined && v !== null && v !== 0);
+      return netData && Object.values(netData).some((v) => v !== undefined && v !== null);
     });
     if (!hasData) continue;
 
@@ -374,7 +403,7 @@ export async function generateCumulativeKpiPdf(
     const activeFields = config.fields.filter((f) =>
       sortedMonthly.some((row) => {
         const netData = row.data[netKey as keyof KpiMetriques];
-        return netData && (netData[f.key] ?? 0) !== 0;
+        return netData && netData[f.key] !== undefined && netData[f.key] !== null;
       })
     );
     if (activeFields.length === 0) continue;
@@ -386,7 +415,7 @@ export async function generateCumulativeKpiPdf(
         getMonthLabel(row.mois),
         ...activeFields.map((f) => {
           const v = netData?.[f.key];
-          return v !== undefined && v !== null && v !== 0 ? formatNumber(v) : "—";
+          return v !== undefined && v !== null ? formatNumber(v) : "—";
         }),
       ];
     });
@@ -504,6 +533,5 @@ export async function generateCumulativeKpiPdf(
   const pageCount = pdf.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) { pdf.setPage(i); addFooter(pdf); }
 
-  void clientLogoUrl;
   return pdf;
 }

@@ -167,7 +167,7 @@ const PreviewPage = () => {
         titre: `${client?.nom ?? "Client"} a refusé un post`,
         message: comment || "Aucun commentaire.",
         type: "warning",
-        lien: `/dashboard/clients/${link.client_id}/calendrier`,
+        lien: `/dashboard/clients/${link.client_id}`,
       });
       toast.success("Post refusé");
       setRefusePostId(null);
@@ -215,7 +215,7 @@ const PreviewPage = () => {
         titre: `${client?.nom ?? "Client"} a refusé ${pending.length} post(s)`,
         message: comment || "Aucun commentaire.",
         type: "warning",
-        lien: `/dashboard/clients/${link.client_id}/calendrier`,
+        lien: `/dashboard/clients/${link.client_id}`,
       });
       toast.success("Tous les posts refusés");
       setShowRefuseAll(false);

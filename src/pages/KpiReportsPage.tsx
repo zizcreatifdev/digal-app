@@ -86,6 +86,19 @@ const KpiReportsPage = () => {
     pdf.save(`KPI-${previewData.clientName}-${previewData.report.mois}.pdf`);
   };
 
+  const handleDirectDownload = async (report: KpiReport) => {
+    const prevMonth = getPrevMonth(report.mois);
+    const prevReport = reports.find((r) => r.mois === prevMonth) ?? null;
+    const pdf = await generateKpiPdf(
+      report,
+      selectedClientData?.nom ?? "",
+      selectedClientData?.logo_url ?? null,
+      cmName,
+      prevReport
+    );
+    pdf.save(`KPI-${selectedClientData?.nom ?? ""}-${report.mois}.pdf`);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -142,10 +155,7 @@ const KpiReportsPage = () => {
                     <Button variant="outline" size="sm" onClick={() => handlePreview(r)}>
                       <Eye className="h-3 w-3 mr-1" /> Aperçu
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      handlePreview(r);
-                      setTimeout(handleDownload, 100);
-                    }}>
+                    <Button variant="outline" size="sm" onClick={() => handleDirectDownload(r)}>
                       <Download className="h-3 w-3 mr-1" /> PDF
                     </Button>
                   </div>
