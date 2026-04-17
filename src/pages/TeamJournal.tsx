@@ -87,7 +87,7 @@ const TeamJournal = () => {
   }, [user]);
 
   const isAgence = profile?.role === "dm" || profile?.role?.startsWith("agence");
-  const isFreemiumOrSolo = profile?.role === "freemium" || profile?.role === "solo";
+  const isFreemiumOrSolo = profile?.role === "freemium" || profile?.role === "solo" || profile?.role === "solo_standard";
 
   const handleInvite = async () => {
     if (!inviteEmail || !profile) return;

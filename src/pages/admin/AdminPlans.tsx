@@ -40,6 +40,7 @@ const PLAN_TYPE_LABELS: Record<string, string> = {
 const PLAN_SLUG_NAMES: Record<string, string> = {
   freemium: "Découverte",
   solo: "CM Pro",
+  solo_standard: "CM Pro",
   agence_standard: "Studio",
   agence_pro: "Elite",
 };

@@ -4,7 +4,7 @@ ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS max_membres INTEGER DEFAULT NU
 
 -- Set default values per plan
 UPDATE public.plans SET max_membres = 1 WHERE slug = 'freemium';
-UPDATE public.plans SET max_membres = 1 WHERE slug = 'solo';
+UPDATE public.plans SET max_membres = 1 WHERE slug = 'solo_standard';
 UPDATE public.plans SET max_membres = 4 WHERE slug = 'agence_standard';
 UPDATE public.plans SET max_membres = 8 WHERE slug = 'agence_pro';
 
