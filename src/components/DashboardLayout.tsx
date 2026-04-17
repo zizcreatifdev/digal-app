@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NotificationPanel, useNotificationCount } from "@/components/NotificationPanel";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
+  usePageTitle("Digal · Tableau de bord");
   const [notifOpen, setNotifOpen] = useState(false);
   const unreadCount = useNotificationCount();
   const navigate = useNavigate();

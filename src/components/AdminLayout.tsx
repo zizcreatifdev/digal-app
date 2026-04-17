@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
+  usePageTitle("Digal · Administration");
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
 

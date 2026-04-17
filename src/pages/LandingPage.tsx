@@ -8,8 +8,10 @@ import { MockupsSection } from "@/components/landing/MockupsSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const LandingPage = () => {
+  usePageTitle("Digal · La plateforme des Community Managers");
   return (
     <div className="min-h-screen bg-background">
       <LandingHeader />
