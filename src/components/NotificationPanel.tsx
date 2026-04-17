@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, CheckCircle, AlertTriangle, Info, Check } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchNotifications, markNotificationRead, markAllRead, Notification, getUnreadCount } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ interface NotificationPanelProps {
 
 export function NotificationPanel({ open, onOpenChange }: NotificationPanelProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
@@ -101,7 +103,10 @@ export function NotificationPanel({ open, onOpenChange }: NotificationPanelProps
                   className={`flex gap-3 p-4 border-b border-border transition-colors cursor-pointer hover:bg-muted/30 ${
                     !notif.lu ? "bg-primary/5" : ""
                   }`}
-                  onClick={() => !notif.lu && handleMarkRead(notif.id)}
+                  onClick={async () => {
+                    if (!notif.lu) await handleMarkRead(notif.id);
+                    if (notif.lien) { onOpenChange(false); navigate(notif.lien); }
+                  }}
                 >
                   <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${colorMap[notif.type] ?? "text-muted-foreground"}`} />
                   <div className="flex-1 min-w-0">

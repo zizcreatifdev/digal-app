@@ -14,7 +14,7 @@ export interface Notification {
 export async function fetchNotifications(userId: string) {
   const { data, error } = await supabase
     .from("notifications")
-    .select("*")
+    .select("id, user_id, titre, message, type, lien, lu, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
