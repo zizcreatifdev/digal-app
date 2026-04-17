@@ -37,6 +37,13 @@ const PLAN_TYPE_LABELS: Record<string, string> = {
   agence_pro: "Elite",
 };
 
+const PLAN_SLUG_NAMES: Record<string, string> = {
+  freemium: "Découverte",
+  solo: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
+};
+
 /* ─── Component ─────────────────────────────────────────────── */
 
 const AdminPlans = () => {
@@ -67,7 +74,7 @@ const AdminPlans = () => {
   const [addConfigLoading, setAddConfigLoading] = useState(false);
 
   /* ── Plan configs query ───────────────────────────────── */
-  const { data: planConfigs } = useQuery({
+  const { data: planConfigs, isError: configsError } = useQuery({
     queryKey: ["plan-configs"],
     queryFn: async () => {
       // plan_configs not yet in generated types — cast required
@@ -75,6 +82,8 @@ const AdminPlans = () => {
       const { data, error } = await (supabase as any)
         .from("plan_configs")
         .select("*")
+        .in("plan_type", ["solo", "agence_standard", "agence_pro"])
+        .order("plan_type")
         .order("duree_mois");
       if (error) throw error;
       return (data ?? []) as PlanConfig[];
@@ -194,6 +203,13 @@ const AdminPlans = () => {
 
   const formatFCFA = (n: number) => n.toLocaleString("fr-FR") + " FCFA";
 
+  const getMonthlyPrice = (slug: string): number | null => {
+    const config = (planConfigs ?? []).find(
+      (c) => c.plan_type === slug && Number(c.duree_mois) === 1
+    );
+    return config ? config.prix_fcfa : null;
+  };
+
   /* ── Render ───────────────────────────────────────────── */
 
   return (
@@ -218,7 +234,7 @@ const AdminPlans = () => {
                   <CardHeader className="flex flex-row items-start justify-between pb-2">
                     <div>
                       <CardTitle className="font-serif text-lg flex items-center gap-2">
-                        {plan.nom}
+                        {PLAN_SLUG_NAMES[plan.slug] ?? plan.nom}
                         {plan.highlighted && <Sparkles className="h-4 w-4 text-primary" />}
                         {!plan.actif && <Badge variant="outline" className="text-[10px]">Inactif</Badge>}
                       </CardTitle>
@@ -232,17 +248,25 @@ const AdminPlans = () => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-baseline gap-2">
-                      {plan.promo_active && plan.promo_prix_mensuel != null ? (
+                      {plan.slug === "agence_pro" ? (
+                        <span className="text-xl font-bold font-serif text-primary">Tarif sur mesure</span>
+                      ) : plan.promo_active && plan.promo_prix_mensuel != null ? (
                         <>
                           <span className="text-2xl font-bold font-serif">{formatFCFA(plan.promo_prix_mensuel)}</span>
-                          <span className="text-sm text-muted-foreground line-through font-sans">{formatFCFA(plan.prix_mensuel)}</span>
+                          <span className="text-sm text-muted-foreground line-through font-sans">
+                            {formatFCFA(getMonthlyPrice(plan.slug) ?? plan.prix_mensuel)}
+                          </span>
                         </>
                       ) : (
                         <span className="text-2xl font-bold font-serif">
-                          {plan.prix_mensuel === 0 ? "Gratuit" : formatFCFA(plan.prix_mensuel)}
+                          {plan.prix_mensuel === 0
+                            ? "Gratuit"
+                            : formatFCFA(getMonthlyPrice(plan.slug) ?? plan.prix_mensuel)}
                         </span>
                       )}
-                      {plan.prix_mensuel > 0 && <span className="text-sm text-muted-foreground font-sans">/mois</span>}
+                      {plan.slug !== "agence_pro" && plan.prix_mensuel > 0 && (
+                        <span className="text-sm text-muted-foreground font-sans">/mois</span>
+                      )}
                     </div>
 
                     {plan.promo_active && plan.promo_label && (
@@ -281,6 +305,12 @@ const AdminPlans = () => {
               Durées et prix disponibles par plan. Ces données alimentent la landing page et la génération de licences.
             </p>
           </div>
+
+          {configsError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive font-sans">
+              Erreur de chargement des configurations. Vérifiez que la table <code>plan_configs</code> existe dans Supabase.
+            </div>
+          )}
 
           {PLAN_TYPES.map((planType) => (
             <Card key={planType}>
