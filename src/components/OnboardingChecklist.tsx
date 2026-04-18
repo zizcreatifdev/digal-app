@@ -75,10 +75,24 @@ export function OnboardingChecklist() {
     if (!user) return;
     const load = async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase.from("users") as any)
+      const { data: fullData, error: fullErr } = await (supabase.from("users") as any)
         .select("onboarding_completed, onboarding_badges, role, plan, nb_cm, nb_createurs, referral_code")
         .eq("user_id", user.id)
         .maybeSingle();
+
+      // Fallback without referral_code if referral columns aren't migrated yet
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dbAny = supabase as any;
+      let data = fullData;
+      if (fullErr) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: fallback } = await (dbAny as any)
+          .from("users")
+          .select("onboarding_completed, onboarding_badges, role, plan, nb_cm, nb_createurs")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        data = fallback;
+      }
 
       if (data?.onboarding_completed) {
         setDismissed(true);
@@ -88,7 +102,7 @@ export function OnboardingChecklist() {
 
       const badges: string[] = Array.isArray(data?.onboarding_badges) ? data.onboarding_badges : [];
       knownBadgesRef.current = new Set(badges);
-      if (data?.referral_code) setReferralCode(data.referral_code as string);
+      if (!fullErr && fullData?.referral_code) setReferralCode(fullData.referral_code as string);
 
       const isAgence = data?.role === "dm" || data?.role?.startsWith("agence");
       setIsAgenceUser(isAgence);

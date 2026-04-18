@@ -48,11 +48,21 @@ export default function Parrainages() {
   const { data: profile } = useQuery({
     queryKey: ["parrainage-profile", user?.id],
     queryFn: async () => {
-      const { data } = await db
+      // Try full query with referral columns first
+      const { data, error } = await db
         .from("users")
         .select("user_id, prenom, nom, role, referral_code, referral_quota, referral_count, referral_months_earned, referral_months_used")
         .eq("user_id", user!.id)
         .maybeSingle();
+      if (error) {
+        // Referral columns may not be migrated yet — fallback to basic query
+        const { data: basic } = await supabase
+          .from("users")
+          .select("user_id, prenom, nom, role")
+          .eq("user_id", user!.id)
+          .maybeSingle();
+        return basic;
+      }
       return data;
     },
     enabled: !!user,
