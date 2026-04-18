@@ -24,6 +24,28 @@ const Waitlist = () => {
     if (!prenom || !nom || !email) return;
 
     setLoading(true);
+
+    // Check if email already has an account
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingUser } = await (supabase as any)
+      .from("users")
+      .select("statut")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existingUser) {
+      setLoading(false);
+      const s: string = existingUser.statut ?? "actif";
+      if (s === "suspendu") {
+        toast.error("Ce compte est suspendu. Contactez l'administrateur.");
+      } else if (s === "suppression_planifiee") {
+        toast.error("Ce compte est en cours de suppression. Contactez l'administrateur.");
+      } else {
+        toast.error("Vous avez déjà un compte Digal. Connectez-vous directement.");
+      }
+      return;
+    }
+
     const { error } = await supabase.from("waitlist").insert([
       { prenom, nom, email, type_compte: typeCompte, statut: "en_attente" },
     ]);

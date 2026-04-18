@@ -129,6 +129,12 @@ function activationBadge(tokenInfo: TokenInfo | undefined) {
   return <Badge className="bg-amber-100 text-amber-700 text-[10px] border-0">En attente d'envoi</Badge>;
 }
 
+function accountStatusBadge(statut: string) {
+  if (statut === "suspendu") return <Badge className="bg-orange-100 text-orange-700 text-[10px] border-0">Compte suspendu</Badge>;
+  if (statut === "suppression_planifiee") return <Badge className="bg-red-100 text-red-700 text-[10px] border-0">Suppression en cours</Badge>;
+  return <Badge className="bg-emerald-100 text-emerald-700 text-[10px] border-0">Compte actif</Badge>;
+}
+
 function applyVariables(
   template: string,
   vars: { prenom: string; plan: string; duree: string; lien: string }
@@ -220,6 +226,29 @@ export default function AdminWaitlist() {
     });
   }, [activationMessages]);
 
+  /* ─── Existing accounts cross-check ─────────────────── */
+
+  const emailsKey = (entries ?? []).map((e) => e.email).join(",");
+  const { data: existingAccountsMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ["admin-waitlist-accounts", emailsKey],
+    enabled: !!entries?.length,
+    queryFn: async () => {
+      const emails = (entries ?? []).map((e) => e.email);
+      if (!emails.length) return {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("users")
+        .select("email, statut")
+        .in("email", emails);
+      const map: Record<string, string> = {};
+      for (const u of (data ?? []) as Array<{ email: string; statut: string | null }>) {
+        map[u.email] = u.statut ?? "actif";
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
   /* ─── Elite requests query ───────────────────────────── */
 
   const { data: eliteRequests, isLoading: loadingElite } = useQuery({
@@ -250,6 +279,21 @@ export default function AdminWaitlist() {
 
   const updateWaitlistStatus = useMutation({
     mutationFn: async ({ id, statut, entry }: { id: string; statut: string; entry: WaitlistEntry }) => {
+      if (statut === "approuve") {
+        // Server-side guard: reject if an account already exists
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: existing } = await (supabase as any)
+          .from("users")
+          .select("statut")
+          .eq("email", entry.email)
+          .maybeSingle();
+        if (existing) {
+          const s: string = existing.statut ?? "actif";
+          if (s === "suspendu") throw new Error("Ce compte est suspendu. Impossible d'approuver.");
+          if (s === "suppression_planifiee") throw new Error("Ce compte est en cours de suppression. Impossible d'approuver.");
+          throw new Error("Cet email a déjà un compte Digal actif.");
+        }
+      }
       const { error } = await supabase.from("waitlist").update({ statut }).eq("id", id);
       if (error) throw error;
       if (statut === "approuve") {
@@ -272,6 +316,9 @@ export default function AdminWaitlist() {
       } else {
         toast.success("Statut mis à jour");
       }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Erreur lors de la mise à jour");
     },
   });
 
@@ -531,6 +578,8 @@ export default function AdminWaitlist() {
                         const needsRegenerate = e.statut === "approuve" && (!tokenInfo || tokenExpired);
                         const durations = getDurationsForEntry(e.type_compte);
                         const selectedConfig = getSelectedConfig(e);
+                        const existingStatut = existingAccountsMap[e.email];
+                        const hasExistingAccount = !!existingStatut;
 
                         return (
                           <TableRow key={e.id}>
@@ -541,6 +590,7 @@ export default function AdminWaitlist() {
                               <div className="flex flex-col gap-1 items-start">
                                 {waitlistStatutBadge(e.statut)}
                                 {e.statut === "approuve" && activationBadge(tokenInfo)}
+                                {hasExistingAccount && accountStatusBadge(existingStatut)}
                               </div>
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
@@ -550,7 +600,13 @@ export default function AdminWaitlist() {
                               <div className="flex gap-1 flex-wrap items-center">
                                 {e.statut === "en_attente" && (
                                   <>
-                                    <Button size="sm" variant="ghost" onClick={() => updateWaitlistStatus.mutate({ id: e.id, statut: "approuve", entry: e })} disabled={updateWaitlistStatus.isPending}>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => updateWaitlistStatus.mutate({ id: e.id, statut: "approuve", entry: e })}
+                                      disabled={updateWaitlistStatus.isPending || hasExistingAccount}
+                                      title={hasExistingAccount ? "Ce compte existe déjà" : undefined}
+                                    >
                                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => updateWaitlistStatus.mutate({ id: e.id, statut: "refuse", entry: e })} disabled={updateWaitlistStatus.isPending}>
