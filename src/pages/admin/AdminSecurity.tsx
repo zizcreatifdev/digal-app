@@ -4,10 +4,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Monitor, Smartphone, Tablet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+
+function parseBrowser(ua: string | null): string {
+  if (!ua) return "-";
+  if (ua.includes("Chrome") && !ua.includes("Edg")) return "Chrome";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Edg")) return "Edge";
+  return "Autre";
+}
+
+function parseDevice(ua: string | null): "Mobile" | "Tablet" | "Desktop" {
+  if (!ua) return "Desktop";
+  if (/iPad|Tablet/i.test(ua)) return "Tablet";
+  if (/iPhone|Android/i.test(ua)) return "Mobile";
+  return "Desktop";
+}
+
+function DeviceIcon({ ua }: { ua: string | null }) {
+  const type = parseDevice(ua);
+  if (type === "Mobile") return <Smartphone className="h-4 w-4 text-muted-foreground" title="Mobile" />;
+  if (type === "Tablet") return <Tablet className="h-4 w-4 text-muted-foreground" title="Tablette" />;
+  return <Monitor className="h-4 w-4 text-muted-foreground" title="Ordinateur" />;
+}
 
 export default function AdminSecurity() {
   const [search, setSearch] = useState("");
@@ -44,7 +67,7 @@ export default function AdminSecurity() {
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -52,6 +75,8 @@ export default function AdminSecurity() {
                     <TableHead>Email</TableHead>
                     <TableHead>Action</TableHead>
                     <TableHead>Résultat</TableHead>
+                    <TableHead>Device</TableHead>
+                    <TableHead>Navigateur</TableHead>
                     <TableHead>IP</TableHead>
                     <TableHead>Détail</TableHead>
                   </TableRow>
@@ -70,12 +95,18 @@ export default function AdminSecurity() {
                           : <Badge className="bg-red-100 text-red-700"><ShieldAlert className="h-3 w-3 mr-1" /> Échec</Badge>
                         }
                       </TableCell>
+                      <TableCell>
+                        <DeviceIcon ua={l.user_agent ?? null} />
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground font-sans">
+                        {parseBrowser(l.user_agent ?? null)}
+                      </TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">{l.ip_address ?? "-"}</TableCell>
                       <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{l.detail ?? "-"}</TableCell>
                     </TableRow>
                   ))}
                   {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-12">Aucun log de sécurité</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Aucun log de sécurité</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

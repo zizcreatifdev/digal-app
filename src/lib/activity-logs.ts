@@ -10,6 +10,12 @@ export interface ActivityLog {
   entity_type: string | null;
   entity_id: string | null;
   ip_address: string | null;
+  browser: string | null;
+  os: string | null;
+  device_type: string | null;
+  city: string | null;
+  country: string | null;
+  country_code: string | null;
   created_at: string;
 }
 
@@ -21,6 +27,25 @@ export async function getClientIp(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export function getDeviceInfo(): { browser: string; os: string; device: string } {
+  const ua = navigator.userAgent;
+  const browser =
+    ua.includes("Chrome") && !ua.includes("Edg") ? "Chrome" :
+    ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" :
+    ua.includes("Firefox") ? "Firefox" :
+    ua.includes("Edg") ? "Edge" : "Autre";
+  const os =
+    ua.includes("Windows") ? "Windows" :
+    ua.includes("Mac") ? "macOS" :
+    ua.includes("iPhone") ? "iOS" :
+    ua.includes("Android") ? "Android" :
+    ua.includes("Linux") ? "Linux" : "Autre";
+  const isMobile = /iPhone|Android|iPad/i.test(ua);
+  const isTablet = /iPad|Tablet/i.test(ua);
+  const device = isTablet ? "Tablet" : isMobile ? "Mobile" : "Desktop";
+  return { browser, os, device };
 }
 
 export const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -55,10 +80,11 @@ export async function logActivity(
   entityType?: string,
   entityId?: string,
   metadata?: Record<string, unknown>,
-  ipAddress?: string | null
-) {
+  ipAddress?: string | null,
+  deviceInfo?: { browser?: string; os?: string; device?: string }
+): Promise<string | null> {
   try {
-    await supabase.from("activity_logs").insert({
+    const { data } = await supabase.from("activity_logs").insert({
       user_id: userId,
       action,
       type_action: typeAction,
@@ -67,10 +93,22 @@ export async function logActivity(
       entity_id: entityId ?? null,
       metadata: metadata ?? {},
       ip_address: ipAddress ?? null,
-    });
+      browser: deviceInfo?.browser ?? null,
+      os: deviceInfo?.os ?? null,
+      device_type: deviceInfo?.device ?? null,
+    }).select("id").single();
+    return data?.id ?? null;
   } catch {
     // Silent fail: logging should never break the app
+    return null;
   }
+}
+
+// Calls geolocate-ip edge function asynchronously (fire-and-forget)
+export function geolocateLog(logId: string): void {
+  supabase.functions
+    .invoke("geolocate-ip", { body: { logId } })
+    .catch(() => { /* silent fail */ });
 }
 
 export async function fetchActivityLogs(
@@ -104,8 +142,10 @@ export async function fetchActivityLogs(
 }
 
 // Convenience helpers
-export const logAuth = (userId: string, action: string, ipAddress?: string | null) =>
-  logActivity(userId, action, "auth", undefined, undefined, undefined, undefined, ipAddress);
+export const logAuth = (userId: string, action: string, ipAddress?: string | null): Promise<string | null> => {
+  const deviceInfo = getDeviceInfo();
+  return logActivity(userId, action, "auth", undefined, undefined, undefined, undefined, ipAddress, deviceInfo);
+};
 
 export const logPostAction = (userId: string, action: string, detail: string, postId?: string) =>
   logActivity(userId, action, "post", detail, "post", postId);

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
-import { logAuth, getClientIp } from "@/lib/activity-logs";
+import { logAuth, getClientIp, geolocateLog } from "@/lib/activity-logs";
 
 interface AuthContextType {
   session: Session | null;
@@ -76,7 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (!error && data.user) {
       const ip = await getClientIp();
-      logAuth(data.user.id, "login_success", ip);
+      const logId = await logAuth(data.user.id, "login_success", ip);
+      // Géolocalisation asynchrone — ne bloque pas la connexion
+      if (logId) geolocateLog(logId);
     }
     return { error: error as Error | null };
   };

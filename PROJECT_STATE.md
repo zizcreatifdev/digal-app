@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-17_
-_Prompt courant : 52 — Membres configurables par plan_
+_Dernière mise à jour : 2026-04-18_
+_Prompt courant : 53 — Géolocalisation IP + Cron keep-alive_
 
 ---
 
@@ -263,7 +263,10 @@ _Prompt courant : 52 — Membres configurables par plan_
 | Membres max par plan (agence) | ✅ Complet (prompt-52) | Input max_membres + toggle Illimité dans AdminPlans, sauvegarde plans.max_membres |
 | Gestion contrats | ✅ Complet | |
 | Campagnes emails | ✅ Complet | |
-| Logs de sécurité | ✅ Complet | |
+| Logs de sécurité | ✅ Complet (prompt-53) | Device + Navigateur (parsé depuis user_agent) |
+| Journal activité utilisateur | ✅ Complet (prompt-53) | Device / Navigateur / Ville · Pays avec flag emoji |
+| Géolocalisation IP | ✅ Complet (prompt-53) | Edge fn geolocate-ip → ip-api.com → activity_logs.city/country |
+| Keep-alive cron | ✅ Complet (prompt-53) | Edge fn keep-alive + pg_cron toutes les 48h |
 | TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
 | Paramètres plateforme | ✅ Complet (prompt-44) | /admin/plateforme — widget countdown : date+heure, toggle show/hide, aperçu jours restants |
 
@@ -394,3 +397,5 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 49 | KPI cumulatif "Depuis le début" : CumulativeStats, fetchCumulativeStats, formatMoisLabel, generateCumulativeKpiPdf, CreateKpiReportModal depuis_debut | 2026-04-17 |
 | 50 | Fix 9 bugs : notif lien 404, race condition PDF, label Studio, logo PDF, valeur 0, AdminDoc, rôles fantômes, PricingSection, PROJECT_STATE | 2026-04-17 |
 | 51 | Formulaire création compte enrichi : Durée & Prix depuis plan_configs, toggle Offrir, section Paiement, facture_licence auto à la création | 2026-04-17 |
+| 52 | Membres configurables par plan : migration max_membres+nb_cm+nb_createurs, AdminPlans quota, OnboardingChecklist étape équipe, PricingSection dynamique, Settings TeamTab | 2026-04-17 |
+| 53 | Géolocalisation IP (geolocate-ip edge fn, ip-api.com) + keep-alive cron (pg_cron 48h) + Device/Navigateur/Localisation dans Journal et AdminSecurity | 2026-04-18 |

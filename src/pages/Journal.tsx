@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
+import { Monitor, Smartphone, Tablet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   ActivityLog,
@@ -22,6 +23,19 @@ function formatDate(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function DeviceIcon({ deviceType }: { deviceType: string | null }) {
+  if (deviceType === "Mobile") return <Smartphone className="h-4 w-4 text-muted-foreground" title="Mobile" />;
+  if (deviceType === "Tablet") return <Tablet className="h-4 w-4 text-muted-foreground" title="Tablette" />;
+  return <Monitor className="h-4 w-4 text-muted-foreground" title="Ordinateur" />;
+}
+
+function countryFlag(code: string | null): string {
+  if (!code || code.length !== 2) return "";
+  return String.fromCodePoint(
+    ...code.toUpperCase().split("").map((c) => 127397 + c.charCodeAt(0))
+  );
 }
 
 export default function Journal() {
@@ -87,7 +101,7 @@ export default function Journal() {
         ) : logs.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">Aucune activité enregistrée</p>
         ) : (
-          <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="rounded-lg border bg-card overflow-hidden overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -95,6 +109,9 @@ export default function Journal() {
                   <TableHead>Type</TableHead>
                   <TableHead>Action</TableHead>
                   <TableHead>Détail</TableHead>
+                  <TableHead>Device</TableHead>
+                  <TableHead>Navigateur</TableHead>
+                  <TableHead>Localisation</TableHead>
                   <TableHead>IP</TableHead>
                 </TableRow>
               </TableHeader>
@@ -112,6 +129,25 @@ export default function Journal() {
                     <TableCell className="font-medium text-sm">{log.action}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
                       {log.detail ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <DeviceIcon deviceType={log.device_type} />
+                        <span className="text-xs text-muted-foreground font-sans hidden sm:inline">
+                          {log.os ?? ""}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-sans">
+                      {log.browser ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-sans whitespace-nowrap">
+                      {log.city || log.country ? (
+                        <span>
+                          {countryFlag(log.country_code)}{" "}
+                          {[log.city, log.country].filter(Boolean).join(" · ")}
+                        </span>
+                      ) : "-"}
                     </TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {log.ip_address ?? "-"}
