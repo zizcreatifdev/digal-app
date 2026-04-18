@@ -20,7 +20,7 @@ import { logActivity } from "@/lib/activity-logs";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
   Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
-  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift, Play,
+  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift, Play, Copy,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
@@ -1324,6 +1324,19 @@ export default function AdminComptes() {
                         </p>
                         <div className="space-y-2">
                           <p className="text-sm font-medium font-sans">Tapez l'email pour confirmer :</p>
+                          <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2">
+                            <code className="flex-1 text-sm select-all">{selected.email}</code>
+                            <button
+                              type="button"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              onClick={() => {
+                                navigator.clipboard.writeText(selected.email);
+                                toast.success("Email copié !");
+                              }}
+                            >
+                              <Copy size={14} />
+                            </button>
+                          </div>
                           <Input
                             className="text-sm"
                             placeholder={selected.email}
