@@ -153,7 +153,11 @@ function AgenceRolesAccordion({ highlighted, isElite }: { highlighted: boolean; 
 
 /* ─── Main component ─────────────────────────────────────── */
 
-export function PricingSection() {
+interface PricingSectionProps {
+  onSelectPlan?: (slug: string) => void;
+}
+
+export function PricingSection({ onSelectPlan }: PricingSectionProps = {}) {
   const navigate = useNavigate();
   const { data: plans, isLoading } = usePlans();
   const [selectedDuree, setSelectedDuree] = useState(1);
@@ -548,7 +552,23 @@ export function PricingSection() {
                     )}
 
                     {/* ── CTA Button ── */}
-                    {isElite ? (
+                    {onSelectPlan ? (
+                      <Button
+                        className={`w-full gap-1.5 mt-auto ${
+                          isElite
+                            ? "border-0 text-white hover:opacity-90"
+                            : plan.highlighted
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        }`}
+                        variant={!isElite && !plan.highlighted ? "outline" : "default"}
+                        style={isElite ? { background: "#E8511A" } : undefined}
+                        onClick={() => onSelectPlan(slug)}
+                      >
+                        Choisir ce plan
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : isElite ? (
                       <Button
                         className="w-full gap-1.5 mt-auto border-0 text-white hover:opacity-90"
                         style={{ background: "#E8511A" }}
