@@ -80,7 +80,7 @@ const Waitlist = () => {
       <div className="hidden lg:flex lg:w-1/2 bg-foreground items-center justify-center p-12">
         <div className="max-w-md text-center space-y-6 animate-fade-in">
           <img
-            src="/logos/Logo_Digal_iconorange_ettext_enblanc.svg"
+            src="/logos/Logo%20Digal_iconorange_ettext_enblanc.svg"
             alt="Digal"
             className="w-48 mx-auto"
           />
