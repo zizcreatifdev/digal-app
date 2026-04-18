@@ -230,6 +230,54 @@ Deno.serve(async (req) => {
       results.push(`Suppression définitive: exception: ${String(delEx2)}`);
     }
 
+    // ── Part 4: Auto-approve referral quota requests after 1 hour ────────────
+    try {
+      const { data: pendingRequests, error: quotaErr } = await supabase
+        .from("referral_quota_requests" as "users")
+        .select("id, user_id, requested_quota")
+        .eq("status", "pending")
+        .lte("auto_approve_at", new Date().toISOString());
+
+      if (quotaErr) {
+        results.push(`Quota parrainage: query error: ${quotaErr.message}`);
+      } else {
+        let approved = 0;
+        for (const req of (pendingRequests ?? []) as Array<{ id: string; user_id: string; requested_quota: number }>) {
+          try {
+            const { data: userRow } = await supabase
+              .from("users")
+              .select("referral_quota")
+              .eq("user_id", req.user_id)
+              .maybeSingle();
+
+            const newQuota = (userRow?.referral_quota ?? 3) + req.requested_quota;
+
+            await supabase.from("users")
+              .update({ referral_quota: newQuota })
+              .eq("user_id", req.user_id);
+
+            await supabase.from("referral_quota_requests" as "users")
+              .update({ status: "approved", reviewed_at: new Date().toISOString() })
+              .eq("id", req.id);
+
+            await supabase.from("notifications").insert({
+              user_id: req.user_id,
+              titre: "Invitations disponibles",
+              message: `Vos ${req.requested_quota} invitations supplémentaires sont maintenant disponibles !`,
+              type: "info",
+            });
+
+            approved++;
+          } catch (approveEx) {
+            console.warn(`[expiry-reminders] quota approve failed for ${req.user_id}:`, approveEx);
+          }
+        }
+        results.push(`Quota parrainage: ${approved} demande(s) approuvée(s)`);
+      }
+    } catch (quotaEx) {
+      results.push(`Quota parrainage: exception: ${String(quotaEx)}`);
+    }
+
     return new Response(
       JSON.stringify({ success: true, totalSent, results, timestamp: new Date().toISOString() }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },

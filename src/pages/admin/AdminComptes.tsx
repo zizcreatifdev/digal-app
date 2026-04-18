@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-logs";
+import { checkReferralQualification, applyReferralMonths } from "@/lib/referrals";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
   Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
@@ -197,6 +198,10 @@ export default function AdminComptes() {
         .update({ licence_expiration: licenceExp.toISOString() })
         .eq("id", userProfile.id);
       if (updateErr) throw updateErr;
+
+      // Referral: qualify filleul + apply any stocked months (fire-and-forget)
+      checkReferralQualification(userProfile.user_id, values.plan).catch(console.error);
+      applyReferralMonths(userProfile.user_id).catch(console.error);
 
       // 4. Create document facture_licence (statut: payee)
       const now = new Date();
@@ -534,6 +539,11 @@ export default function AdminComptes() {
       ]);
       if (docErr) throw docErr;
       if (userErr) throw userErr;
+
+      // Referral: qualify filleul + apply any stocked months (fire-and-forget)
+      checkReferralQualification(targetUser.user_id, planSlug).catch(console.error);
+      applyReferralMonths(targetUser.user_id).catch(console.error);
+
       await logActivity(
         targetUser.user_id,
         "plan_change",

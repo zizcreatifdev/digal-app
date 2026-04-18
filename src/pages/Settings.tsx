@@ -25,6 +25,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush, getNotificationPermission } from "@/lib/push-notifications";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 import { sendActivationEmail } from "@/lib/emails";
+import { checkReferralQualification, applyReferralMonths } from "@/lib/referrals";
 
 type UserRow = Tables<"users">;
 type PostTemplateRow = Tables<"post_templates">;
@@ -1027,6 +1028,10 @@ function LicenseTab() {
       const expiresDate = res.expires_at ? new Date(res.expires_at).toLocaleDateString("fr-FR") : "";
       toast.success(`Licence activée : plan ${PLAN_LABELS[res.type ?? ""] ?? res.type} jusqu'au ${expiresDate}`);
       setKeyInput("");
+      if (res.type && res.type !== "freemium") {
+        checkReferralQualification(user.id, res.type).catch(console.error);
+        applyReferralMonths(user.id).catch(console.error);
+      }
       supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         setProfile(data);
         if (data?.id) loadHistory(data.id);
