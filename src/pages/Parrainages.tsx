@@ -140,19 +140,49 @@ export default function Parrainages() {
 
   const { data: tiers } = useQuery({
     queryKey: ["referral-tiers"],
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, number>> => {
       const { data } = await supabase
         .from("site_settings")
         .select("value")
         .eq("key", "referral_tiers")
         .maybeSingle();
       if (!data?.value) return {};
-      // value may already be a parsed object (jsonb) or a JSON string (text)
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = data.value as any;
-      if (typeof raw === "object") return raw as Record<string, number>;
-      try { return JSON.parse(raw as string) as Record<string, number>; }
-      catch { return {}; }
+      let parsed: unknown;
+      if (typeof raw === "object") {
+        parsed = raw;
+      } else {
+        try { parsed = JSON.parse(raw as string); }
+        catch { return {}; }
+      }
+
+      // Array format: [{count, months}, ...]
+      if (Array.isArray(parsed)) {
+        const result: Record<string, number> = {};
+        for (const tier of parsed as { count?: unknown; months?: unknown }[]) {
+          if (tier?.count != null && tier?.months != null) {
+            result[String(tier.count)] = Number(tier.months);
+          }
+        }
+        return result;
+      }
+
+      // Object format: {"3": 1} or {"3": {count, months}}
+      if (parsed && typeof parsed === "object") {
+        const result: Record<string, number> = {};
+        for (const [key, val] of Object.entries(parsed as Record<string, unknown>)) {
+          if (typeof val === "number") {
+            result[key] = val;
+          } else if (val && typeof val === "object" && "months" in val) {
+            result[key] = Number((val as { months: unknown }).months);
+          }
+        }
+        return result;
+      }
+
+      return {};
     },
   });
 
@@ -210,11 +240,13 @@ export default function Parrainages() {
   const isFreemium = profile.role === "freemium";
   const qualifiedCount = (referrals ?? []).filter((r) => r.status === "qualified" || r.status === "rewarded").length;
 
-  // Next tier calculation
-  const tierKeys = Object.keys(tiers ?? {}).map(Number).sort((a, b) => a - b);
+  // Next tier calculation — tiers is always Record<string, number> after normalization
+  const tierKeys = Object.keys(tiers ?? {}).map(Number).filter(Boolean).sort((a, b) => a - b);
   const nextTierCount = tierKeys.find((k) => k > qualifiedCount);
-  const nextTierMonths = nextTierCount != null ? (tiers ?? {})[String(nextTierCount)] : null;
-  const remaining = nextTierCount != null ? nextTierCount - qualifiedCount : null;
+  const nextTierMonths: number | null = nextTierCount != null
+    ? (Number((tiers ?? {})[String(nextTierCount)]) || null)
+    : null;
+  const remaining: number | null = nextTierCount != null ? nextTierCount - qualifiedCount : null;
 
   const copyLink = async () => {
     setCopyPending(true);
