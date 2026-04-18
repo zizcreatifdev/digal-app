@@ -31,8 +31,9 @@ interface PlanConfig {
 
 const PLAN_TYPES = ["solo", "agence_standard", "agence_pro"] as const;
 
-// Maps plans.slug → plan_configs.plan_type
+// Maps plans.slug (or any plan_type value) → canonical plan_configs.plan_type key
 const SLUG_TO_PLAN_TYPE: Record<string, string> = {
+  freemium: "freemium",
   solo: "solo",
   solo_standard: "solo",
   agence_standard: "agence_standard",
