@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -14,6 +14,33 @@ import { toast } from "sonner";
 import { requestQuota } from "@/lib/referrals";
 import { PLAN_LABELS } from "@/lib/plan-labels";
 import { usePageTitle } from "@/hooks/usePageTitle";
+
+class RenderErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <DashboardLayout>
+          <div className="p-6 rounded-lg bg-destructive/10 border border-destructive text-destructive font-mono text-sm space-y-2">
+            <p className="font-bold">Erreur de rendu :</p>
+            <p>{this.state.error.message}</p>
+            <pre className="text-xs overflow-auto whitespace-pre-wrap">{this.state.error.stack}</pre>
+          </div>
+        </DashboardLayout>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -45,7 +72,9 @@ export default function Parrainages() {
   const queryClient = useQueryClient();
   const [copyPending, setCopyPending] = useState(false);
 
-  const { data: profile } = useQuery({
+  console.log("Parrainages rendered", { userId: user?.id });
+
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["parrainage-profile", user?.id],
     queryFn: async () => {
       // Try full query with referral columns first
@@ -144,7 +173,20 @@ export default function Parrainages() {
     },
   });
 
-  if (!profile) {
+  if (profileLoading || (!profile && !profileLoading && user)) {
+    if (!profileLoading && !profile) {
+      return (
+        <DashboardLayout>
+          <div className="p-6 text-sm text-muted-foreground font-sans space-y-2">
+            <p className="font-semibold text-destructive">Profil introuvable.</p>
+            <p>Impossible de charger votre profil. Vérifiez votre connexion ou reconnectez-vous.</p>
+            <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
+          </div>
+        </DashboardLayout>
+      );
+    }
     return (
       <DashboardLayout>
         <div className="flex justify-center py-20">
@@ -189,6 +231,7 @@ export default function Parrainages() {
     : null;
 
   return (
+    <RenderErrorBoundary>
     <DashboardLayout>
       <div className="animate-fade-in space-y-6 max-w-4xl">
         <div>
@@ -364,5 +407,6 @@ export default function Parrainages() {
         </div>
       </div>
     </DashboardLayout>
+    </RenderErrorBoundary>
   );
 }
