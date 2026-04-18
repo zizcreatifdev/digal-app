@@ -576,7 +576,10 @@ export default function AdminComptes() {
       queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
       toast.success("Compte suspendu");
     },
-    onError: () => toast.error("Erreur lors de la suspension"),
+    onError: (err) => {
+      console.error("[suspendAccount]", err);
+      toast.error("Erreur lors de la suspension");
+    },
   });
 
   const deleteAccount = useMutation({
@@ -594,7 +597,10 @@ export default function AdminComptes() {
       setDetail(null);
       toast.success("Compte marqué pour suppression");
     },
-    onError: () => toast.error("Erreur lors de la suppression"),
+    onError: (err) => {
+      console.error("[deleteAccount]", err);
+      toast.error("Erreur lors de la suppression");
+    },
   });
 
   return (
