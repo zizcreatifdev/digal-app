@@ -26,6 +26,16 @@ const CompteSuspendu = () => {
             Votre compte a été suspendu.<br />
             Pour plus d'informations, contactez l'administrateur.
           </p>
+          <p className="text-sm text-muted-foreground font-sans">
+            Pour toute demande de réactivation, contactez-nous à :{" "}
+            <a
+              href="mailto:contact@digal.sn"
+              className="font-semibold hover:underline"
+              style={{ color: "#E8511A" }}
+            >
+              contact@digal.sn
+            </a>
+          </p>
         </div>
         <Link to="/">
           <Button variant="outline" className="mt-2">Retour à l'accueil</Button>
