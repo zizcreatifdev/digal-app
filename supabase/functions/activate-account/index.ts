@@ -109,10 +109,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4. Insert user_roles
+    // 4. Generate referral code
+    const referralCode = "DIG" + Math.random().toString(36).toUpperCase().slice(2, 8);
+    await adminClient.from("users").update({ referral_code: referralCode }).eq("user_id", userId).is("referral_code", null);
+
+    // 5. Insert user_roles
     await adminClient.from("user_roles").insert({ user_id: userId, role: "user" });
 
-    // 5. Mark token as used
+    // 6. Mark token as used
     await adminClient
       .from("activation_tokens")
       .update({ is_used: true, used_at: new Date().toISOString() })
