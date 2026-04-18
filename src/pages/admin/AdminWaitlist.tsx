@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle, XCircle, Copy, RefreshCw, Users, Star } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Copy, RefreshCw, Users, Star, MessageSquare, Save } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { Textarea } from "@/components/ui/textarea";
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -49,6 +50,12 @@ interface EliteRequest {
   created_at: string;
 }
 
+interface ActivationMessage {
+  id: string;
+  plan_slug: string;
+  message: string;
+}
+
 /* ─── Constants ─────────────────────────────────────────── */
 
 const TYPE_LABELS: Record<string, string> = {
@@ -74,6 +81,31 @@ const ELITE_STATUTS = [
   { value: "refuse",         label: "Refusé",         className: "bg-red-100 text-red-700" },
 ];
 
+// Maps waitlist.type_compte → activation_messages.plan_slug
+const TYPE_COMPTE_TO_PLAN_SLUG: Record<string, string> = {
+  solo: "solo_standard",
+  agence: "agence_standard",
+  agence_standard: "agence_standard",
+  agence_pro: "agence_pro",
+  freemium: "freemium",
+};
+
+const PLAN_SLUG_LABELS: Record<string, string> = {
+  freemium: "Découverte",
+  solo_standard: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
+};
+
+const MESSAGE_PLANS = [
+  { slug: "freemium",       label: "Découverte" },
+  { slug: "solo_standard",  label: "CM Pro" },
+  { slug: "agence_standard",label: "Studio" },
+  { slug: "agence_pro",     label: "Elite" },
+];
+
+const ACTIVATION_VARIABLES = ["[Prénom]", "[Plan]", "[Durée]", "[Lien]"];
+
 /* ─── Helpers ────────────────────────────────────────────── */
 
 function eliteStatutBadge(statut: string) {
@@ -97,12 +129,28 @@ function activationBadge(tokenInfo: TokenInfo | undefined) {
   return <Badge className="bg-amber-100 text-amber-700 text-[10px] border-0">En attente d'envoi</Badge>;
 }
 
+function applyVariables(
+  template: string,
+  vars: { prenom: string; plan: string; duree: string; lien: string }
+): string {
+  return template
+    .replace(/\[Prénom\]/g, vars.prenom)
+    .replace(/\[Plan\]/g, vars.plan)
+    .replace(/\[Durée\]/g, vars.duree)
+    .replace(/\[Lien\]/g, vars.lien);
+}
+
 /* ─── Component ─────────────────────────────────────────── */
 
 export default function AdminWaitlist() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"waitlist" | "elite">("waitlist");
+  const [activeTab, setActiveTab] = useState<"waitlist" | "elite" | "messages">("waitlist");
   const [dureeParEmail, setDureeParEmail] = useState<Record<string, string>>({});
+  // Messages tab state
+  const [activeMessagePlan, setActiveMessagePlan] = useState("freemium");
+  const [messageTexts, setMessageTexts] = useState<Record<string, string>>({});
+  const [savingMessage, setSavingMessage] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* ─── Waitlist queries ───────────────────────────────── */
 
@@ -147,6 +195,30 @@ export default function AdminWaitlist() {
       return (data ?? []) as PlanConfig[];
     },
   });
+
+  /* ─── Activation messages query ─────────────────────── */
+
+  const { data: activationMessages } = useQuery({
+    queryKey: ["activation-messages"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("activation_messages")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as ActivationMessage[];
+    },
+  });
+
+  useEffect(() => {
+    if (!activationMessages || activationMessages.length === 0) return;
+    setMessageTexts((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const texts: Record<string, string> = {};
+      for (const m of activationMessages) texts[m.plan_slug] = m.message;
+      return texts;
+    });
+  }, [activationMessages]);
 
   /* ─── Elite requests query ───────────────────────────── */
 
@@ -215,27 +287,40 @@ export default function AdminWaitlist() {
       duree: number;
       prix: number;
     }) => {
-      const typeLabel = TYPE_LABELS[entry.type_compte ?? ""] ?? (entry.type_compte ?? "Solo");
+      const planSlug = TYPE_COMPTE_TO_PLAN_SLUG[entry.type_compte ?? "solo"] ?? "solo_standard";
+      const planLabel = PLAN_SLUG_LABELS[planSlug] ?? (entry.type_compte ?? "Solo");
       const activationLink = `https://digal.vercel.app/activate/${tokenInfo.token}`;
-      const prixLine = prix > 0 ? `Prix : ${prix.toLocaleString("fr-FR")} FCFA` : null;
-      const message = [
-        `Bonjour ${entry.prenom ?? ""} 👋`,
-        "",
-        `Votre accès Digal a été approuvé ! 🎉`,
-        "",
-        `Vous avez été sélectionné(e) parmi nos premiers utilisateurs, bienvenue dans la communauté.`,
-        "",
-        `Compte : ${typeLabel}`,
-        `Durée : ${duree} mois`,
-        ...(prixLine ? [prixLine] : []),
-        `Lien d'activation (valable 48h) :`,
-        activationLink,
-        "",
-        `Cliquez sur le lien pour créer votre mot de passe et accéder à votre espace Digal.`,
-        "",
-        `À très vite,`,
-        `L'équipe Digal 🚀`,
-      ].join("\n");
+
+      const template = activationMessages?.find((m) => m.plan_slug === planSlug)?.message;
+      let message: string;
+
+      if (template) {
+        message = applyVariables(template, {
+          prenom: entry.prenom ?? "",
+          plan: planLabel,
+          duree: String(duree),
+          lien: activationLink,
+        });
+      } else {
+        // Fallback si la table n'est pas encore peuplée
+        const prixLine = prix > 0 ? `Prix : ${prix.toLocaleString("fr-FR")} FCFA` : null;
+        message = [
+          `Bonjour ${entry.prenom ?? ""} 👋`,
+          "",
+          `Votre accès Digal a été approuvé ! 🎉`,
+          "",
+          `Compte : ${planLabel}`,
+          `Durée : ${duree} mois`,
+          ...(prixLine ? [prixLine] : []),
+          `Lien d'activation (valable 48h) :`,
+          activationLink,
+          "",
+          `Cliquez sur le lien pour créer votre mot de passe et accéder à votre espace Digal.`,
+          "",
+          `À très vite,`,
+          `L'équipe Digal 🚀`,
+        ].join("\n");
+      }
 
       await navigator.clipboard.writeText(message);
 
@@ -273,6 +358,47 @@ export default function AdminWaitlist() {
       toast.error("Erreur lors de la génération du lien");
     },
   });
+
+  /* ─── Messages mutations ─────────────────────────────── */
+
+  const insertVariable = (variable: string) => {
+    const ta = textareaRef.current;
+    if (!ta) {
+      setMessageTexts((prev) => ({ ...prev, [activeMessagePlan]: (prev[activeMessagePlan] ?? "") + variable }));
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const current = messageTexts[activeMessagePlan] ?? "";
+    const newValue = current.slice(0, start) + variable + current.slice(end);
+    setMessageTexts((prev) => ({ ...prev, [activeMessagePlan]: newValue }));
+    setTimeout(() => {
+      ta.selectionStart = ta.selectionEnd = start + variable.length;
+      ta.focus();
+    }, 0);
+  };
+
+  const handleSaveMessage = async (planSlug: string) => {
+    const text = messageTexts[planSlug];
+    if (!text) return;
+    setSavingMessage(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("activation_messages")
+        .upsert(
+          { plan_slug: planSlug, message: text, updated_at: new Date().toISOString() },
+          { onConflict: "plan_slug" }
+        );
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["activation-messages"] });
+      toast.success("Message enregistré ✅");
+    } catch {
+      toast.error("Erreur lors de l'enregistrement");
+    } finally {
+      setSavingMessage(false);
+    }
+  };
 
   /* ─── Elite mutations ────────────────────────────────── */
 
@@ -357,6 +483,18 @@ export default function AdminWaitlist() {
             {eliteStats.nouveaux > 0 && (
               <Badge className="text-[10px] h-4 px-1.5 bg-blue-100 text-blue-700 border-0">{eliteStats.nouveaux}</Badge>
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("messages")}
+            className={`flex items-center gap-2 pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "messages"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Messages d'activation
           </button>
         </div>
 
@@ -590,6 +728,82 @@ export default function AdminWaitlist() {
             )}
           </>
         )}
+        {/* ── Messages d'activation ── */}
+        {activeTab === "messages" && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold font-serif">Messages d'activation</h2>
+              <p className="text-sm text-muted-foreground font-sans mt-1">
+                Personnalisez le message copié lors de l'envoi d'un lien d'activation.
+                Variables : <code className="text-xs bg-muted px-1 rounded">[Prénom]</code>{" "}
+                <code className="text-xs bg-muted px-1 rounded">[Plan]</code>{" "}
+                <code className="text-xs bg-muted px-1 rounded">[Durée]</code>{" "}
+                <code className="text-xs bg-muted px-1 rounded">[Lien]</code>
+              </p>
+            </div>
+
+            {/* Plan sub-tabs */}
+            <div className="flex gap-1 border-b border-border">
+              {MESSAGE_PLANS.map((p) => (
+                <button
+                  key={p.slug}
+                  type="button"
+                  onClick={() => setActiveMessagePlan(p.slug)}
+                  className={`pb-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeMessagePlan === p.slug
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Variables badges */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-muted-foreground font-sans">Insérer :</span>
+              {ACTIVATION_VARIABLES.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => insertVariable(v)}
+                  className="inline-flex items-center rounded-full border border-primary/40 bg-primary/5 px-2.5 py-0.5 text-xs font-mono text-primary hover:bg-primary/10 transition-colors"
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+
+            {/* Textarea */}
+            <Textarea
+              ref={textareaRef}
+              className="font-sans text-sm min-h-[280px] resize-y"
+              value={messageTexts[activeMessagePlan] ?? ""}
+              onChange={(e) =>
+                setMessageTexts((prev) => ({ ...prev, [activeMessagePlan]: e.target.value }))
+              }
+              placeholder="Chargement du message..."
+            />
+
+            {/* Save */}
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleSaveMessage(activeMessagePlan)}
+                disabled={savingMessage || !messageTexts[activeMessagePlan]}
+                className="gap-2"
+              >
+                {savingMessage ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Enregistrer
+              </Button>
+            </div>
+          </div>
+        )}
+
       </div>
     </AdminLayout>
   );
