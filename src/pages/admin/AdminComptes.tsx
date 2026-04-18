@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -20,7 +20,7 @@ import { logActivity } from "@/lib/activity-logs";
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
   Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
-  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift,
+  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift, Play,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
@@ -67,6 +67,7 @@ interface UserProfile {
   licence_expiration: string | null;
   created_at: string;
   agence_nom: string | null;
+  statut?: string | null;
 }
 
 interface AccountDetail {
@@ -152,6 +153,7 @@ export default function AdminComptes() {
   const [planPayRef, setPlanPayRef] = useState("");
   // Danger zone
   const [deleteInput, setDeleteInput] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const createForm = useForm<CreateAccountForm>({
     resolver: zodResolver(createAccountSchema),
@@ -574,11 +576,32 @@ export default function AdminComptes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      setSelected((prev) => prev ? { ...prev, statut: "suspendu" } : null);
       toast.success("Compte suspendu");
     },
     onError: (err) => {
       console.error("[suspendAccount]", err);
       toast.error("Erreur lors de la suspension");
+    },
+  });
+
+  const reactivateAccount = useMutation({
+    mutationFn: async (targetUser: UserProfile) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("users")
+        .update({ statut: "actif" })
+        .eq("id", targetUser.id);
+      if (error) throw error;
+      await logActivity(targetUser.user_id, "account_reactivated", "auth", "Compte réactivé par admin", "user", targetUser.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      setSelected((prev) => prev ? { ...prev, statut: "actif" } : null);
+      toast.success("Compte réactivé");
+    },
+    onError: (err) => {
+      console.error("[reactivateAccount]", err);
+      toast.error("Erreur lors de la réactivation");
     },
   });
 
@@ -593,6 +616,8 @@ export default function AdminComptes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      setDeleteDialogOpen(false);
+      setDeleteInput("");
       setSelected(null);
       setDetail(null);
       toast.success("Compte marqué pour suppression");
@@ -1232,52 +1257,95 @@ export default function AdminComptes() {
                       </AlertDialogContent>
                     </AlertDialog>
 
-                    {/* Suspendre */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full justify-start text-amber-700 border-amber-300 hover:bg-amber-50">
-                          <PauseCircle className="h-4 w-4 mr-2" /> Suspendre le compte
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="font-serif">Suspendre ce compte ?</AlertDialogTitle>
-                          <AlertDialogDescription className="font-sans">
-                            Le compte de {selected.prenom} {selected.nom} sera suspendu. L'accès sera bloqué.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="font-sans">Annuler</AlertDialogCancel>
-                          <AlertDialogAction className="bg-amber-700 text-white hover:bg-amber-800 font-sans" onClick={() => suspendAccount.mutate(selected)}>
-                            Suspendre
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {/* Suspendre / Réactiver */}
+                    {selected.statut === "suspendu" ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full justify-start text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+                            <Play className="h-4 w-4 mr-2" /> Réactiver le compte
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-serif">Réactiver ce compte ?</AlertDialogTitle>
+                            <AlertDialogDescription className="font-sans">
+                              Le compte de {selected.prenom} {selected.nom} sera réactivé. L'accès sera rétabli.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="font-sans">Annuler</AlertDialogCancel>
+                            <AlertDialogAction className="bg-emerald-700 text-white hover:bg-emerald-800 font-sans" onClick={() => reactivateAccount.mutate(selected)}>
+                              Réactiver
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full justify-start text-amber-700 border-amber-300 hover:bg-amber-50">
+                            <PauseCircle className="h-4 w-4 mr-2" /> Suspendre le compte
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-serif">Suspendre ce compte ?</AlertDialogTitle>
+                            <AlertDialogDescription className="font-sans">
+                              Le compte de {selected.prenom} {selected.nom} sera suspendu. L'accès sera bloqué.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="font-sans">Annuler</AlertDialogCancel>
+                            <AlertDialogAction className="bg-amber-700 text-white hover:bg-amber-800 font-sans" onClick={() => suspendAccount.mutate(selected)}>
+                              Suspendre
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
 
                     {/* Supprimer */}
-                    <div className="space-y-2 pt-1">
-                      <Button variant="outline" size="sm" className="w-full justify-start text-destructive border-destructive/30 hover:bg-destructive/10" disabled>
-                        <Trash2 className="h-4 w-4 mr-2" /> Supprimer le compte
-                      </Button>
-                      <p className="text-[11px] text-muted-foreground">Tapez l'email pour confirmer :</p>
-                      <Input
-                        className="h-8 text-xs"
-                        placeholder={selected.email}
-                        value={deleteInput}
-                        onChange={(e) => setDeleteInput(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="w-full"
-                        disabled={deleteInput !== selected.email || deleteAccount.isPending}
-                        onClick={() => deleteAccount.mutate(selected)}
-                      >
-                        {deleteAccount.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
-                        Confirmer la suppression
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => { setDeleteInput(""); setDeleteDialogOpen(true); }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Supprimer le compte
+                    </Button>
+                    <Dialog open={deleteDialogOpen} onOpenChange={(o) => { setDeleteDialogOpen(o); if (!o) setDeleteInput(""); }}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="font-serif text-destructive">Supprimer ce compte ?</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-muted-foreground font-sans">
+                          Cette action est irréversible. Le compte de{" "}
+                          <strong>{selected.prenom} {selected.nom}</strong> sera marqué pour suppression.
+                        </p>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium font-sans">Tapez l'email pour confirmer :</p>
+                          <Input
+                            className="text-sm"
+                            placeholder={selected.email}
+                            value={deleteInput}
+                            onChange={(e) => setDeleteInput(e.target.value)}
+                            autoComplete="off"
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+                          <Button
+                            variant="destructive"
+                            disabled={deleteInput !== selected.email || deleteAccount.isPending}
+                            onClick={() => deleteAccount.mutate(selected)}
+                          >
+                            {deleteAccount.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                            Confirmer la suppression
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </TabsContent>
               </Tabs>
