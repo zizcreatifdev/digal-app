@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-18_
-_Prompt courant : 53 — Géolocalisation IP + Cron keep-alive_
+_Prompt courant : 55 — Suspension/Suppression logique complète_
 
 ---
 
@@ -26,7 +26,7 @@ _Prompt courant : 53 — Géolocalisation IP + Cron keep-alive_
 
 ## État des modules
 
-### Module AUTH — 95% ✅
+### Module AUTH — 100% ✅
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Login email/password | ✅ Complet | Via Supabase Auth |
@@ -41,6 +41,8 @@ _Prompt courant : 53 — Géolocalisation IP + Cron keep-alive_
 | Étape onboarding équipe (agence) | ✅ Complet (prompt-52) | Étape 0 "Configure ton équipe" pour rôle DM/agence, modal nb_cm/nb_createurs |
 | Waitlist | ✅ Complet | Page publique |
 | Tests routes | ✅ Complet (prompt-11) | 19 tests dans `routes.test.ts` |
+| Blocage compte suspendu | ✅ Complet (prompt-55) | AuthGuard vérifie `users.statut` → déconnexion + `/compte-suspendu` |
+| Page /compte-suspendu | ✅ Complet (prompt-55) | Route publique, design sobre |
 
 ---
 
@@ -269,6 +271,7 @@ _Prompt courant : 53 — Géolocalisation IP + Cron keep-alive_
 | Keep-alive cron | ✅ Complet (prompt-53) | Edge fn keep-alive + pg_cron toutes les 48h |
 | TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
 | Paramètres plateforme | ✅ Complet (prompt-44) | /admin/plateforme — widget countdown : date+heure, toggle show/hide, aperçu jours restants |
+| Suspension/Suppression complète | ✅ Complet (prompt-55) | AuthGuard check statut, page /compte-suspendu, edge fn ban-user, toggle comptes supprimés, cron suppression définitive J+30 |
 
 ---
 
@@ -399,3 +402,5 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 51 | Formulaire création compte enrichi : Durée & Prix depuis plan_configs, toggle Offrir, section Paiement, facture_licence auto à la création | 2026-04-17 |
 | 52 | Membres configurables par plan : migration max_membres+nb_cm+nb_createurs, AdminPlans quota, OnboardingChecklist étape équipe, PricingSection dynamique, Settings TeamTab | 2026-04-17 |
 | 53 | Géolocalisation IP (geolocate-ip edge fn, ip-api.com) + keep-alive cron (pg_cron 48h) + Device/Navigateur/Localisation dans Journal et AdminSecurity | 2026-04-18 |
+| 54 | Messages d'activation personnalisés (table activation_messages, onglet AdminWaitlist, variables [Prénom][Plan][Durée][Lien]) + fix boutons suspendre/supprimer AdminComptes | 2026-04-18 |
+| 55 | Suspension/Suppression complète : AuthGuard check statut → /compte-suspendu, page CompteSuspendu, edge fn ban-user, toggle + badges AdminComptes, cancelDeletion, cron suppression définitive J+30 | 2026-04-18 |

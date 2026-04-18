@@ -9,6 +9,7 @@ interface AuthContextType {
   userRole: "admin" | "user" | null;
   profileRole: string | null;
   profileRoleLoaded: boolean;
+  userStatut: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; data: unknown }>;
@@ -23,15 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<"admin" | "user" | null>(null);
   const [profileRole, setProfileRole] = useState<string | null>(null);
   const [profileRoleLoaded, setProfileRoleLoaded] = useState(false);
+  const [userStatut, setUserStatut] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
     const [roleResult, profileResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-      supabase.from("users").select("role").eq("user_id", userId).maybeSingle(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from("users").select("role, statut").eq("user_id", userId).maybeSingle(),
     ]);
     setUserRole((roleResult.data?.role as "admin" | "user") ?? "user");
     setProfileRole(profileResult.data?.role ?? null);
+    setUserStatut(profileResult.data?.statut ?? null);
     setProfileRoleLoaded(true);
   };
 
@@ -99,11 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setUserRole(null);
     setProfileRole(null);
+    setUserStatut(null);
     setProfileRoleLoaded(false);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, profileRole, profileRoleLoaded, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ session, user, userRole, profileRole, profileRoleLoaded, userStatut, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

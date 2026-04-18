@@ -154,6 +154,8 @@ export default function AdminComptes() {
   // Danger zone
   const [deleteInput, setDeleteInput] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // Toggle affichage comptes en suppression planifiée
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const createForm = useForm<CreateAccountForm>({
     resolver: zodResolver(createAccountSchema),
@@ -300,13 +302,19 @@ export default function AdminComptes() {
     staleTime: 5 * 60_000,
   });
 
-  // Filtered users based on URL param
+  // Filtered users based on URL param + showDeleted toggle
   const filteredUsers = (() => {
-    if (!users || !filterParam || !lastLoginMap) return users;
+    if (!users) return users;
+    let list = users;
+    // Hide suppression_planifiee accounts unless toggle is on
+    if (!showDeleted) {
+      list = list.filter((u) => u.statut !== "suppression_planifiee");
+    }
+    if (!filterParam || !lastLoginMap) return list;
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return users.filter((u) => {
+    return list.filter((u) => {
       const lastLogin = lastLoginMap[u.user_id] ?? null;
       const activationDate = new Date(u.created_at);
       if (filterParam === "inactive7") return lastLogin ? lastLogin < sevenDaysAgo : false;
@@ -592,6 +600,8 @@ export default function AdminComptes() {
         .update({ statut: "actif" })
         .eq("id", targetUser.id);
       if (error) throw error;
+      // Remove any auth ban that was set during suspension or deletion
+      await supabase.functions.invoke("ban-user", { body: { userId: targetUser.user_id, action: "unban" } });
       await logActivity(targetUser.user_id, "account_reactivated", "auth", "Compte réactivé par admin", "user", targetUser.id);
     },
     onSuccess: () => {
@@ -605,6 +615,27 @@ export default function AdminComptes() {
     },
   });
 
+  const cancelDeletion = useMutation({
+    mutationFn: async (targetUser: UserProfile) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("users")
+        .update({ statut: "actif" })
+        .eq("id", targetUser.id);
+      if (error) throw error;
+      await supabase.functions.invoke("ban-user", { body: { userId: targetUser.user_id, action: "unban" } });
+      await logActivity(targetUser.user_id, "account_deletion_cancelled", "auth", "Suppression annulée par admin", "user", targetUser.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      setSelected((prev) => prev ? { ...prev, statut: "actif" } : null);
+      toast.success("Suppression annulée — compte réactivé");
+    },
+    onError: (err) => {
+      console.error("[cancelDeletion]", err);
+      toast.error("Erreur lors de l'annulation");
+    },
+  });
+
   const deleteAccount = useMutation({
     mutationFn: async (targetUser: UserProfile) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -612,6 +643,8 @@ export default function AdminComptes() {
         .update({ statut: "suppression_planifiee" })
         .eq("id", targetUser.id);
       if (error) throw error;
+      // Ban auth account immediately to block any active session
+      await supabase.functions.invoke("ban-user", { body: { userId: targetUser.user_id, action: "ban" } });
       await logActivity(targetUser.user_id, "account_deletion_planned", "auth", "Suppression planifiée par admin", "user", targetUser.id);
     },
     onSuccess: () => {
@@ -651,7 +684,11 @@ export default function AdminComptes() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm font-sans text-muted-foreground cursor-pointer select-none">
+              <Switch checked={showDeleted} onCheckedChange={setShowDeleted} />
+              Comptes supprimés
+            </label>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="font-sans">
               <UserPlus className="h-4 w-4 mr-2" /> Créer un compte
             </Button>
@@ -683,12 +720,24 @@ export default function AdminComptes() {
                   {filteredUsers?.map((u) => {
                     const lastLoginDate = lastLoginMap ? (lastLoginMap[u.user_id] ?? null) : null;
                     const { text: lastLoginText, isOld } = formatRelativeTime(lastLoginDate);
+                    const isDeleted = u.statut === "suppression_planifiee";
+                    const isSuspended = u.statut === "suspendu";
                     return (
-                      <TableRow key={u.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(u)}>
+                      <TableRow
+                        key={u.id}
+                        className={`cursor-pointer hover:bg-muted/50 ${isDeleted ? "opacity-50" : ""}`}
+                        onClick={() => openDetail(u)}
+                      >
                         <TableCell className="font-medium">{u.prenom} {u.nom}</TableCell>
                         <TableCell className="text-sm">{u.email}</TableCell>
                         <TableCell>{getRoleBadge(u.role)}</TableCell>
-                        <TableCell>{getStatusBadge(u)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {getStatusBadge(u)}
+                            {isSuspended && <Badge className="bg-orange-100 text-orange-700">Suspendu</Badge>}
+                            {isDeleted && <Badge className="bg-red-100 text-red-700">Suppression planifiée</Badge>}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
                         </TableCell>
@@ -1257,8 +1306,30 @@ export default function AdminComptes() {
                       </AlertDialogContent>
                     </AlertDialog>
 
-                    {/* Suspendre / Réactiver */}
-                    {selected.statut === "suspendu" ? (
+                    {/* Suspendre / Réactiver / Annuler suppression */}
+                    {selected.statut === "suppression_planifiee" ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full justify-start text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+                            <Play className="h-4 w-4 mr-2" /> Annuler la suppression
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-serif">Annuler la suppression ?</AlertDialogTitle>
+                            <AlertDialogDescription className="font-sans">
+                              Le compte de {selected.prenom} {selected.nom} sera restauré à l'état actif.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="font-sans">Fermer</AlertDialogCancel>
+                            <AlertDialogAction className="bg-emerald-700 text-white hover:bg-emerald-800 font-sans" onClick={() => cancelDeletion.mutate(selected)}>
+                              Restaurer le compte
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : selected.statut === "suspendu" ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm" className="w-full justify-start text-emerald-700 border-emerald-300 hover:bg-emerald-50">
@@ -1291,7 +1362,7 @@ export default function AdminComptes() {
                           <AlertDialogHeader>
                             <AlertDialogTitle className="font-serif">Suspendre ce compte ?</AlertDialogTitle>
                             <AlertDialogDescription className="font-sans">
-                              Le compte de {selected.prenom} {selected.nom} sera suspendu. L'accès sera bloqué.
+                              Le compte de {selected.prenom} {selected.nom} sera suspendu. L'accès sera bloqué dès la prochaine connexion.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -1304,7 +1375,8 @@ export default function AdminComptes() {
                       </AlertDialog>
                     )}
 
-                    {/* Supprimer */}
+                    {/* Supprimer — masqué si déjà en suppression_planifiee */}
+                    {selected.statut !== "suppression_planifiee" && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -1313,6 +1385,7 @@ export default function AdminComptes() {
                     >
                       <Trash2 className="h-4 w-4 mr-2" /> Supprimer le compte
                     </Button>
+                    )}
                     <Dialog open={deleteDialogOpen} onOpenChange={(o) => { setDeleteDialogOpen(o); if (!o) setDeleteInput(""); }}>
                       <DialogContent>
                         <DialogHeader>

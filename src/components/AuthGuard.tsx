@@ -20,9 +20,22 @@ const Spinner = () => (
 );
 
 export function AuthGuard({ children, requiredRole, allowedProfileRoles }: AuthGuardProps) {
-  const { session, userRole, profileRole, profileRoleLoaded, loading } = useAuth();
+  const { session, userRole, profileRole, profileRoleLoaded, userStatut, loading, signOut } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  // Account suspended or planned for deletion → sign out immediately
+  const isAccountBlocked =
+    !loading &&
+    profileRoleLoaded &&
+    !!session &&
+    (userStatut === "suspendu" || userStatut === "suppression_planifiee");
+
+  useEffect(() => {
+    if (isAccountBlocked) {
+      signOut().then(() => navigate("/compte-suspendu", { replace: true }));
+    }
+  }, [isAccountBlocked, signOut, navigate]);
 
   // Compute role denial before conditional returns (hooks must be unconditional)
   const isRoleDenied =
@@ -41,6 +54,9 @@ export function AuthGuard({ children, requiredRole, allowedProfileRoles }: AuthG
   }, [isRoleDenied, navigate]);
 
   if (loading) return <Spinner />;
+
+  // Show spinner while signing out a blocked account
+  if (isAccountBlocked) return <Spinner />;
 
   if (!session) return <Navigate to="/login" replace />;
 

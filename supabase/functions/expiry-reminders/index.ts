@@ -197,6 +197,39 @@ Deno.serve(async (req) => {
       results.push(`Relance freemium: exception: ${String(relanceEx)}`);
     }
 
+    // ── Part 3: Definitive deletion (30+ days after suppression_planifiee) ────
+    try {
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: pendingDeletion, error: delQueryErr } = await supabase
+        .from("users")
+        .select("user_id, email, prenom, nom")
+        .eq("statut", "suppression_planifiee")
+        .lte("updated_at", thirtyDaysAgo.toISOString());
+
+      if (delQueryErr) {
+        results.push(`Suppression définitive: query error: ${delQueryErr.message}`);
+      } else {
+        let deleted = 0;
+        for (const u of (pendingDeletion ?? []) as Array<{ user_id: string; email: string; prenom: string; nom: string }>) {
+          try {
+            // Delete profile row first (in case there's no cascade)
+            await supabase.from("users").delete().eq("user_id", u.user_id);
+            // Delete auth user (revokes all sessions permanently)
+            await supabase.auth.admin.deleteUser(u.user_id);
+            deleted++;
+            console.log(`[expiry-reminders] deleted account ${u.email} (${u.user_id})`);
+          } catch (delEx) {
+            console.warn(`[expiry-reminders] delete user ${u.user_id} failed:`, delEx);
+          }
+        }
+        results.push(`Suppression définitive: ${deleted} compte(s) supprimé(s)`);
+      }
+    } catch (delEx2) {
+      results.push(`Suppression définitive: exception: ${String(delEx2)}`);
+    }
+
     return new Response(
       JSON.stringify({ success: true, totalSent, results, timestamp: new Date().toISOString() }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
