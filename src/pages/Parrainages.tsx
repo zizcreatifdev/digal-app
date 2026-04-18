@@ -49,7 +49,7 @@ const APP_URL = window.location.origin;
 
 interface ReferralRow {
   id: string;
-  referred_id: string;
+  referee_id: string;
   status: string;
   qualified_at: string | null;
   created_at: string;
@@ -102,7 +102,7 @@ export default function Parrainages() {
     queryFn: async () => {
       const { data } = await db
         .from("referrals")
-        .select("id, referred_id, status, qualified_at, created_at, plan_referee")
+        .select("id, referee_id, status, qualified_at, created_at, plan_referee")
         .eq("referrer_id", user!.id)
         .order("created_at", { ascending: false });
       return (data ?? []) as ReferralRow[];
@@ -111,9 +111,9 @@ export default function Parrainages() {
   });
 
   const { data: referredUsers } = useQuery({
-    queryKey: ["parrainage-referred-users", referrals?.map((r) => r.referred_id)],
+    queryKey: ["parrainage-referred-users", referrals?.map((r) => r.referee_id)],
     queryFn: async () => {
-      const ids = (referrals ?? []).map((r) => r.referred_id);
+      const ids = (referrals ?? []).map((r) => r.referee_id);
       if (ids.length === 0) return [];
       const { data } = await db
         .from("users")
@@ -131,7 +131,7 @@ export default function Parrainages() {
         .from("referral_quota_requests")
         .select("id, created_at, auto_approve_at")
         .eq("user_id", user!.id)
-        .eq("status", "pending")
+        .eq("statut", "en_attente")
         .maybeSingle();
       return data;
     },
@@ -147,7 +147,11 @@ export default function Parrainages() {
         .eq("key", "referral_tiers")
         .maybeSingle();
       if (!data?.value) return {};
-      try { return JSON.parse(data.value as string) as Record<string, number>; }
+      // value may already be a parsed object (jsonb) or a JSON string (text)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = data.value as any;
+      if (typeof raw === "object") return raw as Record<string, number>;
+      try { return JSON.parse(raw as string) as Record<string, number>; }
       catch { return {}; }
     },
   });
@@ -224,7 +228,7 @@ export default function Parrainages() {
     window.open(`https://wa.me/?text=${encodeURIComponent(template)}`, "_blank");
   };
 
-  const getReferredUser = (referredId: string) => (referredUsers ?? []).find((u) => u.user_id === referredId);
+  const getReferredUser = (refereeId: string) => (referredUsers ?? []).find((u) => u.user_id === refereeId);
 
   const minutesUntilApprove = pendingQuotaRequest?.auto_approve_at
     ? Math.max(0, Math.ceil((new Date(pendingQuotaRequest.auto_approve_at).getTime() - Date.now()) / 60000))
@@ -334,7 +338,7 @@ export default function Parrainages() {
                 </TableHeader>
                 <TableBody>
                   {(referrals ?? []).map((ref) => {
-                    const ru = getReferredUser(ref.referred_id);
+                    const ru = getReferredUser(ref.referee_id);
                     const initials = ru ? (ru.prenom[0] + ru.nom[0]).toUpperCase() : "?";
                     const planLabel = PLAN_LABELS[ru?.role ?? ""] ?? ru?.role ?? "—";
                     const isQualified = ref.status === "qualified" || ref.status === "rewarded";
@@ -345,7 +349,7 @@ export default function Parrainages() {
                             <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
                               {initials}
                             </div>
-                            <span className="text-sm font-sans">{ru ? `${ru.prenom} ${ru.nom}` : ref.referred_id.slice(0, 8)}</span>
+                            <span className="text-sm font-sans">{ru ? `${ru.prenom} ${ru.nom}` : ref.referee_id.slice(0, 8)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground font-sans">
