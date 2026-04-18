@@ -79,7 +79,11 @@ const Waitlist = () => {
       {/* Left : Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-foreground items-center justify-center p-12">
         <div className="max-w-md text-center space-y-6 animate-fade-in">
-          <h1 className="text-5xl font-bold font-serif text-primary-foreground">Digal</h1>
+          <img
+            src="/logos/Logo_Digal_iconorange_ettext_enblanc.svg"
+            alt="Digal"
+            className="w-48 mx-auto"
+          />
           <p className="text-lg text-primary-foreground/70 font-sans leading-relaxed">
             Rejoignez la liste d'attente et soyez parmi les premiers à découvrir la plateforme.
           </p>
