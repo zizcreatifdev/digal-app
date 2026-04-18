@@ -69,26 +69,35 @@ export function OnboardingWizard({ profile, onComplete }: OnboardingWizardProps)
   const handleFinish = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("users").update({
+
+    // Ensure JWT is current before the first authenticated request (race condition after fresh sign-in)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setSaving(false);
+      toast.error("Session expirée. Reconnectez-vous.");
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from("users").update({
       prenom,
       nom,
       agence_nom: agenceName || null,
       avatar_url: avatarUrl || null,
       logo_url: logoUrl || null,
+      onboarding_completed: true,
     }).eq("user_id", user.id);
 
-    // Mark onboarding as complete
-    const { data: existing } = await supabase.from("site_settings").select("id").eq("key", `onboarding_done_${user.id}`).maybeSingle();
-    if (!existing) {
-      await supabase.from("site_settings").insert({ key: `onboarding_done_${user.id}`, value: "true", created_by: user.id });
+    setSaving(false);
+
+    if (error) {
+      console.error("[OnboardingWizard] handleFinish error:", error);
+      toast.error("Erreur lors de la sauvegarde");
+      return;
     }
 
-    setSaving(false);
-    if (error) toast.error("Erreur lors de la sauvegarde");
-    else {
-      toast.success("Configuration terminée !");
-      onComplete();
-    }
+    toast.success("Configuration terminée !");
+    onComplete();
   };
 
   return (

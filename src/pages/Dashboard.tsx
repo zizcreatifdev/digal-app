@@ -82,12 +82,11 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const check = async () => {
-      const [{ data: prof }, { data: onb }] = await Promise.all([
-        supabase.from("users").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("site_settings").select("id").eq("key", `onboarding_done_${user.id}`).maybeSingle(),
-      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: prof } = await (supabase as any).from("users").select("*").eq("user_id", user.id).maybeSingle();
       setProfile(prof);
-      if (!onb) setShowOnboarding(true);
+      // Use onboarding_completed column — avoids a second site_settings query and the race condition
+      if (!prof?.onboarding_completed) setShowOnboarding(true);
 
       // Check licence expiry (30-day warning, once per session)
       if (prof?.licence_expiration && prof.role !== "freemium") {
