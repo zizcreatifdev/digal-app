@@ -7,7 +7,7 @@ import {
   DollarSign, Users, KeyRound, AlertTriangle, Briefcase,
   PieChart, TrendingUp, Loader2,
   UserX, UserMinus, UserCheck, Wallet, FileText, Link as LinkIcon,
-  Copy,
+  Copy, Users2, Gift, Clock,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -396,6 +396,31 @@ const AdminDashboard = () => {
     refetchInterval: 60_000,
   });
 
+  // ── Statistiques parrainages ───────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+  const { data: referralStats, isLoading: referralLoading } = useQuery({
+    queryKey: ["admin-referral-stats"],
+    queryFn: async () => {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const [totalRes, monthlyRes, qualifiedRes, quotaRes] = await Promise.all([
+        db.from("referrals").select("id", { count: "exact", head: true }),
+        db.from("referrals").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth.toISOString()),
+        db.from("referrals").select("id", { count: "exact", head: true }).in("status", ["qualified", "rewarded"]),
+        db.from("referral_quota_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      return {
+        total: totalRes.count ?? 0,
+        thisMonth: monthlyRes.count ?? 0,
+        toReward: qualifiedRes.count ?? 0,
+        pendingQuota: quotaRes.count ?? 0,
+      };
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
   const copyAlertAction = async (alert: AlertEntry) => {
     const msg = getAlertMessage(alert);
     try {
@@ -536,7 +561,28 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* ── Section 4 : Alertes prioritaires ───────────── */}
+        {/* ── Section 4 : Parrainages ────────────────────── */}
+        <SectionTitle>Parrainages</SectionTitle>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            { title: "Total parrainages", value: referralStats ? String(referralStats.total) : "—", icon: Users2, href: "/admin/parrainages" },
+            { title: "Ce mois", value: referralStats ? String(referralStats.thisMonth) : "—", icon: TrendingUp, href: "/admin/parrainages" },
+            { title: "Filleuls à récompenser", value: referralStats ? String(referralStats.toReward) : "—", icon: Gift, href: "/admin/parrainages", highlight: referralStats && referralStats.toReward > 0 ? ("orange" as const) : undefined },
+            { title: "Demandes quota en attente", value: referralStats ? String(referralStats.pendingQuota) : "—", icon: Clock, href: "/admin/parrainages", highlight: referralStats && referralStats.pendingQuota > 0 ? ("orange" as const) : undefined },
+          ].map((w) => (
+            <KpiWidget
+              key={w.title}
+              title={w.title}
+              value={w.value}
+              icon={w.icon}
+              highlight={w.highlight}
+              isLoading={referralLoading}
+              onClick={() => navigate(w.href)}
+            />
+          ))}
+        </div>
+
+        {/* ── Section 5 : Alertes prioritaires ───────────── */}
         <SectionTitle>Alertes prioritaires</SectionTitle>
         {healthLoading ? (
           <div className="flex justify-center py-8">

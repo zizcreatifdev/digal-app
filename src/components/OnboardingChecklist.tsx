@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ChevronDown, ChevronUp, X, Check, User, Users, CalendarDays, Link2, FileText, Trophy,
+  Copy, MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +61,8 @@ export function OnboardingChecklist() {
     STEPS_CONFIG.map((s) => ({ ...s, done: false }))
   );
   const [badgeModal, setBadgeModal] = useState<BadgeInfo | null>(null);
+  const [showReferralSlide, setShowReferralSlide] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>("");
   const [teamConfigOpen, setTeamConfigOpen] = useState(false);
   const [nbCmInput, setNbCmInput] = useState("0");
   const [nbCreateursInput, setNbCreateursInput] = useState("0");
@@ -73,7 +76,7 @@ export function OnboardingChecklist() {
     const load = async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase.from("users") as any)
-        .select("onboarding_completed, onboarding_badges, role, plan, nb_cm, nb_createurs")
+        .select("onboarding_completed, onboarding_badges, role, plan, nb_cm, nb_createurs, referral_code")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -85,6 +88,7 @@ export function OnboardingChecklist() {
 
       const badges: string[] = Array.isArray(data?.onboarding_badges) ? data.onboarding_badges : [];
       knownBadgesRef.current = new Set(badges);
+      if (data?.referral_code) setReferralCode(data.referral_code as string);
 
       const isAgence = data?.role === "dm" || data?.role?.startsWith("agence");
       setIsAgenceUser(isAgence);
@@ -204,11 +208,10 @@ export function OnboardingChecklist() {
     }
   };
 
-  // Auto-dismiss after all done (4 s delay)
+  // Show referral slide when all steps done
   useEffect(() => {
     if (allDone && completedCount > 0 && dbLoaded) {
-      const t = setTimeout(() => void handleDismiss(), 4000);
-      return () => clearTimeout(t);
+      setShowReferralSlide(true);
     }
   }, [allDone, completedCount, dbLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -282,11 +285,62 @@ export function OnboardingChecklist() {
               })}
             </div>
 
-            {allDone && (
-              <div className="p-3 text-center">
+            {allDone && showReferralSlide && (
+              <div className="p-3 space-y-2 border-t border-border">
                 <p className="text-xs font-semibold text-emerald-600 font-sans">
-                  🎉 Vous maîtrisez Digal ! Fermeture automatique…
+                  🎉 Vous maîtrisez Digal !
                 </p>
+                <p className="text-xs text-muted-foreground font-sans">
+                  Invitez vos collègues et gagnez des mois gratuits.
+                </p>
+                {referralCode && (
+                  <div className="text-[10px] font-mono text-muted-foreground bg-muted rounded px-2 py-1 truncate">
+                    {`${window.location.origin}/ref/${referralCode}`}
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5 text-xs h-7"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(`${window.location.origin}/ref/${referralCode}`);
+                        toast.success("Lien copié !");
+                      } catch {
+                        toast.error("Impossible de copier");
+                      }
+                    }}
+                  >
+                    <Copy className="h-3 w-3" /> Copier mon lien
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full gap-1.5 text-xs h-7 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                    onClick={() => {
+                      const t = `Bonjour ! Je t'invite à essayer Digal, la plateforme pour les CM et agences. Rejoins-moi ici : ${window.location.origin}/ref/${referralCode}`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
+                    }}
+                  >
+                    <MessageCircle className="h-3 w-3" /> Partager WhatsApp
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="text-xs text-primary h-6 w-full p-0"
+                    onClick={() => navigate("/dashboard/parrainages")}
+                  >
+                    Voir mes parrainages →
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="text-xs text-muted-foreground h-6 w-full p-0"
+                    onClick={handleDismiss}
+                  >
+                    Masquer définitivement
+                  </Button>
+                </div>
               </div>
             )}
 

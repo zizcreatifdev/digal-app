@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Calendar, Receipt, BookOpen, BarChart3,
-  Activity, Settings, LogOut, Lock, Crown,
+  Activity, Settings, LogOut, Lock, Crown, Users2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +58,7 @@ export function AppSidebar() {
   // User is freemium only if role is freemium AND no plan is set
   const isFreemium = userRole === "freemium" && !userPlan;
   const isSolo = userRole === "solo" || userRole === "solo_standard";
+  const isElite = userRole === "agence_pro";
   const userName = profile ? `${profile.prenom} ${profile.nom}` : user?.email?.split("@")[0] ?? "Utilisateur";
   const initials = profile ? (profile.prenom[0] + profile.nom[0]).toUpperCase() : "DG";
 
@@ -155,6 +156,20 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                   );
                 })}
+                {!isElite && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/dashboard/parrainages"
+                        className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                      >
+                        <Users2 className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span className="font-sans">Parrainages</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

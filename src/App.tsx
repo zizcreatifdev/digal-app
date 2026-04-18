@@ -40,6 +40,8 @@ import AdminDocumentation from "./pages/admin/AdminDocumentation";
 import AdminContrats from "./pages/admin/AdminContrats";
 import AdminProfil from "./pages/admin/AdminProfil";
 import AdminPlateforme from "./pages/admin/AdminPlateforme";
+import AdminParrainages from "./pages/admin/AdminParrainages";
+import Parrainages from "./pages/Parrainages";
 import DocsPage from "./pages/DocsPage";
 import Privacy from "./pages/Privacy";
 import CGU from "./pages/CGU";
@@ -185,6 +187,14 @@ const App = () => (
               }
             />
             <Route
+              path="/dashboard/parrainages"
+              element={
+                <AuthGuard>
+                  <Parrainages />
+                </AuthGuard>
+              }
+            />
+            <Route
               path="/dashboard/*"
               element={
                 <AuthGuard>
@@ -318,6 +328,16 @@ const App = () => (
                 <AuthGuard requiredRole="admin">
                   <AdminTotpGate>
                     <AdminPlateforme />
+                  </AdminTotpGate>
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/admin/parrainages"
+              element={
+                <AuthGuard requiredRole="admin">
+                  <AdminTotpGate>
+                    <AdminParrainages />
                   </AdminTotpGate>
                 </AuthGuard>
               }

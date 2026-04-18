@@ -21,7 +21,7 @@ import { checkReferralQualification, applyReferralMonths } from "@/lib/referrals
 import {
   Loader2, Eye, KeyRound, Users, Briefcase, FileText,
   Calendar, BarChart3, Activity, ShieldOff, Trash2, Download, DollarSign, UserPlus, X,
-  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift, Play, Copy,
+  CreditCard, Receipt, PauseCircle, CheckCircle2, Gift, Play, Copy, Users2,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
@@ -69,6 +69,7 @@ interface UserProfile {
   created_at: string;
   agence_nom: string | null;
   statut?: string | null;
+  referral_quota?: number | null;
 }
 
 interface AccountDetail {
@@ -144,6 +145,8 @@ export default function AdminComptes() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingFinancial, setLoadingFinancial] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  // Quota invitations
+  const [quotaInput, setQuotaInput] = useState("3");
   // Plan change 3-step flow
   const [planNewPlan, setPlanNewPlan] = useState("freemium");
   const [planNewDuree, setPlanNewDuree] = useState(6);
@@ -342,8 +345,27 @@ export default function AdminComptes() {
     },
   });
 
+  const updateQuota = useMutation({
+    mutationFn: async () => {
+      const quota = parseInt(quotaInput, 10);
+      if (isNaN(quota) || quota < 0) throw new Error("Valeur invalide");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("users")
+        .update({ referral_quota: quota })
+        .eq("id", selected!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-comptes"] });
+      toast.success("Quota invitations mis à jour");
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erreur"),
+  });
+
   const openDetail = async (u: UserProfile) => {
     setSelected(u);
+    setQuotaInput(String(u.referral_quota ?? 3));
     setLoadingDetail(true);
     setDetail(null);
     setFinancial(null);
@@ -1287,6 +1309,36 @@ export default function AdminComptes() {
                         </Button>
                       </div>
                     )}
+                  </div>
+
+                  {/* ── Section : Quota invitations ── */}
+                  <div className="rounded-lg border border-border p-4 space-y-3">
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Users2 className="h-4 w-4 text-primary" /> Quota invitations parrainage
+                    </p>
+                    <p className="text-xs text-muted-foreground font-sans">
+                      Quota actuel : {selected?.referral_quota ?? 3} invitation(s)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="50"
+                        className="h-8 text-xs w-24"
+                        value={quotaInput}
+                        onChange={(e) => setQuotaInput(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs gap-1.5"
+                        onClick={() => updateQuota.mutate()}
+                        disabled={updateQuota.isPending}
+                      >
+                        {updateQuota.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                        Enregistrer
+                      </Button>
+                    </div>
                   </div>
 
                   {/* ── Zone dangereuse ── */}

@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-18_
-_Prompt courant : 55 — Suspension/Suppression logique complète_
+_Prompt courant : 56D — Interfaces parrainage complètes_
 
 ---
 
@@ -275,6 +275,27 @@ _Prompt courant : 55 — Suspension/Suppression logique complète_
 
 ---
 
+### Module PARRAINAGE — 100% ✅ (prompt-56D)
+| Fonctionnalité | État | Notes |
+|----------------|------|-------|
+| Page landing /ref/:code | ✅ Complet (56B) | 5 slides + inscription + tracking referred_by |
+| Logique rewardReferrer() | ✅ Complet (56C) | Extension licence ou stock mois freemium |
+| checkReferralQualification() | ✅ Complet (56C) | Trigger sur plan change |
+| applyReferralMonths() | ✅ Complet (56C) | Applique stock à la première licence |
+| requestQuota() | ✅ Complet (56C) | +3 invitations, auto-approve 1h |
+| Edge fn expiry-reminders (Part 4) | ✅ Complet (56C) | Auto-approve quota requests |
+| Migration referral_extra_columns | ✅ Complet (56C) | months_earned/used, auto_approve_at, plan_referee, qualified_at |
+| Page /dashboard/parrainages | ✅ Complet (56D) | Lien, progression, filleuls, demande quota |
+| AppSidebar item Parrainages | ✅ Complet (56D) | Visible tous sauf agence_pro |
+| OnboardingChecklist slide parrainage | ✅ Complet (56D) | Remplace auto-dismiss quand allDone |
+| AdminParrainages (2 tabs) | ✅ Complet (56D) | Parrainages + Demandes quota (approve/reject) |
+| AdminSidebar item Parrainages | ✅ Complet (56D) | Sous "Utilisateurs" |
+| AdminPlateforme section parrainage | ✅ Complet (56D) | Toggle, tiers editor, template WA |
+| AdminComptes quota field | ✅ Complet (56D) | Input quota invitations dans Actions tab |
+| AdminDashboard 4 KPI parrainage | ✅ Complet (56D) | Total/ce mois/à récompenser/demandes quota |
+
+---
+
 ### Module LANDING PAGE — 100% ✅
 | Composant | État | Notes |
 |-----------|------|-------|
@@ -308,7 +329,7 @@ _Prompt courant : 55 — Suspension/Suppression logique complète_
 | Métrique | État |
 |----------|------|
 | Erreurs ESLint | ✅ 0 erreur |
-| Warnings ESLint | 12 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Warnings ESLint | 13 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
 | Tests unitaires | ✅ 137/137 passent |
 | Fichiers de tests | 10 fichiers |
 | TypeScript | 0 erreur (strict) |
@@ -404,3 +425,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 53 | Géolocalisation IP (geolocate-ip edge fn, ip-api.com) + keep-alive cron (pg_cron 48h) + Device/Navigateur/Localisation dans Journal et AdminSecurity | 2026-04-18 |
 | 54 | Messages d'activation personnalisés (table activation_messages, onglet AdminWaitlist, variables [Prénom][Plan][Durée][Lien]) + fix boutons suspendre/supprimer AdminComptes | 2026-04-18 |
 | 55 | Suspension/Suppression complète : AuthGuard check statut → /compte-suspendu, page CompteSuspendu, edge fn ban-user, toggle + badges AdminComptes, cancelDeletion, cron suppression définitive J+30 | 2026-04-18 |
+| 56B | Page /ref/:code — 5 slides (accueil+parrain+avantages+formulaire+succès), inscription avec referred_by, redirect si connecté | 2026-04-18 |
+| 56C | Logique métier parrainage : rewardReferrer, checkReferralQualification, applyReferralMonths, requestQuota, expiry-reminders Part 4 auto-approve, migration SQL | 2026-04-18 |
+| 56D | Interfaces parrainage : Parrainages.tsx, AppSidebar, OnboardingChecklist slide, AdminParrainages (2 tabs), AdminSidebar, AdminPlateforme settings, AdminComptes quota, AdminDashboard 4 KPIs | 2026-04-18 |

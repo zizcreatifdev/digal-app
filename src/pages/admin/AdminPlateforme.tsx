@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CalendarClock, Eye, EyeOff } from "lucide-react";
+import { Loader2, CalendarClock, Eye, EyeOff, Users2, MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 
 function toDatetimeLocal(iso: string): string {
@@ -21,10 +22,16 @@ function daysFromNow(iso: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
+const TIER_KEYS = ["3", "5", "10", "20"];
+
 export default function AdminPlateforme() {
   const queryClient = useQueryClient();
   const [dateValue, setDateValue] = useState("");
   const [showCountdown, setShowCountdown] = useState(true);
+  // Referral settings
+  const [referralEnabled, setReferralEnabled] = useState(true);
+  const [tierValues, setTierValues] = useState<Record<string, string>>({ "3": "1", "5": "2", "10": "3", "20": "5" });
+  const [waTemplate, setWaTemplate] = useState("Bonjour ! Je t'invite à essayer Digal, la plateforme pour les Community Managers et agences au Sénégal. Rejoins-moi ici : [Lien]");
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["admin-plateforme-settings"],
@@ -32,7 +39,7 @@ export default function AdminPlateforme() {
       const { data, error } = await supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", ["launch_date", "show_countdown"]);
+        .in("key", ["launch_date", "show_countdown", "referral_enabled", "referral_tiers", "referral_whatsapp_template"]);
       if (error) throw error;
       return data ?? [];
     },
@@ -44,6 +51,20 @@ export default function AdminPlateforme() {
     const showRow = settings.find((r) => r.key === "show_countdown");
     if (launchRow?.value) setDateValue(toDatetimeLocal(launchRow.value));
     if (showRow) setShowCountdown(showRow.value !== "false");
+
+    const enabledRow = settings.find((r) => r.key === "referral_enabled");
+    if (enabledRow) setReferralEnabled(enabledRow.value !== "false");
+
+    const tiersRow = settings.find((r) => r.key === "referral_tiers");
+    if (tiersRow?.value) {
+      try {
+        const parsed = JSON.parse(tiersRow.value) as Record<string, number>;
+        setTierValues(Object.fromEntries(TIER_KEYS.map((k) => [k, String(parsed[k] ?? "")])));
+      } catch { /* ignore */ }
+    }
+
+    const waRow = settings.find((r) => r.key === "referral_whatsapp_template");
+    if (waRow?.value) setWaTemplate(waRow.value);
   }, [settings]);
 
   const mutation = useMutation({
@@ -65,6 +86,28 @@ export default function AdminPlateforme() {
     onError: () => toast.error("Erreur lors de la sauvegarde."),
   });
 
+  const referralMutation = useMutation({
+    mutationFn: async () => {
+      const tiers = Object.fromEntries(
+        TIER_KEYS.filter((k) => tierValues[k] && tierValues[k] !== "").map((k) => [k, parseInt(tierValues[k], 10)])
+      );
+      const ops = [
+        supabase.from("site_settings").upsert({ key: "referral_enabled", value: String(referralEnabled) }, { onConflict: "key" }),
+        supabase.from("site_settings").upsert({ key: "referral_tiers", value: JSON.stringify(tiers) }, { onConflict: "key" }),
+        supabase.from("site_settings").upsert({ key: "referral_whatsapp_template", value: waTemplate }, { onConflict: "key" }),
+      ];
+      const results = await Promise.all(ops);
+      for (const { error } of results) {
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-plateforme-settings"] });
+      toast.success("Paramètres parrainage enregistrés.");
+    },
+    onError: () => toast.error("Erreur lors de la sauvegarde."),
+  });
+
   const currentLaunchDate = settings?.find((r) => r.key === "launch_date")?.value ?? "";
   const days = currentLaunchDate ? daysFromNow(currentLaunchDate) : null;
   const isPast = currentLaunchDate ? new Date(currentLaunchDate).getTime() < Date.now() : false;
@@ -79,6 +122,7 @@ export default function AdminPlateforme() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
+          <>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -145,6 +189,82 @@ export default function AdminPlateforme() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* ── Paramètres parrainage ── */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users2 className="h-5 w-5 text-primary" />
+                Système de parrainage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Toggle activation */}
+              <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">Activer le parrainage</div>
+                  <p className="text-xs text-muted-foreground font-sans">
+                    Si désactivé, les liens de parrainage ne fonctionnent plus.
+                  </p>
+                </div>
+                <Switch checked={referralEnabled} onCheckedChange={setReferralEnabled} />
+              </div>
+
+              {/* Paliers (tiers) */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Paliers de récompense</Label>
+                <p className="text-xs text-muted-foreground font-sans">
+                  Nombre de filleuls payants → mois offerts au parrain
+                </p>
+                <div className="space-y-2">
+                  {TIER_KEYS.map((key) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className="text-sm font-sans w-32 text-muted-foreground">
+                        {key} filleul{parseInt(key) > 1 ? "s" : ""} payant{parseInt(key) > 1 ? "s" : ""}
+                      </span>
+                      <span className="text-sm text-muted-foreground">→</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        className="h-8 w-24 text-xs"
+                        placeholder="0"
+                        value={tierValues[key] ?? ""}
+                        onChange={(e) => setTierValues((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                      <span className="text-xs text-muted-foreground font-sans">mois</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* WhatsApp template */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <MessageCircle className="h-4 w-4 text-emerald-600" />
+                  Modèle message WhatsApp
+                </Label>
+                <p className="text-xs text-muted-foreground font-sans">
+                  Variables disponibles : [Prénom parrain], [Lien]
+                </p>
+                <Textarea
+                  rows={4}
+                  className="text-sm font-sans resize-none"
+                  value={waTemplate}
+                  onChange={(e) => setWaTemplate(e.target.value)}
+                />
+              </div>
+
+              <Button
+                onClick={() => referralMutation.mutate()}
+                disabled={referralMutation.isPending}
+                className="w-full sm:w-auto"
+              >
+                {referralMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Enregistrer les paramètres parrainage
+              </Button>
+            </CardContent>
+          </Card>
+          </>
         )}
       </div>
     </AdminLayout>

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, ClipboardList, KeyRound, Mail, Receipt,
-  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog, Settings2,
+  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog, Settings2, Users2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +28,7 @@ const userSubItems = [
   { title: "Liste d'attente", url: "/admin/waitlist", icon: ClipboardList },
   { title: "Comptes", url: "/admin/comptes", icon: Users },
   { title: "Licences", url: "/admin/licences", icon: KeyRound },
+  { title: "Parrainages", url: "/admin/parrainages", icon: Users2 },
 ];
 
 const otherItems = [
