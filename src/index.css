@@ -116,6 +116,74 @@
   }
 }
 
+/* ── GlassCard ────────────────────────────────────────────── */
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+}
+
+/* Light mode: opaque white card with warm shadow */
+.glass-card {
+  background: #ffffff;
+  border: 1px solid rgba(80, 30, 10, 0.08);
+  box-shadow: 0 2px 12px rgba(80, 30, 10, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+.glass-card:hover {
+  box-shadow: 0 4px 24px rgba(80, 30, 10, 0.12);
+}
+
+/* Dark mode: glassmorphism + spotlight */
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Spotlight radial gradient — only in dark mode */
+.dark .glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 200px at var(--mouse-x) var(--mouse-y),
+    rgba(232, 81, 26, 0.15),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+.dark .glass-card:hover::before {
+  opacity: 1;
+}
+
+/* Ensure content sits above the spotlight layer */
+.glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Primary button orange glow ───────────────────────────── */
+.btn-glow {
+  box-shadow: 0 0 20px rgba(232, 81, 26, 0.25);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-glow:hover {
+  box-shadow: 0 0 32px rgba(232, 81, 26, 0.4);
+  transform: translateY(-1px);
+}
+
 /* Fix iOS PWA keyboard — scrollable container */
 .ios-scroll-container {
   position: fixed;

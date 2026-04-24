@@ -1,5 +1,6 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -329,8 +330,8 @@ const KpiWidget = ({
   const colorMap = { orange: "text-orange-600", red: "text-red-600", green: "text-emerald-600" };
   const valueColor = highlight ? colorMap[highlight] : "";
   return (
-    <Card
-      className={`group hover:shadow-lg hover:border-primary/30 transition-all ${onClick ? "cursor-pointer" : ""}`}
+    <GlassCard
+      className={`group ${onClick ? "cursor-pointer" : ""}`}
       onClick={onClick}
     >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -343,7 +344,7 @@ const KpiWidget = ({
           : <div className={`text-2xl font-bold font-serif ${valueColor}`}>{value}</div>
         }
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 };
 

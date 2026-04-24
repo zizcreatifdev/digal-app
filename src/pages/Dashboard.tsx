@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -389,7 +390,7 @@ const Dashboard = () => {
         {/* ── KPI Stats grid ── */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Clients actifs */}
-          <Card>
+          <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Clients actifs</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
@@ -417,10 +418,10 @@ const Dashboard = () => {
                 </>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Posts cette semaine */}
-          <Card>
+          <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Posts cette semaine</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
@@ -437,10 +438,10 @@ const Dashboard = () => {
                 </>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Liens en attente */}
-          <Card>
+          <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Liens en attente</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
@@ -463,10 +464,10 @@ const Dashboard = () => {
                 </>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
 
           {/* Factures impayées */}
-          <Card
+          <GlassCard
             className={isFreemium ? "opacity-60 cursor-pointer" : ""}
             onClick={() => isFreemium && setUpgradeModal(true)}
           >
@@ -504,11 +505,11 @@ const Dashboard = () => {
                 </>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
         </div>
 
         {/* ── À publier aujourd'hui ── */}
-        <Card>
+        <GlassCard>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarCheck className="h-4 w-4 text-primary" />
@@ -558,10 +559,10 @@ const Dashboard = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+        </GlassCard>
 
         {/* ── Activité récente ── */}
-        <Card>
+        <GlassCard>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base">Activité récente</CardTitle>
           </CardHeader>
@@ -586,7 +587,7 @@ const Dashboard = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+        </GlassCard>
       </div>
 
       <ProUpgradeModal open={upgradeModal} onOpenChange={setUpgradeModal} featureName="Facturation" />

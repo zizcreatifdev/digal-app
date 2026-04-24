@@ -1,5 +1,6 @@
 import { Client, RESEAUX } from "@/lib/clients";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 
@@ -12,8 +13,8 @@ export function ClientCard({ client, networks }: ClientCardProps) {
   const navigate = useNavigate();
 
   return (
-    <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+    <GlassCard
+      className="cursor-pointer"
       onClick={() => navigate(`/dashboard/clients/${client.id}`)}
     >
       <CardContent className="p-5">
@@ -55,6 +56,6 @@ export function ClientCard({ client, networks }: ClientCardProps) {
           </Badge>
         </div>
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 }
