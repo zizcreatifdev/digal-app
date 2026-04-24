@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchPreviewLinkBySlug, fetchPreviewActions, submitPreviewAction, PreviewLink, PreviewAction } from "@/lib/preview-links";
+import { createClient } from "@supabase/supabase-js";
+import { PreviewLink, PreviewAction } from "@/lib/preview-links";
 import { Post, POST_STATUTS, RESEAU_LABELS } from "@/lib/posts";
 import { Client } from "@/lib/clients";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,16 @@ import { fr } from "date-fns/locale";
 import { NetworkMockup } from "@/components/preview/NetworkMockup";
 import { motion, AnimatePresence } from "framer-motion";
 import digalLogo from "@/assets/digal-logo.png";
+
+// Safari-safe client: avoids localStorage (fails in private mode) and adds Accept header
+const previewClient = createClient(
+  import.meta.env.VITE_SUPABASE_URL as string,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+  {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Accept: "application/json" } },
+  }
+);
 
 const NETWORK_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram className="h-3.5 w-3.5" />,
@@ -39,6 +49,9 @@ const PreviewPage = () => {
   const [filterReseau, setFilterReseau] = useState<string | null>(null);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number } | null>(null);
+  const [thanksMessage, setThanksMessage] = useState(
+    "Merci pour vos retours !\nVotre Community Manager va prendre en compte vos commentaires."
+  );
 
   const isFreemium = true;
 
@@ -83,26 +96,40 @@ const PreviewPage = () => {
       setTimeout(() => reject(new Error("timeout")), 15000)
     );
 
-    try {
-      const linkData = await Promise.race([fetchPreviewLinkBySlug(slug), timeout]);
-      setLink(linkData);
+    // Load configurable thanks message (non-blocking, best-effort)
+    previewClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "preview_thanks_message")
+      .maybeSingle()
+      .then(({ data }) => { if (data?.value) setThanksMessage(data.value as string); })
+      .catch(() => {});
 
-      if (linkData.statut === "termine") {
+    try {
+      const { data: linkData, error: linkError } = await Promise.race([
+        previewClient.from("preview_links").select("*").eq("slug", slug).maybeSingle(),
+        timeout,
+      ]);
+      if (linkError || !linkData) { setExpired(true); return; }
+      setLink(linkData as PreviewLink);
+
+      if ((linkData as PreviewLink).statut === "termine") {
         setSubmitted(true);
         return;
       }
 
-      if (linkData.statut !== "actif" || new Date(linkData.expires_at) < new Date()) {
+      if ((linkData as PreviewLink).statut !== "actif" || new Date((linkData as PreviewLink).expires_at) < new Date()) {
         setExpired(true);
         return;
       }
 
-      const [clientResult, cmResult, postsResult, actionsData] = await Promise.race([
+      const link = linkData as PreviewLink;
+      const [clientResult, cmResult, postsResult, actionsResult] = await Promise.race([
         Promise.all([
-          supabase.from("clients").select("*").eq("id", linkData.client_id).single(),
-          supabase.from("users").select("nom, prenom, agence_nom, logo_url").eq("user_id", linkData.user_id).maybeSingle(),
-          supabase.from("posts").select("*").eq("client_id", linkData.client_id).in("statut", ["en_attente_validation", "lien_envoye"]).gte("date_publication", linkData.periode_debut).lte("date_publication", linkData.periode_fin).order("date_publication", { ascending: true }),
-          fetchPreviewActions(linkData.id).catch(() => [] as PreviewAction[]),
+          previewClient.from("clients").select("*").eq("id", link.client_id).maybeSingle(),
+          previewClient.from("users").select("nom, prenom, agence_nom, logo_url").eq("user_id", link.user_id).maybeSingle(),
+          previewClient.from("posts").select("*").eq("client_id", link.client_id).in("statut", ["en_attente_validation", "lien_envoye"]).gte("date_publication", link.periode_debut).lte("date_publication", link.periode_fin).order("date_publication", { ascending: true }),
+          previewClient.from("preview_actions").select("*").eq("preview_link_id", link.id).order("created_at", { ascending: false }),
         ]),
         timeout,
       ]);
@@ -110,7 +137,7 @@ const PreviewPage = () => {
       setClient(clientResult.data as Client);
       setCmUser(cmResult.data);
       setPosts((postsResult.data ?? []) as Post[]);
-      setActions(actionsData);
+      setActions((actionsResult.data ?? []) as PreviewAction[]);
     } catch {
       setExpired(true);
     } finally {
@@ -141,8 +168,8 @@ const PreviewPage = () => {
     if (!link) return;
     setSubmitting(true);
     try {
-      await submitPreviewAction(link.id, postId, "valide");
-      await supabase.from("posts").update({ statut: "programme_valide" }).eq("id", postId);
+      await previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: postId, decision: "valide", commentaire: null });
+      await previewClient.from("posts").update({ statut: "programme_valide" }).eq("id", postId);
       addActionLocally(postId, "valide");
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, statut: "programme_valide" } : p));
       toast.success("Post validé !");
@@ -157,12 +184,12 @@ const PreviewPage = () => {
     if (!link) return;
     setSubmitting(true);
     try {
-      await submitPreviewAction(link.id, postId, "refuse", comment);
-      await supabase.from("posts").update({ statut: "brouillon" }).eq("id", postId);
+      await previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: postId, decision: "refuse", commentaire: comment || null });
+      await previewClient.from("posts").update({ statut: "brouillon" }).eq("id", postId);
       addActionLocally(postId, "refuse", comment);
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, statut: "brouillon" } : p));
       // Règle 5 : notifier le CM avec le commentaire du client
-      await supabase.from("notifications").insert({
+      await previewClient.from("notifications").insert({
         user_id: link.user_id,
         titre: `${client?.nom ?? "Client"} a refusé un post`,
         message: comment || "Aucun commentaire.",
@@ -185,8 +212,8 @@ const PreviewPage = () => {
     try {
       const pending = posts.filter((p) => !getPostAction(p.id));
       for (const post of pending) {
-        await submitPreviewAction(link.id, post.id, "valide");
-        await supabase.from("posts").update({ statut: "programme_valide" }).eq("id", post.id);
+        await previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: post.id, decision: "valide", commentaire: null });
+        await previewClient.from("posts").update({ statut: "programme_valide" }).eq("id", post.id);
         addActionLocally(post.id, "valide");
       }
       setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "programme_valide" : p.statut })));
@@ -204,13 +231,13 @@ const PreviewPage = () => {
     try {
       const pending = posts.filter((p) => !getPostAction(p.id));
       for (const post of pending) {
-        await submitPreviewAction(link.id, post.id, "refuse", comment);
-        await supabase.from("posts").update({ statut: "brouillon" }).eq("id", post.id);
+        await previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: post.id, decision: "refuse", commentaire: comment || null });
+        await previewClient.from("posts").update({ statut: "brouillon" }).eq("id", post.id);
         addActionLocally(post.id, "refuse", comment);
       }
       setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "brouillon" : p.statut })));
       // Règle 5 : notifier le CM avec le commentaire global du client
-      await supabase.from("notifications").insert({
+      await previewClient.from("notifications").insert({
         user_id: link.user_id,
         titre: `${client?.nom ?? "Client"} a refusé ${pending.length} post(s)`,
         message: comment || "Aucun commentaire.",
@@ -231,10 +258,10 @@ const PreviewPage = () => {
     if (!link) return;
     setSubmitting(true);
     try {
-      await supabase.from("preview_links").update({ statut: "termine" }).eq("id", link.id);
+      await previewClient.from("preview_links").update({ statut: "termine" }).eq("id", link.id);
       const validatedCount = actions.filter(a => a.decision === "valide").length;
       const refusedCount = actions.filter(a => a.decision === "refuse").length;
-      await supabase.from("notifications").insert({
+      await previewClient.from("notifications").insert({
         user_id: link.user_id,
         titre: `${client?.nom ?? "Client"} a terminé sa revue`,
         message: `${validatedCount} post(s) validé(s), ${refusedCount} post(s) refusé(s). Consultez le calendrier pour voir les retours.`,
@@ -276,10 +303,9 @@ const PreviewPage = () => {
           <div className="h-20 w-20 mx-auto bg-green-50 rounded-full flex items-center justify-center">
             <PartyPopper className="h-10 w-10 text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold font-serif text-gray-900">Merci pour vos retours !</h1>
-          <p className="text-gray-500 font-sans leading-relaxed">
-            Vos commentaires ont été envoyés à votre Community Manager.
-            Il reviendra vers vous avec les modifications nécessaires.
+          <h1 className="text-2xl font-bold font-serif text-gray-900">Merci !</h1>
+          <p className="text-gray-500 font-sans leading-relaxed whitespace-pre-wrap">
+            {thanksMessage}
           </p>
           <div className="pt-2">
             <p className="text-xs text-gray-300 font-sans">

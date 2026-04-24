@@ -12,6 +12,7 @@ import { SolutionSection } from "@/components/landing/SolutionSection";
 import { TeamRolesSection } from "@/components/landing/TeamRolesSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { logAuth } from "@/lib/activity-logs";
 
 const PLAN_LABELS: Record<string, string> = {
   freemium: "Découverte (Gratuit)",
@@ -95,10 +96,13 @@ const ReferralLanding = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from("referrals").insert({
         referrer_id: referrerId,
-        referred_id: userId,
+        referee_id: userId,
         status: "pending",
       });
     }
+
+    // Log inscription activity (fire-and-forget)
+    logAuth(userId, "Inscription via parrainage").catch(() => {/* silent */});
 
     setSubmitting(false);
     toast.success("Compte créé ! Connectez-vous pour commencer.");
@@ -149,7 +153,11 @@ const ReferralLanding = () => {
         {step === 0 && (
           <div className="min-h-screen flex items-center justify-center px-4">
             <div className="max-w-xl w-full text-center space-y-8 animate-fade-in">
-              <h1 className="text-4xl font-bold font-serif">Digal</h1>
+              <img
+                src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg"
+                alt="Digal"
+                style={{ width: "160px", margin: "0 auto" }}
+              />
               <div className="space-y-4">
                 <h2 className="text-2xl md:text-3xl font-bold font-serif">
                   {referrerPrenom} vous invite sur Digal
