@@ -6,8 +6,8 @@ export function ThemeToggle() {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
     const stored = localStorage.getItem("theme");
-    if (stored) return stored === "dark";
-    return document.documentElement.classList.contains("dark");
+    // Default to light if no preference saved
+    return stored === "dark";
   });
 
   useEffect(() => {
