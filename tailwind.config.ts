@@ -16,7 +16,7 @@ export default {
     extend: {
       fontFamily: {
         serif: ['"Playfair Display"', "Georgia", "serif"],
-        sans: ['"Inter"', "system-ui", "sans-serif"],
+        sans: ["Outfit", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -72,9 +72,20 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "6px",
+        md: "10px",
+        lg: "14px",
+        xl: "18px",
+        "2xl": "24px",
+        "3xl": "32px",
+        full: "9999px",
+      },
+      boxShadow: {
+        "warm-sm": "0 1px 4px rgba(80,30,10,0.06)",
+        warm: "0 2px 12px rgba(80,30,10,0.08)",
+        "warm-lg": "0 4px 24px rgba(80,30,10,0.12)",
+        "orange-glow": "0 0 20px rgba(232,81,26,0.25)",
+        "dark-card": "0 0 0 1px rgba(255,255,255,0.08)",
       },
       keyframes: {
         "accordion-down": {

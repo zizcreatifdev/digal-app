@@ -134,8 +134,8 @@ export function AppSidebar() {
                         <NavLink
                           to={item.url}
                           end={item.url === "/dashboard"}
-                          className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                          activeClassName="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                          className="!rounded-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-primary/10 transition-all duration-200"
+                          activeClassName="!rounded-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
                           {!collapsed && (

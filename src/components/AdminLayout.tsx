@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { Shield, User, Bell } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </Badge>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <Button variant="ghost" size="icon" className="text-muted-foreground relative" onClick={() => setNotifOpen(true)}>
                 <Bell className="h-4 w-4" />
               </Button>
