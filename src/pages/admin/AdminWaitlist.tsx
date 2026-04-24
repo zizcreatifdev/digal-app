@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle, Copy, RefreshCw, Users, Star, MessageSquare, Save } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { copyToClipboard } from "@/lib/clipboard";
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -305,7 +306,7 @@ export default function AdminWaitlist() {
             nom: entry.nom ?? "",
             type_compte: entry.type_compte ?? "solo",
           });
-        if (tokenError) console.warn("[waitlist] Token creation failed:", tokenError.message);
+        if (tokenError && import.meta.env.DEV) console.warn("[waitlist] Token creation failed:", tokenError.message);
       }
     },
     onSuccess: (_, variables) => {
@@ -369,7 +370,7 @@ export default function AdminWaitlist() {
         ].join("\n");
       }
 
-      await navigator.clipboard.writeText(message);
+      await copyToClipboard(message);
 
       await supabase
         .from("activation_tokens")
@@ -470,7 +471,7 @@ export default function AdminWaitlist() {
   const copyEliteContact = async (req: EliteRequest) => {
     const text = `${req.nom} - ${req.email} - ${req.telephone}`;
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       toast.success("Contact copié dans le presse-papier");
     } catch {
       toast.error("Impossible de copier dans le presse-papier");
@@ -558,7 +559,7 @@ export default function AdminWaitlist() {
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : (
               <Card>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -711,7 +712,7 @@ export default function AdminWaitlist() {
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : (
               <Card>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>

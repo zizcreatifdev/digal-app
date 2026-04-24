@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ShieldCheck, ShieldAlert, Monitor, Smartphone, Tablet } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Monitor, Smartphone, Tablet, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -35,7 +35,7 @@ function DeviceIcon({ ua }: { ua: string | null }) {
 export default function AdminSecurity() {
   const [search, setSearch] = useState("");
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-security-logs"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -65,6 +65,13 @@ export default function AdminSecurity() {
 
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : isError ? (
+          <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-destructive font-sans">
+              <AlertCircle className="h-4 w-4 shrink-0" /> Erreur de chargement des logs
+            </div>
+            <button onClick={() => refetch()} className="text-xs underline text-destructive">Réessayer</button>
+          </div>
         ) : (
           <Card>
             <CardContent className="p-0 overflow-x-auto">

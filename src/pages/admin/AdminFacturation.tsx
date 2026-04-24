@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Download, FileText, TrendingUp, TrendingDown, DollarSign, Eye } from "lucide-react";
+import { Plus, Download, FileText, TrendingUp, TrendingDown, DollarSign, Eye, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
@@ -94,6 +94,7 @@ const AdminFacturation = () => {
   const [payments, setPayments] = useState<OwnerPayment[]>([]);
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentsError, setPaymentsError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [previewPayment, setPreviewPayment] = useState<OwnerPayment | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
@@ -108,10 +109,12 @@ const AdminFacturation = () => {
   });
 
   const fetchPayments = async () => {
-    const { data } = await supabase
+    setPaymentsError(false);
+    const { data, error } = await supabase
       .from("owner_payments")
       .select("*")
       .order("date_paiement", { ascending: false });
+    if (error) { setPaymentsError(true); setLoading(false); return; }
     setPayments((data as OwnerPayment[]) ?? []);
     setLoading(false);
   };
@@ -482,8 +485,16 @@ const AdminFacturation = () => {
         </div>
 
         {/* Table */}
+        {paymentsError && (
+          <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-destructive font-sans">
+              <AlertCircle className="h-4 w-4 shrink-0" /> Erreur de chargement des paiements
+            </div>
+            <button onClick={fetchPayments} className="text-xs underline text-destructive">Réessayer</button>
+          </div>
+        )}
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

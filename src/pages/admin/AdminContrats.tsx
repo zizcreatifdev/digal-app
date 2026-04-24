@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SignatureCanvas } from "@/components/contracts/SignatureCanvas";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +80,14 @@ export default function AdminContrats() {
     setTemplates((tRes.data as unknown as ContractTemplate[]) ?? []);
     setContracts((cRes.data as Contract[]) ?? []);
     setLoading(false);
+  };
+
+  const deleteTemplate = async (id: string) => {
+    const { error } = await supabase.from("contract_templates").delete().eq("id", id);
+    if (error) { toast.error("Erreur lors de la suppression"); return; }
+    toast.success("Template supprimé");
+    setEditTemplate(null);
+    fetchAll();
   };
 
   const saveTemplate = async () => {
@@ -392,15 +401,38 @@ export default function AdminContrats() {
                 </div>
               </ScrollArea>
             )}
-            <div className="border-t px-6 py-3 flex gap-2 justify-end bg-muted/30">
-              <Button variant="outline" onClick={() => setEditTemplate(null)} className="font-sans">Annuler</Button>
-              <Button variant="outline" onClick={() => { if (editTemplate) setPreviewTemplate(editTemplate); }} className="gap-1.5 font-sans">
-                <Eye className="h-4 w-4" /> Aperçu
-              </Button>
-              <Button onClick={saveTemplate} disabled={saving} className="gap-1.5 font-sans">
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                <Save className="h-4 w-4" /> Enregistrer
-              </Button>
+            <div className="border-t px-6 py-3 flex gap-2 justify-between bg-muted/30">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1.5 font-sans text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4" /> Supprimer
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer ce template</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Le template « {editTemplate?.nom} » sera définitivement supprimé. Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => editTemplate && deleteTemplate(editTemplate.id)}>
+                      Supprimer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setEditTemplate(null)} className="font-sans">Annuler</Button>
+                <Button variant="outline" onClick={() => { if (editTemplate) setPreviewTemplate(editTemplate); }} className="gap-1.5 font-sans">
+                  <Eye className="h-4 w-4" /> Aperçu
+                </Button>
+                <Button onClick={saveTemplate} disabled={saving} className="gap-1.5 font-sans">
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <Save className="h-4 w-4" /> Enregistrer
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

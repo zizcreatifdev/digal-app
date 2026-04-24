@@ -152,7 +152,7 @@ export default function AdminPlateforme() {
               {/* Preview */}
               <div className="rounded-lg bg-muted/50 border border-border px-4 py-3 text-sm font-sans">
                 {isPast ? (
-                  <span className="text-emerald-600 font-medium">Digal est lancé — date passée.</span>
+                  <span className="text-success font-medium">Digal est lancé — date passée.</span>
                 ) : days !== null ? (
                   <span>
                     Le countdown affiche{" "}
@@ -258,7 +258,7 @@ export default function AdminPlateforme() {
               {/* WhatsApp template */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm font-medium">
-                  <MessageCircle className="h-4 w-4 text-emerald-600" />
+                  <MessageCircle className="h-4 w-4 text-success" />
                   Modèle message WhatsApp
                 </Label>
                 <p className="text-xs text-muted-foreground font-sans">

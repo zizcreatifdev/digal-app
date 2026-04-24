@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Tag, Sparkles, Check, X, Plus, Loader2, Users } from "lucide-react";
+import { Pencil, Tag, Sparkles, Check, X, Plus, Loader2, Users, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllPlans, Plan } from "@/hooks/usePlans";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -168,6 +169,15 @@ const AdminPlans = () => {
     await updateConfig(id, { prix_fcfa: price });
     setEditingConfigId(null);
     toast.success("Prix mis à jour");
+  };
+
+  const deleteConfig = async (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from("plan_configs").delete().eq("id", id);
+    if (error) { toast.error("Erreur lors de la suppression"); return; }
+    toast.success("Configuration supprimée");
+    queryClient.invalidateQueries({ queryKey: ["plan-configs"] });
+    queryClient.invalidateQueries({ queryKey: ["plan-configs-public"] });
   };
 
   const handleAddConfig = async () => {
@@ -460,7 +470,7 @@ const AdminPlans = () => {
                                 className="h-7 w-7"
                                 onClick={() => savePrice(c.id)}
                               >
-                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                <Check className="h-3.5 w-3.5 text-success" />
                               </Button>
                               <Button
                                 size="icon"
@@ -491,17 +501,40 @@ const AdminPlans = () => {
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setEditingConfigId(c.id);
-                              setEditingPrice(String(c.prix_fcfa));
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                setEditingConfigId(c.id);
+                                setEditingPrice(String(c.prix_fcfa));
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Supprimer cette configuration</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {c.duree_mois === 12 ? "12 mois (1 an)" : `${c.duree_mois} mois`} — {c.prix_fcfa.toLocaleString("fr-FR")} FCFA. Cette action est irréversible.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteConfig(c.id)}>
+                                    Supprimer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

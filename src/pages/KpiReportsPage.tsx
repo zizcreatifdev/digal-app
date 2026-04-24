@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { FileText, Plus, Download, Eye, Loader2 } from "lucide-react";
+import { FileText, Plus, Download, Eye, Loader2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { KpiReportPreviewModal } from "@/components/kpi/KpiReportPreviewModal";
@@ -27,6 +27,7 @@ const KpiReportsPage = () => {
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [reports, setReports] = useState<KpiReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<KpiReportPreviewData | null>(null);
@@ -34,10 +35,12 @@ const KpiReportsPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    setLoadError(false);
     Promise.all([
       supabase.from("clients").select("id, nom, logo_url").eq("user_id", user.id).eq("statut", "actif").order("nom"),
       supabase.from("users").select("prenom, nom").eq("user_id", user.id).maybeSingle(),
-    ]).then(([{ data: clientsData }, { data: profile }]) => {
+    ]).then(([{ data: clientsData, error: clientsErr }, { data: profile }]) => {
+      if (clientsErr) { setLoadError(true); setLoading(false); return; }
       setClients(clientsData ?? []);
       setCmName(profile ? `${profile.prenom} ${profile.nom}` : user.email?.split("@")[0] ?? "CM");
       setLoading(false);
@@ -129,7 +132,13 @@ const KpiReportsPage = () => {
           </SelectContent>
         </Select>
 
-        {loading ? (
+        {loadError ? (
+          <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-destructive font-sans">
+              <AlertCircle className="h-4 w-4 shrink-0" /> Erreur de chargement des clients
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-40">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>

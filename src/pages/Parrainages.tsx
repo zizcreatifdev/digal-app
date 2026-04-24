@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { requestQuota } from "@/lib/referrals";
 import { PLAN_LABELS } from "@/lib/plan-labels";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { copyToClipboard } from "@/lib/clipboard";
 
 class RenderErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -249,7 +250,7 @@ export default function Parrainages() {
 
   const copyLink = async () => {
     setCopyPending(true);
-    try { await navigator.clipboard.writeText(referralLink); toast.success("Lien copié !"); }
+    try { await copyToClipboard(referralLink); toast.success("Lien copié !"); }
     catch { toast.error("Impossible de copier"); }
     setCopyPending(false);
   };
@@ -294,7 +295,7 @@ export default function Parrainages() {
               <Button variant="outline" size="sm" onClick={copyLink} disabled={copyPending} className="gap-1.5">
                 <Copy className="h-3.5 w-3.5" /> Copier le lien
               </Button>
-              <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5 text-emerald-600 border-emerald-300 hover:bg-emerald-50">
+              <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5 text-success border-success/40 hover:bg-success/5">
                 <MessageCircle className="h-3.5 w-3.5" /> Partager WhatsApp
               </Button>
             </div>
@@ -323,12 +324,12 @@ export default function Parrainages() {
                 <p className="text-xs text-muted-foreground font-sans mt-1">Filleuls payants</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-muted">
-                <p className="text-2xl font-bold font-serif text-emerald-600">{monthsEarned}</p>
+                <p className="text-2xl font-bold font-serif text-success">{monthsEarned}</p>
                 <p className="text-xs text-muted-foreground font-sans mt-1">Mois gagnés</p>
               </div>
               {isFreemium && (
                 <div className="text-center p-3 rounded-lg bg-muted">
-                  <p className="text-2xl font-bold font-serif text-blue-600">{monthsStock}</p>
+                  <p className="text-2xl font-bold font-serif text-info">{monthsStock}</p>
                   <p className="text-xs text-muted-foreground font-sans mt-1">Mois en stock</p>
                 </div>
               )}

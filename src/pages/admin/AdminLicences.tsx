@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus } from "lucide-react";
+import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus, AlertCircle } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/sonner";
 
@@ -88,7 +89,7 @@ export default function AdminLicences() {
     setGenDuration(String(sixM?.duree_mois ?? configs[0].duree_mois));
   }, [genType, planConfigs]);
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading, isError: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ["admin-licences-users"],
     queryFn: async () => {
       const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false });
@@ -170,7 +171,7 @@ export default function AdminLicences() {
   });
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedKey);
+    copyToClipboard(generatedKey).catch(() => {/* silent */});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -213,6 +214,13 @@ export default function AdminLicences() {
         {/* Licensed users */}
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : usersError ? (
+          <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-destructive font-sans">
+              <AlertCircle className="h-4 w-4 shrink-0" /> Erreur de chargement des comptes
+            </div>
+            <button onClick={() => refetchUsers()} className="text-xs underline text-destructive">Réessayer</button>
+          </div>
         ) : (
           <Card>
             <CardHeader><CardTitle className="text-base">Comptes sous licence</CardTitle></CardHeader>
