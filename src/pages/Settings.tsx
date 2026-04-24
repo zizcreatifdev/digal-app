@@ -42,9 +42,11 @@ function ProfileTab() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -61,23 +63,25 @@ function ProfileTab() {
     });
   }, [user]);
 
-  const uploadFile = async (file: File, folder: string) => {
-    if (!user) return null;
-    setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/${folder}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("user-uploads").upload(path, file, { upsert: true });
-    setUploading(false);
-    if (error) { toast.error("Erreur d'upload"); return null; }
-    const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
-    return publicUrl;
-  };
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await uploadFile(file, "avatar");
-    if (url) { setAvatarUrl(url); toast.success("Photo mise à jour"); }
+    if (file.size > LOGO_MAX_BYTES) { toast.error("Fichier trop lourd (max 5 Mo)"); e.target.value = ""; return; }
+    setPendingAvatarFile(file);
+    e.target.value = "";
+  };
+
+  const handleAvatarCropConfirm = async (blob: Blob) => {
+    setPendingAvatarFile(null);
+    if (!user) return;
+    setUploadingAvatar(true);
+    const path = `${user.id}/avatar.png`;
+    const { error } = await supabase.storage.from("user-uploads").upload(path, blob, { contentType: "image/png", upsert: true });
+    setUploadingAvatar(false);
+    if (error) { toast.error("Erreur d'upload de l'avatar"); return; }
+    const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
+    setAvatarUrl(publicUrl + `?t=${Date.now()}`);
+    toast.success("Photo de profil mise à jour");
   };
 
   const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,21 +134,47 @@ function ProfileTab() {
           {/* Avatar upload */}
           <div className="flex items-center gap-4">
             <div className="relative group">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
+              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                 ) : (
-                  <Camera className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xl font-semibold text-muted-foreground select-none">
+                    {prenom?.[0]?.toUpperCase()}{nom?.[0]?.toUpperCase()}
+                  </span>
                 )}
               </div>
-              <label className="absolute inset-0 cursor-pointer rounded-full opacity-0 group-hover:opacity-100 bg-foreground/30 flex items-center justify-center transition-opacity">
-                <Upload className="h-4 w-4 text-background" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-              </label>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 bg-foreground/30 flex items-center justify-center transition-opacity cursor-pointer"
+              >
+                <Camera className="h-5 w-5 text-background" />
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept={LOGO_ACCEPT}
+                className="hidden"
+                onChange={handleAvatarFileSelect}
+              />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <p className="text-sm font-medium">Photo de profil</p>
-              <p className="text-xs text-muted-foreground">JPG, PNG. Max 2 Mo</p>
+              <p className="text-xs text-muted-foreground">PNG, JPG, WEBP — 5 Mo max</p>
+              {uploadingAvatar && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Envoi...
+                </div>
+              )}
+              {avatarUrl && !uploadingAvatar && (
+                <Button
+                  variant="ghost" size="sm" type="button"
+                  className="text-xs text-destructive hover:text-destructive h-6 px-2"
+                  onClick={() => setAvatarUrl("")}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+                </Button>
+              )}
             </div>
           </div>
 
@@ -208,7 +238,7 @@ function ProfileTab() {
               <span className="text-sm text-muted-foreground font-mono">{brandColor}</span>
             </div>
           </div>
-          <Button onClick={handleSave} disabled={saving || uploading || uploadingLogo}>
+          <Button onClick={handleSave} disabled={saving || uploadingAvatar || uploadingLogo}>
             {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </CardContent>
@@ -217,6 +247,11 @@ function ProfileTab() {
       <PreviewSettingsCard />
       <PushNotificationsCard />
 
+      <ImageCropModal
+        file={pendingAvatarFile}
+        onConfirm={handleAvatarCropConfirm}
+        onCancel={() => setPendingAvatarFile(null)}
+      />
       <ImageCropModal
         file={pendingLogoFile}
         onConfirm={handleLogoCropConfirm}
@@ -785,9 +820,9 @@ function TeamTab() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {m.avatar_url ? (
-                          <img src={m.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                          <img src={m.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
                         ) : (
-                          <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
                             {m.prenom?.[0]}{m.nom?.[0]}
                           </div>
                         )}

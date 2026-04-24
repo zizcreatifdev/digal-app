@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Users, FileText, Link2, Receipt, ArrowUpRight, Plus,
   Lock, Clock, AlertTriangle, UserPlus,
@@ -145,6 +146,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<{
     role?: string | null; plan?: string | null;
     licence_expiration?: string | null; prenom?: string | null;
+    nom?: string | null; avatar_url?: string | null;
   } | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [showExpiryPopup, setShowExpiryPopup] = useState(false);
@@ -399,13 +401,21 @@ const Dashboard = () => {
 
         {/* ── Salutation ── */}
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight font-serif">
-              {greeting}{prenom ? `, ${prenom}` : ""} 👋
-            </h1>
-            <p className="text-muted-foreground font-sans mt-1 text-sm">
-              Voici votre activité du jour
-            </p>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-12 w-12 shrink-0">
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                {profile?.prenom?.[0]?.toUpperCase()}{profile?.nom?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight font-serif">
+                {greeting}{prenom ? `, ${prenom}` : ""} 👋
+              </h1>
+              <p className="text-muted-foreground font-sans mt-1 text-sm">
+                Voici votre activité du jour
+              </p>
+            </div>
           </div>
           <Button size="lg" onClick={() => navigate("/dashboard/clients")}>
             <Plus className="h-4 w-4" />
