@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -203,34 +204,45 @@ export function AppSidebar() {
           </SidebarMenu>
 
           {/* User info */}
-          {!collapsed && (
-            <div className="px-2 py-3 mt-2 border-t border-sidebar-border">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8 bg-sidebar-accent">
-                  {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-                  <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-sans">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold font-sans text-sidebar-foreground truncate">
-                    {userName}
-                  </p>
-                  <Badge
-                    variant={isFreemium ? "outline" : "default"}
-                    className={cn(
-                      "text-[9px] px-1.5 py-0 mt-0.5",
-                      isFreemium
-                        ? "border-sidebar-border text-sidebar-foreground/50"
-                        : "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    {isFreemium ? "Découverte" : (userPlan || userRole)}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className={cn("mt-2 border-t border-sidebar-border", collapsed ? "px-2 pt-2 pb-1" : "px-2 py-3")}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate("/dashboard/parametres")}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent p-1.5 transition-colors cursor-pointer text-left",
+                    collapsed && "justify-center"
+                  )}
+                >
+                  <Avatar className="h-9 w-9 shrink-0">
+                    {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
+                    <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-sans">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {!collapsed && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold font-sans text-sidebar-foreground truncate">
+                        {userName}
+                      </p>
+                      <Badge
+                        variant={isFreemium ? "outline" : "default"}
+                        className={cn(
+                          "text-[9px] px-1.5 py-0 mt-0.5",
+                          isFreemium
+                            ? "border-sidebar-border text-sidebar-foreground/50"
+                            : "bg-primary text-primary-foreground"
+                        )}
+                      >
+                        {isFreemium ? "Découverte" : (userPlan || userRole)}
+                      </Badge>
+                    </div>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side={collapsed ? "right" : "top"}>Mon profil</TooltipContent>
+            </Tooltip>
+          </div>
         </SidebarFooter>
       </Sidebar>
 

@@ -6,7 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Link2, BarChart3, Receipt, Archive, Loader2,
   Calendar, FolderOpen, Activity, Pencil, Lock, CheckCircle2,
+  User, Briefcase, Mail, Phone,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
 import { useRef, useState, useEffect } from "react";
@@ -50,6 +52,14 @@ const ClientDetail = () => {
   const [profile, setProfile] = useState<{ role: string; plan: string | null } | null>(null);
   const [monthProgress, setMonthProgress] = useState<{ total: number; validated: number } | null>(null);
 
+  // Contact form state
+  const [contactEditing, setContactEditing] = useState(false);
+  const [contactNom, setContactNom] = useState("");
+  const [contactPoste, setContactPoste] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactTel, setContactTel] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+
   // Slug edit — initialized once per client id, not reset on logo/status updates
   const [slugEdit, setSlugEdit] = useState<string | null>(null);
   const prevClientIdRef = useRef<string | undefined>(undefined);
@@ -59,6 +69,37 @@ const ClientDetail = () => {
       setSlugEdit(client.preview_slug ?? slugifyClientName(client.nom));
     }
   }, [client]);
+
+  // Sync contact fields when client loads
+  useEffect(() => {
+    if (!client) return;
+    setContactNom(client.contact_nom ?? "");
+    setContactPoste(client.contact_poste ?? "");
+    setContactEmail(client.contact_email ?? "");
+    setContactTel(client.contact_telephone ?? "");
+  }, [client]);
+
+  const handleSaveContacts = async () => {
+    if (!client) return;
+    setSavingContact(true);
+    const { error } = await supabase
+      .from("clients")
+      .update({
+        contact_nom: contactNom.trim() || null,
+        contact_poste: contactPoste.trim() || null,
+        contact_email: contactEmail.trim() || null,
+        contact_telephone: contactTel.trim() || null,
+      })
+      .eq("id", client.id);
+    setSavingContact(false);
+    if (error) {
+      toast.error("Erreur lors de l'enregistrement");
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["client", client.id] });
+      setContactEditing(false);
+      toast.success("Contacts enregistrés");
+    }
+  };
 
   // Profile fetch (for freemium check)
   useEffect(() => {
@@ -301,6 +342,9 @@ const ClientDetail = () => {
             <TabsTrigger value="activite" className="font-sans">
               <Activity className="h-3.5 w-3.5 mr-1" /> Activité
             </TabsTrigger>
+            <TabsTrigger value="contacts" className="font-sans">
+              <User className="h-3.5 w-3.5 mr-1" /> Contacts
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendrier" className="mt-4">
@@ -331,21 +375,104 @@ const ClientDetail = () => {
           <TabsContent value="activite" className="mt-4">
             <PreviewLinksHistory clientId={client.id} />
           </TabsContent>
-        </Tabs>
 
-        {/* Contact info card */}
-        {(client.contact_nom || client.contact_email) && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Interlocuteur</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid gap-2 sm:grid-cols-3 text-sm font-sans">
-                {client.contact_nom && <div><span className="text-muted-foreground">Nom :</span> {client.contact_nom}</div>}
-                {client.contact_email && <div><span className="text-muted-foreground">Email :</span> {client.contact_email}</div>}
-                {client.contact_telephone && <div><span className="text-muted-foreground">Tél :</span> {client.contact_telephone}</div>}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="contacts" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-serif">Contact principal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!contactEditing && (client.contact_nom || client.contact_email) ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {client.contact_nom && (
+                        <div className="flex items-center gap-2 text-sm font-sans">
+                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span>{client.contact_nom}</span>
+                        </div>
+                      )}
+                      {client.contact_poste && (
+                        <div className="flex items-center gap-2 text-sm font-sans">
+                          <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span>{client.contact_poste}</span>
+                        </div>
+                      )}
+                      {client.contact_email && (
+                        <div className="flex items-center gap-2 text-sm font-sans">
+                          <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <a href={`mailto:${client.contact_email}`} className="text-primary hover:underline">
+                            {client.contact_email}
+                          </a>
+                        </div>
+                      )}
+                      {client.contact_telephone && (
+                        <div className="flex items-center gap-2 text-sm font-sans">
+                          <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <a href={`tel:${client.contact_telephone}`} className="hover:underline">
+                            {client.contact_telephone}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setContactEditing(true)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" /> Modifier
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-w-md">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="font-sans text-sm">Nom du contact *</Label>
+                        <Input
+                          placeholder="Fatou Diallo"
+                          value={contactNom}
+                          onChange={(e) => setContactNom(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="font-sans text-sm">Poste</Label>
+                        <Input
+                          placeholder="Responsable Marketing"
+                          value={contactPoste}
+                          onChange={(e) => setContactPoste(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="font-sans text-sm">Email *</Label>
+                      <Input
+                        type="email"
+                        placeholder="contact@exemple.com"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="font-sans text-sm">Téléphone *</Label>
+                      <Input
+                        type="tel"
+                        placeholder="+221 77 000 00 00"
+                        value={contactTel}
+                        onChange={(e) => setContactTel(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={handleSaveContacts} disabled={savingContact}>
+                        {savingContact ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                        Enregistrer les contacts
+                      </Button>
+                      {(client.contact_nom || client.contact_email) && (
+                        <Button variant="ghost" size="sm" onClick={() => setContactEditing(false)}>
+                          Annuler
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Preview slug card */}
         <Card>

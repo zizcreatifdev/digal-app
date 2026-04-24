@@ -18,6 +18,7 @@ export interface PdfUserProfile {
 export interface PdfClientInfo {
   nom: string;
   contact_nom?: string | null;
+  contact_poste?: string | null;
   contact_email?: string | null;
   contact_telephone?: string | null;
   facturation_adresse?: string | null;
@@ -194,9 +195,16 @@ export async function generateDocumentPdf(
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   pdf.setTextColor(...C_GRAY);
-  if (clientInfo.contact_nom) { pdf.text(clientInfo.contact_nom, ML, y); y += 4.5; }
-  if (clientInfo.contact_email) { pdf.text(clientInfo.contact_email, ML, y); y += 4.5; }
-  if (clientInfo.contact_telephone) { pdf.text(clientInfo.contact_telephone, ML, y); y += 4.5; }
+  if (clientInfo.contact_nom) {
+    const nomLine = clientInfo.contact_poste
+      ? `${clientInfo.contact_nom} — ${clientInfo.contact_poste}`
+      : clientInfo.contact_nom;
+    pdf.text(nomLine, ML, y); y += 4.5;
+    if (clientInfo.contact_email) { pdf.text(clientInfo.contact_email, ML, y); y += 4.5; }
+    if (clientInfo.contact_telephone) { pdf.text(clientInfo.contact_telephone, ML, y); y += 4.5; }
+  } else if (clientInfo.contact_email) {
+    pdf.text(clientInfo.contact_email, ML, y); y += 4.5;
+  }
   if (clientInfo.facturation_adresse) {
     const wrapped = pdf.splitTextToSize(clientInfo.facturation_adresse, col2X - ML - 5) as string[];
     pdf.text(wrapped, ML, y);

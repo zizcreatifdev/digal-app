@@ -72,7 +72,7 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
           .single(),
         supabase
           .from("clients")
-          .select("nom, contact_nom, contact_email, contact_telephone, facturation_adresse")
+          .select("nom, contact_nom, contact_poste, contact_email, contact_telephone, facturation_adresse")
           .eq("id", doc.client_id)
           .single(),
         supabase

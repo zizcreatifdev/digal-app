@@ -8,6 +8,7 @@ export interface Client {
   couleur_marque: string;
   couleur_secondaire: string | null;
   contact_nom: string | null;
+  contact_poste: string | null;
   contact_email: string | null;
   contact_telephone: string | null;
   facturation_adresse: string | null;
