@@ -117,14 +117,21 @@ export async function fetchActivityLogs(
     typeAction?: string;
     dateFrom?: string;
     dateTo?: string;
+    page?: number;
+    pageSize?: number;
   }
-) {
+): Promise<{ logs: ActivityLog[]; count: number }> {
+  const pageSize = filters?.pageSize ?? 20;
+  const page = filters?.page ?? 0;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
   let query = supabase
     .from("activity_logs")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .range(from, to);
 
   if (filters?.typeAction && filters.typeAction !== "all") {
     query = query.eq("type_action", filters.typeAction);
@@ -136,9 +143,9 @@ export async function fetchActivityLogs(
     query = query.lte("created_at", `${filters.dateTo}T23:59:59`);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as ActivityLog[];
+  return { logs: (data ?? []) as ActivityLog[], count: count ?? 0 };
 }
 
 // Convenience helpers

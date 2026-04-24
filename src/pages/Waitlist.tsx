@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,19 +13,25 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+const waitlistSchema = z.object({
+  prenom: z.string().min(1, "Prénom obligatoire"),
+  nom: z.string().min(1, "Nom obligatoire"),
+  email: z.string().email("Email invalide"),
+});
+type WaitlistFormData = z.infer<typeof waitlistSchema>;
+
 const Waitlist = () => {
   usePageTitle("Digal · Liste d'attente");
-  const [prenom, setPrenom] = useState("");
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
   const [typeCompte, setTypeCompte] = useState<"solo" | "agence">("solo");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submittedPrenom, setSubmittedPrenom] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prenom || !nom || !email) return;
+  const { register, handleSubmit, formState: { errors } } = useForm<WaitlistFormData>({
+    resolver: zodResolver(waitlistSchema),
+  });
 
+  const onSubmit = async (formData: WaitlistFormData) => {
     setLoading(true);
 
     // Check if email already has an account
@@ -30,7 +39,7 @@ const Waitlist = () => {
     const { data: existingUser } = await (supabase as any)
       .from("users")
       .select("statut")
-      .eq("email", email)
+      .eq("email", formData.email)
       .maybeSingle();
 
     if (existingUser) {
@@ -47,7 +56,7 @@ const Waitlist = () => {
     }
 
     const { error } = await supabase.from("waitlist").insert([
-      { prenom, nom, email, type_compte: typeCompte, statut: "en_attente" },
+      { prenom: formData.prenom, nom: formData.nom, email: formData.email, type_compte: typeCompte, statut: "en_attente" },
     ]);
     setLoading(false);
 
@@ -64,12 +73,13 @@ const Waitlist = () => {
     await supabase.functions.invoke("send-transactional-email", {
       body: {
         templateName: "waitlist-confirmation",
-        recipientEmail: email,
-        idempotencyKey: `waitlist-confirm-${email}-${Date.now()}`,
-        templateData: { prenom },
+        recipientEmail: formData.email,
+        idempotencyKey: `waitlist-confirm-${formData.email}-${Date.now()}`,
+        templateData: { prenom: formData.prenom },
       },
     });
 
+    setSubmittedPrenom(formData.prenom);
     setSuccess(true);
     toast.success("Inscription réussie !");
   };
@@ -84,7 +94,7 @@ const Waitlist = () => {
             </div>
             <h2 className="text-2xl font-bold font-serif">Vous êtes inscrit !</h2>
             <p className="text-muted-foreground font-sans">
-              Merci <span className="font-semibold text-foreground">{prenom}</span> ! Vous êtes sur la liste d'attente de Digal.
+              Merci <span className="font-semibold text-foreground">{submittedPrenom}</span> ! Vous êtes sur la liste d'attente de Digal.
               Nous vous contacterons dès votre accès approuvé.
             </p>
             <Link to="/">
@@ -131,35 +141,33 @@ const Waitlist = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="prenom" className="font-sans text-sm">Prénom</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="prenom"
                       placeholder="Amadou"
-                      value={prenom}
-                      onChange={(e) => setPrenom(e.target.value)}
+                      {...register("prenom")}
                       className="pl-10"
-                      required
                     />
                   </div>
+                  {errors.prenom && <p className="text-xs text-destructive">{errors.prenom.message}</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="nom" className="font-sans text-sm">Nom</Label>
                   <Input
                     id="nom"
                     placeholder="Diallo"
-                    value={nom}
-                    onChange={(e) => setNom(e.target.value)}
-                    required
+                    {...register("nom")}
                   />
+                  {errors.nom && <p className="text-xs text-destructive">{errors.nom.message}</p>}
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="wemail" className="font-sans text-sm">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -167,12 +175,11 @@ const Waitlist = () => {
                     id="wemail"
                     type="email"
                     placeholder="vous@exemple.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register("email")}
                     className="pl-10"
-                    required
                   />
                 </div>
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
 
               <div className="space-y-2">

@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +12,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+const loginSchema = z.object({
+  email: z.string().email("Email invalide"),
+  password: z.string().min(8, "8 caractères minimum"),
+});
+type LoginFormData = z.infer<typeof loginSchema>;
 import { getClientIp } from "@/lib/activity-logs";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
@@ -19,14 +28,15 @@ const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 const Login = () => {
   usePageTitle("Digal · Connexion");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
   const { signIn } = useAuth();
+  const { register, handleSubmit, getValues, formState: { errors } } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
   // Rate limiting state
   const attemptsRef = useRef(0);
@@ -36,7 +46,7 @@ const Login = () => {
     try {
       const ip = await getClientIp();
       await supabase.from("security_logs").insert({
-        email,
+        email: getValues("email"),
         action,
         success,
         detail,
@@ -46,10 +56,7 @@ const Login = () => {
     } catch { /* intentional silent fail */ }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-
+  const handleLogin = async (formData: LoginFormData) => {
     // Check lockout
     if (Date.now() < lockoutUntilRef.current) {
       const remaining = Math.ceil((lockoutUntilRef.current - Date.now()) / 60000);
@@ -58,7 +65,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(formData.email, formData.password);
     setLoading(false);
 
     if (error) {
@@ -139,21 +146,23 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-sans text-sm">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="vous@exemple.com" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="pl-10" required />
+                  <Input id="email" type="email" placeholder="vous@exemple.com" autoComplete="email" inputMode="email" {...register("email")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="pl-10" />
                 </div>
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="font-sans text-sm">Mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="pl-10" required />
+                  <Input id="password" type="password" placeholder="••••••••" autoComplete="current-password" {...register("password")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="pl-10" />
                 </div>
+                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
               </div>
 
               <div className="flex justify-end">

@@ -38,10 +38,9 @@ const TYPE_SHORT: Record<string, string> = {
 
 function generateKeyCode(type: string): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let suffix = "";
-  for (let i = 0; i < 6; i++) {
-    suffix += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  const array = new Uint8Array(6);
+  crypto.getRandomValues(array);
+  const suffix = Array.from(array).map(b => chars[b % chars.length]).join("");
   return `DIGAL-${TYPE_SHORT[type] ?? "SOLO"}-${suffix}`;
 }
 

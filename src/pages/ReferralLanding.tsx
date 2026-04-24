@@ -88,7 +88,7 @@ const ReferralLanding = () => {
       referred_by: referrerId,
       referral_code: referralCode,
     });
-    if (profileError) console.error("[ReferralLanding] profile error:", profileError);
+    if (profileError && import.meta.env.DEV) console.error("[ReferralLanding] profile error:", profileError);
 
     await supabase.from("user_roles").insert({ user_id: userId, role: "user" });
 

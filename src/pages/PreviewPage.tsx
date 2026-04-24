@@ -13,6 +13,7 @@ import { fr } from "date-fns/locale";
 import { NetworkMockup } from "@/components/preview/NetworkMockup";
 import { motion, AnimatePresence } from "framer-motion";
 import digalLogo from "@/assets/digal-logo.png";
+import { getAccountAccess } from "@/lib/account-access";
 
 // Safari-safe client: avoids localStorage (fails in private mode) and adds Accept header
 const previewClient = createClient(
@@ -36,7 +37,7 @@ const PreviewPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [link, setLink] = useState<PreviewLink | null>(null);
   const [client, setClient] = useState<Client | null>(null);
-  const [cmUser, setCmUser] = useState<{ nom: string; prenom: string; agence_nom: string | null; logo_url: string | null } | null>(null);
+  const [cmUser, setCmUser] = useState<{ nom: string; prenom: string; agence_nom: string | null; logo_url: string | null; role: string | null; plan: string | null } | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [actions, setActions] = useState<PreviewAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ const PreviewPage = () => {
     "Merci pour vos retours !\nVotre Community Manager va prendre en compte vos commentaires."
   );
 
-  const isFreemium = true;
+  const { isFreemium } = getAccountAccess(cmUser);
 
   // Countdown to link expiry
   useEffect(() => {
@@ -127,7 +128,7 @@ const PreviewPage = () => {
       const [clientResult, cmResult, postsResult, actionsResult] = await Promise.race([
         Promise.all([
           previewClient.from("clients").select("*").eq("id", link.client_id).maybeSingle(),
-          previewClient.from("users").select("nom, prenom, agence_nom, logo_url").eq("user_id", link.user_id).maybeSingle(),
+          previewClient.from("users").select("nom, prenom, agence_nom, logo_url, role, plan").eq("user_id", link.user_id).maybeSingle(),
           previewClient.from("posts").select("*").eq("client_id", link.client_id).in("statut", ["en_attente_validation", "lien_envoye"]).gte("date_publication", link.periode_debut).lte("date_publication", link.periode_fin).order("date_publication", { ascending: true }),
           previewClient.from("preview_actions").select("*").eq("preview_link_id", link.id).order("created_at", { ascending: false }),
         ]),

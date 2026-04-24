@@ -6,13 +6,13 @@ const FEATURES = [
     title: "Calendrier éditorial",
     description: "Planifiez et visualisez tous vos posts par client sur une interface claire et intuitive.",
     icon: Calendar,
-    color: "bg-blue-50 border-blue-100",
+    color: "bg-blue-50 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50",
     iconColor: "text-blue-500",
     mockup: (
       <div className="space-y-1.5 p-3">
         {["Lun", "Mar", "Mer", "Jeu", "Ven"].map((day, i) => (
           <div key={day} className="flex items-center gap-2">
-            <span className="text-[9px] text-gray-400 w-6 font-sans">{day}</span>
+            <span className="text-[9px] text-muted-foreground w-6 font-sans">{day}</span>
             {[0, 1, 2].map((j) => (
               <div
                 key={j}
@@ -35,7 +35,7 @@ const FEATURES = [
     title: "Validation client",
     description: "Le client valide ou refuse chaque post depuis un lien sécurisé, sans créer de compte.",
     icon: CheckCircle,
-    color: "bg-emerald-50 border-emerald-100",
+    color: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50",
     iconColor: "text-emerald-500",
     mockup: (
       <div className="p-3 space-y-2">
@@ -56,7 +56,7 @@ const FEATURES = [
     title: "Rapports KPI",
     description: "Générez des rapports de performance professionnels en PDF pour chaque client.",
     icon: BarChart3,
-    color: "bg-purple-50 border-purple-100",
+    color: "bg-purple-50 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900/50",
     iconColor: "text-purple-500",
     mockup: (
       <div className="p-3 space-y-2">
@@ -71,9 +71,9 @@ const FEATURES = [
         </div>
         <div className="grid grid-cols-2 gap-1">
           {[{ l: "Portée", v: "12.4K" }, { l: "Engagement", v: "4.8%" }].map((kpi) => (
-            <div key={kpi.l} className="bg-white rounded border border-gray-100 px-2 py-1 text-center">
-              <p className="text-[10px] font-bold font-serif text-gray-900">{kpi.v}</p>
-              <p className="text-[8px] text-gray-400 font-sans">{kpi.l}</p>
+            <div key={kpi.l} className="bg-background rounded border border-border px-2 py-1 text-center">
+              <p className="text-[10px] font-bold font-serif text-foreground">{kpi.v}</p>
+              <p className="text-[8px] text-muted-foreground font-sans">{kpi.l}</p>
             </div>
           ))}
         </div>
@@ -84,11 +84,11 @@ const FEATURES = [
     title: "Facturation FCFA",
     description: "Devis et factures professionnels avec BRS, TVA, Wave et Orange Money intégrés.",
     icon: FileText,
-    color: "bg-orange-50 border-orange-100",
+    color: "bg-orange-50 dark:bg-orange-950/30 border-orange-100 dark:border-orange-900/50",
     iconColor: "text-orange-500",
     mockup: (
       <div className="p-3 space-y-1.5 font-sans">
-        <div className="flex justify-between text-[9px] text-gray-500 border-b border-gray-100 pb-1">
+        <div className="flex justify-between text-[9px] text-muted-foreground border-b border-border pb-1">
           <span>Prestation</span><span>Montant</span>
         </div>
         {[
@@ -97,11 +97,11 @@ const FEATURES = [
           ["BRS (5%)", "8 750"],
         ].map(([label, amount]) => (
           <div key={label} className="flex justify-between text-[9px]">
-            <span className="text-gray-600">{label}</span>
-            <span className="font-medium text-gray-900">{amount} F</span>
+            <span className="text-muted-foreground">{label}</span>
+            <span className="font-medium text-foreground">{amount} F</span>
           </div>
         ))}
-        <div className="flex justify-between text-[10px] font-bold text-[#C4522A] border-t border-gray-100 pt-1">
+        <div className="flex justify-between text-[10px] font-bold text-[#C4522A] border-t border-border pt-1">
           <span>Total</span><span>183 750 FCFA</span>
         </div>
       </div>
@@ -134,12 +134,12 @@ export function MockupsSection() {
               className={`rounded-2xl border ${feat.color} overflow-hidden`}
             >
               {/* Mockup preview */}
-              <div className="bg-white/70 border-b border-inherit">
+              <div className="bg-background/70 border-b border-inherit">
                 {feat.mockup}
               </div>
               {/* Feature info */}
               <div className="p-4">
-                <div className={`inline-flex items-center justify-center h-8 w-8 rounded-lg bg-white mb-3`}>
+                <div className={`inline-flex items-center justify-center h-8 w-8 rounded-lg bg-background mb-3`}>
                   <feat.icon className={`h-4 w-4 ${feat.iconColor}`} />
                 </div>
                 <h3 className="font-bold font-serif text-sm text-foreground mb-1">{feat.title}</h3>
@@ -151,7 +151,7 @@ export function MockupsSection() {
 
         {/* Bottom CTA */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-3 bg-white border border-border rounded-full px-6 py-3 shadow-sm">
+          <div className="inline-flex items-center gap-3 bg-background border border-border rounded-full px-6 py-3 shadow-sm">
             <Users className="h-4 w-4 text-primary" />
             <span className="text-sm font-sans text-foreground">
               Conçu pour les Digital Managers et Community Managers d'Afrique francophone · <span className="font-semibold text-primary">100% en FCFA</span>

@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
-import { Monitor, Smartphone, Tablet, Loader2 } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -39,6 +40,8 @@ function countryFlag(code: string | null): string {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export default function Journal() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -46,17 +49,27 @@ export default function Journal() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Reset to page 0 when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [typeFilter, dateFrom, dateTo]);
 
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await fetchActivityLogs(user.id, {
+      const { logs: data, count } = await fetchActivityLogs(user.id, {
         typeAction: typeFilter,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
+        page,
+        pageSize: PAGE_SIZE,
       });
       setLogs(data);
+      setTotalCount(count);
     } catch (err) {
       setLogs([]);
       toast.error("Impossible de charger le journal");
@@ -64,7 +77,7 @@ export default function Journal() {
     } finally {
       setLoading(false);
     }
-  }, [user, typeFilter, dateFrom, dateTo]);
+  }, [user, typeFilter, dateFrom, dateTo, page]);
 
   useEffect(() => {
     load();
@@ -163,6 +176,23 @@ export default function Journal() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalCount > PAGE_SIZE && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground font-sans">
+              Page {page + 1} / {Math.ceil(totalCount / PAGE_SIZE)} · {totalCount} entrées
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>
+                <ChevronLeft className="h-4 w-4" /> Précédent
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= totalCount}>
+                Suivant <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
