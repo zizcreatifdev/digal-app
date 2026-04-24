@@ -137,7 +137,11 @@ const ClientsPage = () => {
           </TabsContent>
 
           <TabsContent value="archives" className="mt-4">
-            {archivedClients.length === 0 ? (
+            {archiveLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : archivedClients.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-muted-foreground font-sans">Aucun client archivé.</p>
               </div>

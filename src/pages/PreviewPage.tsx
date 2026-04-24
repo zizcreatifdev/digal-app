@@ -211,11 +211,15 @@ const PreviewPage = () => {
     setSubmitting(true);
     try {
       const pending = posts.filter((p) => !getPostAction(p.id));
-      for (const post of pending) {
-        await previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: post.id, decision: "valide", commentaire: null });
-        await previewClient.from("posts").update({ statut: "programme_valide" }).eq("id", post.id);
-        addActionLocally(post.id, "valide");
-      }
+      await Promise.all(
+        pending.map((post) =>
+          Promise.all([
+            previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: post.id, decision: "valide", commentaire: null }),
+            previewClient.from("posts").update({ statut: "programme_valide" }).eq("id", post.id),
+          ])
+        )
+      );
+      pending.forEach((post) => addActionLocally(post.id, "valide"));
       setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "programme_valide" : p.statut })));
       toast.success("Tous les posts validés !");
     } catch {
@@ -230,11 +234,15 @@ const PreviewPage = () => {
     setSubmitting(true);
     try {
       const pending = posts.filter((p) => !getPostAction(p.id));
-      for (const post of pending) {
-        await previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: post.id, decision: "refuse", commentaire: comment || null });
-        await previewClient.from("posts").update({ statut: "brouillon" }).eq("id", post.id);
-        addActionLocally(post.id, "refuse", comment);
-      }
+      await Promise.all(
+        pending.map((post) =>
+          Promise.all([
+            previewClient.from("preview_actions").insert({ preview_link_id: link.id, post_id: post.id, decision: "refuse", commentaire: comment || null }),
+            previewClient.from("posts").update({ statut: "brouillon" }).eq("id", post.id),
+          ])
+        )
+      );
+      pending.forEach((post) => addActionLocally(post.id, "refuse", comment));
       setPosts(prev => prev.map(p => ({ ...p, statut: pending.some(pp => pp.id === p.id) ? "brouillon" : p.statut })));
       // Règle 5 : notifier le CM avec le commentaire global du client
       await previewClient.from("notifications").insert({

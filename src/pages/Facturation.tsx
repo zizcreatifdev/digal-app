@@ -4,13 +4,14 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Lock } from "lucide-react";
+import { Plus, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Document, fetchDocuments } from "@/lib/facturation";
 import { CreateDocumentModal } from "@/components/facturation/CreateDocumentModal";
 import { DocumentList } from "@/components/facturation/DocumentList";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
+import { getAccountAccess } from "@/lib/account-access";
 
 export default function Facturation() {
   const { user } = useAuth();
@@ -20,8 +21,7 @@ export default function Facturation() {
   const [loading, setLoading] = useState(true);
   const [createType, setCreateType] = useState<"devis" | "facture" | null>(null);
   const [preselectedClientId, setPreselectedClientId] = useState<string | undefined>(undefined);
-  const [profileRole, setProfileRole] = useState<string | null>(null);
-  const [profilePlan, setProfilePlan] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
   const [factureLimitOpen, setFactureLimitOpen] = useState(false);
 
   useEffect(() => {
@@ -32,14 +32,11 @@ export default function Facturation() {
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (!error && data) {
-          setProfileRole(data.role);
-          setProfilePlan(data.plan ?? null);
-        }
+        if (!error && data) setProfile(data);
       });
   }, [user]);
 
-  const isFreemium = profileRole === "freemium" && !profilePlan;
+  const { isFreemium } = getAccountAccess(profile);
 
   // Auto-open create modal when navigated from client detail page
   useEffect(() => {
@@ -113,12 +110,13 @@ export default function Facturation() {
           <TabsList>
             <TabsTrigger value="devis">Devis ({devis.length})</TabsTrigger>
             <TabsTrigger value="factures">Factures ({factures.length})</TabsTrigger>
-            <TabsTrigger value="recurrent">Récurrent</TabsTrigger>
           </TabsList>
 
           <TabsContent value="devis">
             {loading ? (
-              <p className="text-muted-foreground text-center py-12">Chargement...</p>
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
             ) : (
               <DocumentList documents={devis} type="devis" onRefresh={load} />
             )}
@@ -126,17 +124,12 @@ export default function Facturation() {
 
           <TabsContent value="factures">
             {loading ? (
-              <p className="text-muted-foreground text-center py-12">Chargement...</p>
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
             ) : (
               <DocumentList documents={factures} type="facture" onRefresh={load} />
             )}
-          </TabsContent>
-
-          <TabsContent value="recurrent">
-            <div className="text-center py-16 text-muted-foreground">
-              <p className="text-lg font-serif font-semibold mb-2">Facturation récurrente</p>
-              <p className="text-sm">Bientôt disponible : automatisez vos factures mensuelles.</p>
-            </div>
           </TabsContent>
         </Tabs>
       </div>

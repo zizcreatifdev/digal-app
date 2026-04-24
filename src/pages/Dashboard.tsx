@@ -8,7 +8,7 @@ import {
   Lock, Clock, AlertTriangle, UserPlus,
   Loader2, BarChart2, Upload, Settings,
   TrendingUp, TrendingDown, CheckCircle2, CalendarCheck, Sun, Moon,
-  Instagram, Facebook, Linkedin, Twitter, Music,
+  Instagram, Facebook, Linkedin, Twitter, Music, AlertCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -151,6 +151,7 @@ const Dashboard = () => {
   const [expiryDaysLeft, setExpiryDaysLeft] = useState(0);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
   const [todayPosts, setTodayPosts] = useState<TodayPost[]>([]);
   const [markingPublished, setMarkingPublished] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -188,6 +189,7 @@ const Dashboard = () => {
     if (!user) return;
     const fetchStats = async () => {
       setStatsLoading(true);
+      setStatsError(false);
       try {
         const now = new Date();
         const today = format(now, "yyyy-MM-dd");
@@ -249,13 +251,65 @@ const Dashboard = () => {
           client_nom: p.clients?.nom ?? "Client",
         })));
       } catch {
-        // Silent
+        setStatsError(true);
       } finally {
         setStatsLoading(false);
       }
     };
     fetchStats();
   }, [user]);
+
+  const retryStats = () => {
+    if (!user) return;
+    setStatsLoading(true);
+    setStatsError(false);
+    // Re-trigger the effect by creating a fresh fetch
+    const fetchStats = async () => {
+      try {
+        const now = new Date();
+        const today = format(now, "yyyy-MM-dd");
+        const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+        const prevWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+        const prevWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+        const monthStart = startOfMonth(now);
+        const [clientsRes, postsRes, prevPostsRes, todayPostsRes, linksRes, invoicesRes] = await Promise.all([
+          supabase.from("clients").select("id, created_at").eq("user_id", user.id).eq("statut", "actif"),
+          supabase.from("posts").select("id, statut, date_publication").eq("user_id", user.id).gte("date_publication", weekStart.toISOString().split("T")[0]).lte("date_publication", weekEnd.toISOString().split("T")[0]),
+          supabase.from("posts").select("id").eq("user_id", user.id).gte("date_publication", prevWeekStart.toISOString().split("T")[0]).lte("date_publication", prevWeekEnd.toISOString().split("T")[0]),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from("posts").select("id, reseau, date_publication, clients(nom)").eq("user_id", user.id).eq("statut", "programme_valide").eq("date_publication", today),
+          supabase.from("preview_links").select("id, expires_at").eq("user_id", user.id),
+          supabase.from("documents").select("id, total").eq("user_id", user.id).eq("type", "facture").in("statut", ["envoye", "en_retard", "partiellement_paye"]),
+        ]);
+        const clients = clientsRes.data ?? [];
+        const posts = postsRes.data ?? [];
+        const links = linksRes.data ?? [];
+        const invoices = invoicesRes.data ?? [];
+        const published = posts.filter((p) => p.statut === "publie").length;
+        setStats({
+          activeClients: clients.length,
+          clientsThisMonth: clients.filter((c) => new Date(c.created_at) >= monthStart).length,
+          postsThisWeek: posts.length,
+          postsPublished: published,
+          postsScheduled: posts.length - published,
+          postsLastWeek: (prevPostsRes.data ?? []).length,
+          pendingLinks: links.filter((l) => l.expires_at && new Date(l.expires_at) > now).length,
+          expiredLinks: links.filter((l) => l.expires_at && new Date(l.expires_at) <= now).length,
+          unpaidInvoices: invoices.length,
+          unpaidTotal: invoices.reduce((sum, d) => sum + Number(d.total ?? 0), 0),
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawToday = (todayPostsRes.data ?? []) as Array<{ id: string; reseau: string; date_publication: string; clients: any }>;
+        setTodayPosts(rawToday.map((p) => ({ id: p.id, reseau: p.reseau, date_publication: p.date_publication, client_nom: p.clients?.nom ?? "Client" })));
+      } catch {
+        setStatsError(true);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -388,6 +442,17 @@ const Dashboard = () => {
         </div>
 
         {/* ── KPI Stats grid ── */}
+        {statsError && (
+          <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-destructive font-sans">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              Erreur de chargement des statistiques
+            </div>
+            <Button size="sm" variant="outline" onClick={retryStats} className="text-xs">
+              Réessayer
+            </Button>
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Clients actifs */}
           <GlassCard>
@@ -398,7 +463,11 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
+              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : statsError ? (
+                <div className="flex items-center gap-1.5 text-xs text-destructive font-sans">
+                  <AlertCircle className="h-3.5 w-3.5" /> Erreur de chargement
+                </div>
+              ) : (
                 <>
                   <div className="text-3xl font-bold font-serif">{stats?.activeClients ?? 0}</div>
                   <div className="mt-1">
@@ -429,7 +498,11 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
+              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : statsError ? (
+                <div className="flex items-center gap-1.5 text-xs text-destructive font-sans">
+                  <AlertCircle className="h-3.5 w-3.5" /> Erreur de chargement
+                </div>
+              ) : (
                 <>
                   <div className="text-3xl font-bold font-serif">{stats?.postsThisWeek ?? 0}</div>
                   <div className="mt-1">
@@ -449,7 +522,11 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
+              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : statsError ? (
+                <div className="flex items-center gap-1.5 text-xs text-destructive font-sans">
+                  <AlertCircle className="h-3.5 w-3.5" /> Erreur de chargement
+                </div>
+              ) : (
                 <>
                   <div className="text-3xl font-bold font-serif">{stats?.pendingLinks ?? 0}</div>
                   <div className="mt-1">
@@ -490,6 +567,10 @@ const Dashboard = () => {
                 </div>
               ) : statsLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : statsError ? (
+                <div className="flex items-center gap-1.5 text-xs text-destructive font-sans">
+                  <AlertCircle className="h-3.5 w-3.5" /> Erreur de chargement
+                </div>
               ) : (
                 <>
                   <div className="text-3xl font-bold font-serif">{stats?.unpaidInvoices ?? 0}</div>

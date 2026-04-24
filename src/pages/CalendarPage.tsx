@@ -11,7 +11,7 @@ const CalendarPage = () => {
   const [networks, setNetworks] = useState<string[]>([]);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileRole, setProfileRole] = useState<string | null>(null);
+  const [profileRole, setProfileRole] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     if (!user) return;
