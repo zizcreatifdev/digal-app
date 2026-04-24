@@ -232,7 +232,7 @@ const AdminFacturation = () => {
   // PDF receipt: matches preview exactly
   const downloadPDF = async (p: OwnerPayment) => {
     const digalLogoData = await loadSvgAsPng(
-      "/logos/Logo_Digal_iconorange_ettext_ennoir_svg.svg",
+      "/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg",
       500, 250
     );
     const digalIconData = await loadSvgAsPng(

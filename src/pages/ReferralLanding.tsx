@@ -154,7 +154,7 @@ const ReferralLanding = () => {
           <div className="min-h-screen flex items-center justify-center px-4">
             <div className="max-w-xl w-full text-center space-y-8 animate-fade-in">
               <img
-                src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg"
+                src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
                 alt="Digal"
                 style={{ width: "160px", margin: "0 auto" }}
               />

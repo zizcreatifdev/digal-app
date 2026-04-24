@@ -95,7 +95,11 @@ const Register = () => {
         {/* Left : Branding */}
         <div className="hidden lg:flex lg:w-1/2 bg-foreground items-center justify-center p-12">
           <div className="max-w-md text-center space-y-6 animate-fade-in">
-            <h1 className="text-5xl font-bold font-serif text-primary-foreground">Digal</h1>
+            <img
+              src="/logos/Logo%20Digal_iconorange_ettext_enblanc.svg"
+              alt="Digal"
+              className="h-12 w-auto mx-auto"
+            />
             <p className="text-lg text-primary-foreground/70 font-sans leading-relaxed">
               Bienvenue ! Créez votre compte pour accéder à la plateforme.
             </p>
@@ -106,10 +110,13 @@ const Register = () => {
         <div className="flex-1 flex items-center justify-center p-8">
           <Card className="w-full max-w-md border-0 shadow-none bg-transparent">
             <CardHeader className="space-y-2 text-center lg:text-left">
-              <div className="lg:hidden mb-6">
-                <Link to="/" className="inline-flex items-center gap-1">
-                  <span className="text-4xl font-bold font-serif text-foreground">Digal</span>
-                  <span className="w-2 h-2 rounded-full bg-primary mt-1" />
+              <div className="mb-6 flex lg:justify-start justify-center">
+                <Link to="/">
+                  <img
+                    src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
+                    alt="Digal"
+                    className="h-10 w-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
+                  />
                 </Link>
               </div>
               <CardTitle className="text-2xl">Créer un compte</CardTitle>

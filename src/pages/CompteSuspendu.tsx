@@ -10,7 +10,7 @@ const CompteSuspendu = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center space-y-6">
         <img
-          src="/logos/Logo%20Digal_iconorange_ettext_enblanc%20copy.svg"
+          src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
           alt="Digal"
           className="w-32 mx-auto"
           onError={(e) => {
