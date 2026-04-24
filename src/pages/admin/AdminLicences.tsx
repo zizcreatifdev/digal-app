@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { copyToClipboard } from "@/lib/clipboard";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/sonner";
@@ -253,13 +254,17 @@ export default function AdminLicences() {
                           {u.licence_expiration ? new Date(u.licence_expiration).toLocaleDateString("fr-FR") : "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm" variant="ghost"
-                            onClick={() => { setExtendUser({ id: u.id, email: u.email, licence_expiration: u.licence_expiration }); setExtendMonths("3"); }}
-                            title="Prolonger la licence"
-                          >
-                            <CalendarPlus className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm" variant="ghost"
+                                onClick={() => { setExtendUser({ id: u.id, email: u.email, licence_expiration: u.licence_expiration }); setExtendMonths("3"); }}
+                              >
+                                <CalendarPlus className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Prolonger la licence</TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );
@@ -316,7 +321,7 @@ export default function AdminLicences() {
 
         {/* Generate key dialog */}
         <Dialog open={showGenerate} onOpenChange={(v) => { setShowGenerate(v); if (!v) setGeneratedKey(""); }}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Générer une clé de licence</DialogTitle>
             </DialogHeader>
@@ -398,7 +403,7 @@ export default function AdminLicences() {
 
         {/* Extend license dialog */}
         <Dialog open={!!extendUser} onOpenChange={(v) => !v && setExtendUser(null)}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Prolonger la licence</DialogTitle>
             </DialogHeader>
@@ -428,7 +433,7 @@ export default function AdminLicences() {
 
         {/* Activate existing user dialog */}
         <Dialog open={showActivate} onOpenChange={setShowActivate}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Activer une licence manuellement</DialogTitle>
             </DialogHeader>

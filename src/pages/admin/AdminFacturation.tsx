@@ -552,7 +552,7 @@ const AdminFacturation = () => {
 
         {/* Modal */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-serif">Ajouter un paiement reçu</DialogTitle>
             </DialogHeader>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -780,9 +781,14 @@ export default function AdminComptes() {
                           {lastLoginMap ? lastLoginText : <Loader2 className="h-3 w-3 animate-spin" />}
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openDetail(u); }}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openDetail(u); }}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Voir le détail</TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );

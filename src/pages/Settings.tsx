@@ -969,7 +969,7 @@ function TemplatesTab() {
       </Card>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouveau modèle</DialogTitle>
           </DialogHeader>

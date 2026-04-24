@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
-import { FileDown, ArrowRightLeft, CreditCard, Ban } from "lucide-react";
+import { FileDown, ArrowRightLeft, CreditCard, Ban, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   Document,
@@ -156,9 +156,12 @@ export function DocumentList({ documents, type, onRefresh }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">
-          Aucun {type === "devis" ? "devis" : "facture"} trouvé
-        </p>
+        <div className="flex flex-col items-center justify-center h-60 gap-3">
+          <FileText className="w-12 h-12 text-muted-foreground/40" />
+          <p className="text-muted-foreground font-sans">
+            Aucun {type === "devis" ? "devis" : "facture"} trouvé
+          </p>
+        </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-hidden">
           <Table>

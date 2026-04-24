@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
-import { Monitor, Smartphone, Tablet, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Loader2, ChevronLeft, ChevronRight, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -87,6 +87,7 @@ export default function Journal() {
     <DashboardLayout>
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         <h1 className="text-2xl font-serif font-bold">Journal d'activité</h1>
+        <p className="text-muted-foreground text-sm font-sans">Historique de toutes les actions effectuées sur votre compte.</p>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-end">
@@ -119,7 +120,10 @@ export default function Journal() {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : logs.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">Aucune activité enregistrée</p>
+          <div className="flex flex-col items-center justify-center h-60 gap-3">
+            <Activity className="w-12 h-12 text-muted-foreground/40" />
+            <p className="text-muted-foreground font-sans">Aucune activité enregistrée</p>
+          </div>
         ) : (
           <div className="rounded-lg border bg-card overflow-hidden overflow-x-auto">
             <Table>

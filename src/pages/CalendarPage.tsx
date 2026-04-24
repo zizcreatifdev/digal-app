@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarDays } from "lucide-react";
 
 interface CalendarClient {
   id: string;
@@ -111,8 +111,9 @@ const CalendarPage = () => {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : clients.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">Aucun client actif. Ajoutez un client pour accéder au calendrier.</p>
+          <div className="flex flex-col items-center justify-center h-60 gap-3">
+            <CalendarDays className="w-12 h-12 text-muted-foreground/40" />
+            <p className="text-muted-foreground font-sans">Aucun client actif. Ajoutez un client pour accéder au calendrier.</p>
           </div>
         ) : selected ? (
           <EditorialCalendar

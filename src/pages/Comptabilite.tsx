@@ -91,7 +91,10 @@ export default function Comptabilite() {
     <DashboardLayout>
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-serif font-bold">Comptabilité</h1>
+          <div>
+            <h1 className="text-2xl font-serif font-bold">Comptabilité</h1>
+            <p className="text-muted-foreground text-sm font-sans">Suivez vos dépenses, salaires et résultats financiers.</p>
+          </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"

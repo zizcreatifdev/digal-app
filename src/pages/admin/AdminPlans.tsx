@@ -634,7 +634,7 @@ const AdminPlans = () => {
 
       {/* ── Modal ajouter durée ────────────────────────── */}
       <Dialog open={!!addConfigType} onOpenChange={(o) => !o && setAddConfigType(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">
               Ajouter une durée — {PLAN_TYPE_LABELS[addConfigType ?? "solo"]}

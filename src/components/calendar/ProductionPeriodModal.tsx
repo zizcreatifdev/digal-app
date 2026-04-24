@@ -110,7 +110,7 @@ export function ProductionPeriodModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{period ? "Modifier la période" : "Nouvelle période de production"}</DialogTitle>
         </DialogHeader>

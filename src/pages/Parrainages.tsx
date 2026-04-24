@@ -355,9 +355,10 @@ export default function Parrainages() {
           </CardHeader>
           <CardContent className="p-0">
             {(referrals ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8 font-sans">
-                Aucun filleul pour l&apos;instant. Partagez votre lien !
-              </p>
+              <div className="flex flex-col items-center justify-center h-40 gap-3">
+                <Users2 className="w-10 h-10 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground font-sans">Aucun filleul pour l&apos;instant. Partagez votre lien !</p>
+              </div>
             ) : (
               <Table>
                 <TableHeader>

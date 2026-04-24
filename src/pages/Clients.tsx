@@ -1,8 +1,9 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Briefcase, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientCard } from "@/components/clients/ClientCard";
@@ -23,6 +24,7 @@ const ClientsPage = () => {
   const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [networkMap, setNetworkMap] = useState<Record<string, string[]>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!user) { setProfileLoaded(true); return; }
@@ -74,6 +76,13 @@ const ClientsPage = () => {
   const { isFreemium } = getAccountAccess(profile);
   const maxClients = isFreemium ? FREEMIUM_CLIENT_LIMIT : Infinity;
 
+  const filteredActive = searchQuery
+    ? activeClients.filter((c) => c.nom.toLowerCase().includes(searchQuery.toLowerCase()))
+    : activeClients;
+  const filteredArchived = searchQuery
+    ? archivedClients.filter((c) => c.nom.toLowerCase().includes(searchQuery.toLowerCase()))
+    : archivedClients;
+
   const handleAddClick = () => {
     const isConfirmedFreemium = profile?.role === "freemium" && !profile?.plan;
     if (isConfirmedFreemium && activeClients.length >= maxClients) {
@@ -101,6 +110,17 @@ const ClientsPage = () => {
           </Button>
         </div>
 
+        {/* Search */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher un client..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
         {/* Tabs */}
         <Tabs defaultValue="actifs">
           <TabsList>
@@ -119,17 +139,23 @@ const ClientsPage = () => {
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
+            ) : filteredActive.length === 0 && searchQuery ? (
+              <div className="flex flex-col items-center justify-center h-60 gap-3">
+                <Search className="w-12 h-12 text-muted-foreground/40" />
+                <p className="text-muted-foreground font-sans">Aucun résultat pour &ldquo;{searchQuery}&rdquo;</p>
+              </div>
             ) : activeClients.length === 0 ? (
-              <div className="text-center py-16">
+              <div className="flex flex-col items-center justify-center h-60 gap-3">
+                <Briefcase className="w-12 h-12 text-muted-foreground/40" />
                 <p className="text-muted-foreground font-sans">Aucun client pour le moment.</p>
-                <Button className="mt-4" onClick={handleAddClick}>
+                <Button onClick={handleAddClick}>
                   <Plus className="h-4 w-4" />
                   Ajouter votre premier client
                 </Button>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {activeClients.map((c) => (
+                {filteredActive.map((c) => (
                   <ClientCard key={c.id} client={c} networks={networkMap[c.id] ?? []} />
                 ))}
               </div>
@@ -141,13 +167,19 @@ const ClientsPage = () => {
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
+            ) : filteredArchived.length === 0 && searchQuery ? (
+              <div className="flex flex-col items-center justify-center h-60 gap-3">
+                <Search className="w-12 h-12 text-muted-foreground/40" />
+                <p className="text-muted-foreground font-sans">Aucun résultat pour &ldquo;{searchQuery}&rdquo;</p>
+              </div>
             ) : archivedClients.length === 0 ? (
-              <div className="text-center py-16">
+              <div className="flex flex-col items-center justify-center h-60 gap-3">
+                <Briefcase className="w-12 h-12 text-muted-foreground/40" />
                 <p className="text-muted-foreground font-sans">Aucun client archivé.</p>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {archivedClients.map((c) => (
+                {filteredArchived.map((c) => (
                   <ClientCard key={c.id} client={c} networks={networkMap[c.id] ?? []} />
                 ))}
               </div>
