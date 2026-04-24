@@ -119,6 +119,7 @@ export type Database = {
         Row: {
           contact_email: string | null
           contact_nom: string | null
+          contact_poste: string | null
           contact_telephone: string | null
           couleur_marque: string | null
           couleur_secondaire: string | null
@@ -135,6 +136,7 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           contact_nom?: string | null
+          contact_poste?: string | null
           contact_telephone?: string | null
           couleur_marque?: string | null
           couleur_secondaire?: string | null
@@ -151,6 +153,7 @@ export type Database = {
         Update: {
           contact_email?: string | null
           contact_nom?: string | null
+          contact_poste?: string | null
           contact_telephone?: string | null
           couleur_marque?: string | null
           couleur_secondaire?: string | null
