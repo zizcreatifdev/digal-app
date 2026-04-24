@@ -6,9 +6,12 @@ import {
   Users, FileText, Link2, Receipt, ArrowUpRight, Plus,
   Lock, Clock, AlertTriangle, UserPlus,
   Loader2, BarChart2, Upload, Settings,
+  TrendingUp, TrendingDown, CheckCircle2, CalendarCheck, Sun, Moon,
+  Instagram, Facebook, Linkedin, Twitter, Music,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
@@ -16,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getAccountAccess } from "@/lib/account-access";
 import { formatFCFA } from "@/lib/facturation";
-import { startOfWeek, endOfWeek, startOfMonth, formatDistanceToNow } from "date-fns";
+import { startOfWeek, endOfWeek, startOfMonth, subWeeks, format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface DashboardStats {
@@ -25,10 +28,18 @@ interface DashboardStats {
   postsThisWeek: number;
   postsPublished: number;
   postsScheduled: number;
+  postsLastWeek: number;
   pendingLinks: number;
   expiredLinks: number;
   unpaidInvoices: number;
   unpaidTotal: number;
+}
+
+interface TodayPost {
+  id: string;
+  reseau: string;
+  date_publication: string;
+  client_nom: string;
 }
 
 interface ActivityItem {
@@ -37,6 +48,7 @@ interface ActivityItem {
   time: string;
   icon: LucideIcon;
   color: string;
+  bg: string;
 }
 
 const ACTIVITY_ICON_MAP: Record<string, LucideIcon> = {
@@ -52,50 +64,110 @@ const ACTIVITY_ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const ACTIVITY_COLOR_MAP: Record<string, string> = {
-  auth: "text-blue-500",
-  post: "text-violet-500",
-  client: "text-success",
-  preview: "text-primary",
-  document: "text-orange-500",
-  kpi: "text-pink-500",
-  fichier: "text-cyan-500",
-  parametre: "text-muted-foreground",
-  autre: "text-muted-foreground",
+  auth: "text-blue-600",
+  post: "text-violet-600",
+  client: "text-emerald-600",
+  preview: "text-orange-600",
+  document: "text-amber-600",
+  kpi: "text-pink-600",
+  fichier: "text-cyan-600",
+  parametre: "text-slate-500",
+  autre: "text-slate-400",
+};
+
+const ACTIVITY_BG_MAP: Record<string, string> = {
+  auth: "bg-blue-100 dark:bg-blue-900/30",
+  post: "bg-violet-100 dark:bg-violet-900/30",
+  client: "bg-emerald-100 dark:bg-emerald-900/30",
+  preview: "bg-orange-100 dark:bg-orange-900/30",
+  document: "bg-amber-100 dark:bg-amber-900/30",
+  kpi: "bg-pink-100 dark:bg-pink-900/30",
+  fichier: "bg-cyan-100 dark:bg-cyan-900/30",
+  parametre: "bg-slate-100 dark:bg-slate-800",
+  autre: "bg-slate-100 dark:bg-slate-800",
+};
+
+const RESEAU_ICONS: Record<string, React.ReactNode> = {
+  instagram: <Instagram className="h-3.5 w-3.5" />,
+  facebook: <Facebook className="h-3.5 w-3.5" />,
+  linkedin: <Linkedin className="h-3.5 w-3.5" />,
+  x: <Twitter className="h-3.5 w-3.5" />,
+  tiktok: <Music className="h-3.5 w-3.5" />,
 };
 
 const LICENSE_EXPIRY_POPUP_KEY = "digal_expiry_popup_dismissed";
 
+function formatActivityLabel(action: string, typeAction: string, detail: string | null, city: string | null): string {
+  if (action === "login_success") return city ? `Connexion depuis ${city}` : "Connexion";
+  if (action === "Déconnexion") return "Déconnexion";
+  if (action === "Inscription via parrainage") return "Inscription via parrainage";
+  if (typeAction === "post") return detail ? `Post créé · ${detail}` : "Post créé";
+  if (typeAction === "client") {
+    if (action === "Client créé") return detail ? `Nouveau client : ${detail}` : "Nouveau client ajouté";
+    if (action === "Client modifié") return detail ? `Client modifié : ${detail}` : "Client modifié";
+    return detail ? `${action} · ${detail}` : action;
+  }
+  if (typeAction === "preview") return detail ? `Lien envoyé à ${detail}` : "Lien de validation généré";
+  if (typeAction === "document") return detail ? `Facture · ${detail}` : action;
+  if (typeAction === "kpi") return "Rapport KPI consulté";
+  return action;
+}
+
+function DeltaBadge({ current, previous, label = "vs sem. dernière" }: { current: number; previous: number; label?: string }) {
+  if (previous === 0 && current === 0) return (
+    <span className="text-xs text-muted-foreground font-sans">Stable {label}</span>
+  );
+  const delta = current - previous;
+  const pct = previous === 0 ? 100 : Math.round((delta / previous) * 100);
+  if (delta === 0) return (
+    <span className="text-xs text-muted-foreground font-sans flex items-center gap-1">
+      Stable {label}
+    </span>
+  );
+  if (delta > 0) return (
+    <span className="text-xs text-emerald-600 font-sans font-medium flex items-center gap-0.5">
+      <TrendingUp className="h-3 w-3" />+{pct}% {label}
+    </span>
+  );
+  return (
+    <span className="text-xs text-destructive font-sans font-medium flex items-center gap-0.5">
+      <TrendingDown className="h-3 w-3" />{pct}% {label}
+    </span>
+  );
+}
+
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [upgradeModal, setUpgradeModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null; licence_expiration?: string | null } | null>(null);
+  const [profile, setProfile] = useState<{
+    role?: string | null; plan?: string | null;
+    licence_expiration?: string | null; prenom?: string | null;
+  } | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [showExpiryPopup, setShowExpiryPopup] = useState(false);
   const [expiryDaysLeft, setExpiryDaysLeft] = useState(0);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [todayPosts, setTodayPosts] = useState<TodayPost[]>([]);
+  const [markingPublished, setMarkingPublished] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
-  // Onboarding + expiry check
   useEffect(() => {
     if (!user) return;
     const check = async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: prof } = await (supabase as any).from("users").select("*").eq("user_id", user.id).maybeSingle();
       setProfile(prof);
-      // Use onboarding_completed column — avoids a second site_settings query and the race condition
       if (!prof?.onboarding_completed) setShowOnboarding(true);
 
-      // Check licence expiry (30-day warning, once per session)
       if (prof?.licence_expiration && prof.role !== "freemium") {
         const expiry = new Date(prof.licence_expiration);
         const now = new Date();
         const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
         if (daysLeft <= 0) {
-          // Licence expired — revert to freemium in DB
           await supabase.from("users").update({ role: "freemium", updated_at: new Date().toISOString() }).eq("user_id", user.id);
           setProfile((prev) => prev ? { ...prev, role: "freemium" } : prev);
         } else {
@@ -106,37 +178,42 @@ const Dashboard = () => {
           }
         }
       }
-
       setCheckingOnboarding(false);
     };
     check();
   }, [user]);
 
-  // Stats fetch
   useEffect(() => {
     if (!user) return;
     const fetchStats = async () => {
       setStatsLoading(true);
       try {
         const now = new Date();
+        const today = format(now, "yyyy-MM-dd");
         const weekStart = startOfWeek(now, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+        const prevWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+        const prevWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
         const monthStart = startOfMonth(now);
 
-        const [clientsRes, postsRes, linksRes, invoicesRes] = await Promise.all([
+        const [clientsRes, postsRes, prevPostsRes, todayPostsRes, linksRes, invoicesRes] = await Promise.all([
           supabase.from("clients").select("id, created_at").eq("user_id", user.id).eq("statut", "actif"),
-          supabase
-            .from("posts")
-            .select("id, statut, date_publication")
+          supabase.from("posts").select("id, statut, date_publication")
             .eq("user_id", user.id)
             .gte("date_publication", weekStart.toISOString().split("T")[0])
             .lte("date_publication", weekEnd.toISOString().split("T")[0]),
-          supabase.from("preview_links").select("id, expires_at").eq("user_id", user.id),
-          supabase
-            .from("documents")
-            .select("id, total")
+          supabase.from("posts").select("id")
             .eq("user_id", user.id)
-            .eq("type", "facture")
+            .gte("date_publication", prevWeekStart.toISOString().split("T")[0])
+            .lte("date_publication", prevWeekEnd.toISOString().split("T")[0]),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from("posts").select("id, reseau, date_publication, clients(nom)")
+            .eq("user_id", user.id)
+            .eq("statut", "programme_valide")
+            .eq("date_publication", today),
+          supabase.from("preview_links").select("id, expires_at").eq("user_id", user.id),
+          supabase.from("documents").select("id, total")
+            .eq("user_id", user.id).eq("type", "facture")
             .in("statut", ["envoye", "en_retard", "partiellement_paye"]),
         ]);
 
@@ -144,7 +221,6 @@ const Dashboard = () => {
         const posts = postsRes.data ?? [];
         const links = linksRes.data ?? [];
         const invoices = invoicesRes.data ?? [];
-
         const published = posts.filter((p) => p.statut === "publie").length;
 
         setStats({
@@ -153,13 +229,26 @@ const Dashboard = () => {
           postsThisWeek: posts.length,
           postsPublished: published,
           postsScheduled: posts.length - published,
+          postsLastWeek: (prevPostsRes.data ?? []).length,
           pendingLinks: links.filter((l) => l.expires_at && new Date(l.expires_at) > now).length,
           expiredLinks: links.filter((l) => l.expires_at && new Date(l.expires_at) <= now).length,
           unpaidInvoices: invoices.length,
           unpaidTotal: invoices.reduce((sum, d) => sum + Number(d.total ?? 0), 0),
         });
+
+        const rawToday = (todayPostsRes.data ?? []) as Array<{
+          id: string; reseau: string; date_publication: string;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          clients: any;
+        }>;
+        setTodayPosts(rawToday.map((p) => ({
+          id: p.id,
+          reseau: p.reseau,
+          date_publication: p.date_publication,
+          client_nom: p.clients?.nom ?? "Client",
+        })));
       } catch {
-        // Silent fail: dashboard stats should never block the UI
+        // Silent
       } finally {
         setStatsLoading(false);
       }
@@ -167,7 +256,6 @@ const Dashboard = () => {
     fetchStats();
   }, [user]);
 
-  // Activity logs fetch
   useEffect(() => {
     if (!user) return;
     const fetchActivity = async () => {
@@ -175,21 +263,27 @@ const Dashboard = () => {
       try {
         const { data } = await supabase
           .from("activity_logs")
-          .select("id, action, type_action, created_at")
+          .select("id, action, type_action, detail, city, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(6);
 
         const items = (data ?? []).map((log) => ({
           id: log.id,
-          action: log.action,
+          action: formatActivityLabel(
+            log.action,
+            log.type_action,
+            (log as { detail?: string | null }).detail ?? null,
+            (log as { city?: string | null }).city ?? null,
+          ),
           time: formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: fr }),
           icon: ACTIVITY_ICON_MAP[log.type_action] ?? Clock,
-          color: ACTIVITY_COLOR_MAP[log.type_action] ?? "text-muted-foreground",
+          color: ACTIVITY_COLOR_MAP[log.type_action] ?? "text-slate-400",
+          bg: ACTIVITY_BG_MAP[log.type_action] ?? "bg-slate-100",
         }));
         setActivity(items);
       } catch {
-        // Silent fail
+        // Silent
       } finally {
         setActivityLoading(false);
       }
@@ -197,65 +291,129 @@ const Dashboard = () => {
     fetchActivity();
   }, [user]);
 
+  const handleMarkPublished = async (postId: string) => {
+    setMarkingPublished(postId);
+    try {
+      await supabase.from("posts").update({ statut: "publie" }).eq("id", postId);
+      setTodayPosts((prev) => prev.filter((p) => p.id !== postId));
+      if (stats) setStats({ ...stats, postsPublished: stats.postsPublished + 1 });
+    } catch {
+      // Silent
+    } finally {
+      setMarkingPublished(null);
+    }
+  };
+
   const { isFreemium } = getAccountAccess(profile);
 
-  if (checkingOnboarding) return null;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bonjour" : "Bonsoir";
+  const prenom = profile?.prenom;
 
-  if (showOnboarding && profile) {
-    return <OnboardingWizard profile={profile} onComplete={() => setShowOnboarding(false)} />;
-  }
+  // Hero card content
+  const heroContent = (() => {
+    if (hour < 12) return {
+      icon: <CalendarCheck className="h-8 w-8 text-white/80" />,
+      title: "Posts à publier aujourd'hui",
+      value: statsLoading ? "…" : String(todayPosts.length),
+      sub: todayPosts.length === 0 ? "Aucune publication prévue" : `${todayPosts.length} post${todayPosts.length > 1 ? "s" : ""} à traiter`,
+      href: "/dashboard/calendrier",
+    };
+    if (hour < 18) return {
+      icon: <Link2 className="h-8 w-8 text-white/80" />,
+      title: "Liens en attente de validation",
+      value: statsLoading ? "…" : String(stats?.pendingLinks ?? 0),
+      sub: (stats?.pendingLinks ?? 0) === 0 ? "Aucun lien en attente" : `${stats?.pendingLinks} lien${(stats?.pendingLinks ?? 0) > 1 ? "s" : ""} client${(stats?.pendingLinks ?? 0) > 1 ? "s" : ""}`,
+      href: "/dashboard/calendrier",
+    };
+    return {
+      icon: <BarChart2 className="h-8 w-8 text-white/80" />,
+      title: "Récap de la journée",
+      value: statsLoading ? "…" : String(stats?.postsPublished ?? 0),
+      sub: `Post${(stats?.postsPublished ?? 0) > 1 ? "s" : ""} publié${(stats?.postsPublished ?? 0) > 1 ? "s" : ""} aujourd'hui`,
+      href: "/dashboard/rapports",
+    };
+  })();
+
+  if (checkingOnboarding) return null;
+  if (showOnboarding && profile) return <OnboardingWizard profile={profile} onComplete={() => setShowOnboarding(false)} />;
 
   return (
     <DashboardLayout pageTitle="Tableau de bord">
-      <div className="animate-fade-in space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="animate-fade-in space-y-6">
+
+        {/* ── Salutation ── */}
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-            <p className="text-muted-foreground font-sans mt-1">
-              Vue d'ensemble de votre activité
+            <h1 className="text-3xl font-semibold tracking-tight font-serif">
+              {greeting}{prenom ? `, ${prenom}` : ""} 👋
+            </h1>
+            <p className="text-muted-foreground font-sans mt-1 text-sm">
+              Voici votre activité du jour
             </p>
           </div>
-          <Button size="lg">
+          <Button size="lg" onClick={() => navigate("/dashboard/clients")}>
             <Plus className="h-4 w-4" />
             Ajouter un client
           </Button>
         </div>
 
-        {/* Stats Grid */}
+        {/* ── Hero card ── */}
+        <div
+          className="rounded-2xl p-6 text-white cursor-pointer select-none"
+          style={{ background: "linear-gradient(135deg, #E8511A 0%, #C4522A 100%)" }}
+          onClick={() => navigate(heroContent.href)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-white/70 text-sm font-sans font-medium uppercase tracking-wider">
+                {hour < 12 ? "Ce matin" : hour < 18 ? "Cet après-midi" : "Ce soir"}
+              </p>
+              <p className="text-4xl font-bold font-serif">{heroContent.value}</p>
+              <p className="text-white/90 font-sans text-sm">{heroContent.title}</p>
+              <p className="text-white/60 font-sans text-xs">{heroContent.sub}</p>
+            </div>
+            <div className="flex flex-col items-end gap-4">
+              {heroContent.icon}
+              <Button
+                size="sm"
+                className="bg-white text-orange-700 hover:bg-white/90 font-semibold shadow-none"
+                onClick={(e) => { e.stopPropagation(); navigate(heroContent.href); }}
+              >
+                Voir →
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── KPI Stats grid ── */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Clients actifs */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">
-                Clients actifs
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Clients actifs</CardTitle>
+              <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <Users className="h-4 w-4 text-emerald-600" />
+              </div>
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
+              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
                 <>
-                  <div className="text-2xl font-bold font-serif">
-                    {stats?.activeClients ?? 0}
-                  </div>
-                  {isFreemium && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Badge variant="warning" className="text-[10px]">
-                        {stats?.activeClients ?? 0}/2
-                      </Badge>
-                      <span className="text-xs text-muted-foreground font-sans">limite Découverte</span>
-                    </div>
-                  )}
-                  {!isFreemium && (stats?.clientsThisMonth ?? 0) > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <ArrowUpRight className="h-3 w-3 text-success" />
-                      <span className="text-xs text-success font-sans font-medium">
-                        +{stats?.clientsThisMonth} ce mois
+                  <div className="text-3xl font-bold font-serif">{stats?.activeClients ?? 0}</div>
+                  <div className="mt-1">
+                    {isFreemium ? (
+                      <div className="flex items-center gap-1">
+                        <Badge variant="warning" className="text-[10px]">{stats?.activeClients ?? 0}/2</Badge>
+                        <span className="text-xs text-muted-foreground font-sans">limite Découverte</span>
+                      </div>
+                    ) : (stats?.clientsThisMonth ?? 0) > 0 ? (
+                      <span className="text-xs text-emerald-600 font-sans font-medium flex items-center gap-0.5">
+                        <ArrowUpRight className="h-3 w-3" />+{stats?.clientsThisMonth} ce mois
                       </span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-sans">Stable ce mois</span>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -264,21 +422,17 @@ const Dashboard = () => {
           {/* Posts cette semaine */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">
-                Posts cette semaine
-              </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Posts cette semaine</CardTitle>
+              <div className="h-8 w-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-violet-600" />
+              </div>
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
+              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
                 <>
-                  <div className="text-2xl font-bold font-serif">{stats?.postsThisWeek ?? 0}</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-xs text-muted-foreground font-sans">
-                      {stats?.postsPublished ?? 0} publiés · {stats?.postsScheduled ?? 0} programmés
-                    </span>
+                  <div className="text-3xl font-bold font-serif">{stats?.postsThisWeek ?? 0}</div>
+                  <div className="mt-1">
+                    <DeltaBadge current={stats?.postsThisWeek ?? 0} previous={stats?.postsLastWeek ?? 0} />
                   </div>
                 </>
               )}
@@ -288,25 +442,24 @@ const Dashboard = () => {
           {/* Liens en attente */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">
-                Liens en attente
-              </CardTitle>
-              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Liens en attente</CardTitle>
+              <div className="h-8 w-8 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                <Link2 className="h-4 w-4 text-orange-600" />
+              </div>
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
+              {statsLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : (
                 <>
-                  <div className="text-2xl font-bold font-serif">{stats?.pendingLinks ?? 0}</div>
-                  {(stats?.expiredLinks ?? 0) > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <AlertTriangle className="h-3 w-3 text-warning" />
-                      <span className="text-xs text-warning font-sans font-medium">
-                        {stats?.expiredLinks ?? 0} en retard
+                  <div className="text-3xl font-bold font-serif">{stats?.pendingLinks ?? 0}</div>
+                  <div className="mt-1">
+                    {(stats?.expiredLinks ?? 0) > 0 ? (
+                      <span className="text-xs text-warning font-sans font-medium flex items-center gap-0.5">
+                        <AlertTriangle className="h-3 w-3" />{stats?.expiredLinks} expirés
                       </span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-sans">Aucun lien expiré</span>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -322,39 +475,95 @@ const Dashboard = () => {
                 Factures impayées
                 {isFreemium && <Lock className="h-3 w-3" />}
               </CardTitle>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
+              <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Receipt className="h-4 w-4 text-amber-600" />
+              </div>
             </CardHeader>
             <CardContent>
               {isFreemium ? (
                 <div className="space-y-1">
-                  <div className="text-2xl font-bold font-serif text-muted-foreground">-</div>
+                  <div className="text-3xl font-bold font-serif text-muted-foreground">-</div>
                   <Badge variant="outline" className="text-[10px]">
-                    <Lock className="h-2.5 w-2.5 mr-1" />
-                    Pro uniquement
+                    <Lock className="h-2.5 w-2.5 mr-1" />Pro uniquement
                   </Badge>
                 </div>
               ) : statsLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold font-serif">{stats?.unpaidInvoices ?? 0}</div>
-                  {(stats?.unpaidTotal ?? 0) > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
+                  <div className="text-3xl font-bold font-serif">{stats?.unpaidInvoices ?? 0}</div>
+                  <div className="mt-1">
+                    {(stats?.unpaidTotal ?? 0) > 0 ? (
                       <span className="text-xs text-destructive font-sans font-medium">
                         {formatFCFA(stats?.unpaidTotal ?? 0)}
                       </span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-sans">Aucun impayé</span>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {/* ── À publier aujourd'hui ── */}
         <Card>
-          <CardHeader>
-            <CardTitle>Activité récente</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarCheck className="h-4 w-4 text-primary" />
+              À publier aujourd'hui
+            </CardTitle>
+            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => navigate("/dashboard/calendrier")}>
+              Voir calendrier →
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : todayPosts.length === 0 ? (
+              <div className="text-center py-6">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground font-sans">Aucune publication prévue aujourd'hui 🎉</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {todayPosts.map((post) => (
+                  <div key={post.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                    <div className="h-7 w-7 rounded-lg bg-background flex items-center justify-center text-muted-foreground border border-border">
+                      {RESEAU_ICONS[post.reseau] ?? <FileText className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium font-sans truncate">{post.client_nom}</p>
+                      <p className="text-xs text-muted-foreground font-sans">
+                        {format(new Date(post.date_publication + "T00:00:00"), "HH:mm", { locale: fr })} · {post.reseau}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs shrink-0"
+                      disabled={markingPublished === post.id}
+                      onClick={() => handleMarkPublished(post.id)}
+                    >
+                      {markingPublished === post.id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <><CheckCircle2 className="h-3 w-3" /> Publié</>
+                      }
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Activité récente ── */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Activité récente</CardTitle>
           </CardHeader>
           <CardContent>
             {activityLoading ? (
@@ -362,21 +571,16 @@ const Dashboard = () => {
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : activity.length === 0 ? (
-              <p className="text-sm text-muted-foreground font-sans text-center py-6">
-                Aucune activité récente.
-              </p>
+              <p className="text-sm text-muted-foreground font-sans text-center py-6">Aucune activité récente.</p>
             ) : (
               <div className="space-y-1">
                 {activity.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 py-3 border-b border-border last:border-0"
-                  >
-                    <item.icon className={`h-4 w-4 shrink-0 ${item.color}`} />
-                    <span className="text-sm font-sans flex-1">{item.action}</span>
-                    <span className="text-xs text-muted-foreground font-sans whitespace-nowrap">
-                      {item.time}
-                    </span>
+                  <div key={item.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${item.bg}`}>
+                      <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+                    </div>
+                    <span className="text-sm font-sans flex-1 leading-snug">{item.action}</span>
+                    <span className="text-xs text-muted-foreground font-sans whitespace-nowrap">{item.time}</span>
                   </div>
                 ))}
               </div>
@@ -385,13 +589,8 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <ProUpgradeModal
-        open={upgradeModal}
-        onOpenChange={setUpgradeModal}
-        featureName="Facturation"
-      />
+      <ProUpgradeModal open={upgradeModal} onOpenChange={setUpgradeModal} featureName="Facturation" />
 
-      {/* Licence expiry warning popup */}
       <Dialog
         open={showExpiryPopup}
         onOpenChange={(v) => {
@@ -408,28 +607,14 @@ const Dashboard = () => {
           </DialogHeader>
           <p className="text-sm font-sans text-muted-foreground">
             {expiryDaysLeft <= 0
-              ? "Votre licence a expiré. Vous êtes repassé en mode Découverte. Activez une clé pour continuer à accéder à toutes les fonctionnalités."
-              : `Il vous reste ${expiryDaysLeft} jour${expiryDaysLeft > 1 ? "s" : ""} avant l'expiration de votre licence. Pensez à la renouveler.`}
+              ? "Votre licence a expiré. Vous êtes repassé en mode Découverte."
+              : `Il vous reste ${expiryDaysLeft} jour${expiryDaysLeft > 1 ? "s" : ""} avant l'expiration de votre licence.`}
           </p>
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1");
-                setShowExpiryPopup(false);
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => { sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1"); setShowExpiryPopup(false); }}>
               Plus tard
             </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1");
-                setShowExpiryPopup(false);
-                window.location.href = "/dashboard/parametres?tab=licence";
-              }}
-            >
+            <Button size="sm" onClick={() => { sessionStorage.setItem(LICENSE_EXPIRY_POPUP_KEY, "1"); setShowExpiryPopup(false); window.location.href = "/dashboard/parametres?tab=licence"; }}>
               Activer une clé
             </Button>
           </DialogFooter>
