@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-24_
-_Prompt courant : audit-mineur — Audit UX/UI mineurs complets_
+_Prompt courant : fix-invitation — Flow invitation membres complet_
 
 ---
 
@@ -225,7 +225,7 @@ _Prompt courant : audit-mineur — Audit UX/UI mineurs complets_
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Profil utilisateur | ✅ Complet | |
-| Invitation équipe | ✅ Complet (prompt-32) | Token activation_tokens + email Resend + activate-account gère rôle + agence_id |
+| Invitation équipe | ✅ Complet (fix-invitation) | Token + email + modal lien + invitations en attente + annulation + suppression membre + typeLabel complet + redirect onboarding |
 | Répartition équipe (nb_cm/nb_createurs) | ✅ Complet (prompt-52) | Card "Répartition équipe" dans TeamTab, quota/progression, save users.nb_cm/nb_createurs |
 | Clé licence | ✅ Complet | |
 | Historique licences | ✅ Complet | |

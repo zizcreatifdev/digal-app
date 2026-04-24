@@ -12,11 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   User, Camera, Palette, FileText, Users as UsersIcon,
-  LayoutTemplate, CreditCard, Bell, Plus, Trash2, Upload, Crown, Loader2,
+  LayoutTemplate, CreditCard, Bell, Plus, Trash2, Upload, Crown, Loader2, Copy, Clock,
 } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
@@ -636,6 +638,15 @@ function BillingSettingsTab() {
 }
 
 /* ──────────────────────── TEAM TAB ──────────────────────── */
+interface PendingInvite {
+  id: string;
+  token: string;
+  email: string;
+  type_compte: string;
+  created_at: string;
+  expires_at: string;
+}
+
 function TeamTab() {
   const { user } = useAuth();
   const [inviteEmail, setInviteEmail] = useState("");
@@ -648,6 +659,10 @@ function TeamTab() {
   const [teamNbCreateurs, setTeamNbCreateurs] = useState(0);
   const [maxMembres, setMaxMembres] = useState<number | null>(null);
   const [savingTeam, setSavingTeam] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<UserRow | null>(null);
+  const [removingMember, setRemovingMember] = useState(false);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [inviteLinkModal, setInviteLinkModal] = useState<{ open: boolean; link: string; email: string }>({ open: false, link: "", email: "" });
 
   useEffect(() => {
     if (!user) return;
@@ -671,6 +686,16 @@ function TeamTab() {
       if (prof?.agence_id) {
         const { data: team } = await supabase.from("users").select("*").eq("agence_id", prof.agence_id).order("created_at");
         setTeamMembers(team ?? []);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: invites } = await (supabase as any)
+          .from("activation_tokens")
+          .select("id, token, email, type_compte, created_at, expires_at")
+          .eq("agence_id", prof.agence_id)
+          .eq("is_used", false)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false });
+        setPendingInvites((invites ?? []) as PendingInvite[]);
       } else {
         // Solo user is the only member
         setTeamMembers(prof ? [prof] : []);
@@ -698,6 +723,29 @@ function TeamTab() {
     else toast.success("Configuration équipe mise à jour");
   };
 
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !profile) return;
+    setRemovingMember(true);
+    const { error } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", memberToRemove.id)
+      .eq("agence_id", profile.agence_id);
+    setRemovingMember(false);
+    setMemberToRemove(null);
+    if (error) { toast.error("Erreur lors de la suppression du membre"); return; }
+    setTeamMembers((prev) => prev.filter((m) => m.id !== memberToRemove.id));
+    toast.success("Membre retiré de l'équipe");
+  };
+
+  const handleCancelInvite = async (inviteId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from("activation_tokens").delete().eq("id", inviteId);
+    if (error) { toast.error("Erreur lors de l'annulation de l'invitation"); return; }
+    setPendingInvites((prev) => prev.filter((i) => i.id !== inviteId));
+    toast.success("Invitation annulée");
+  };
+
   const handleInvite = async () => {
     if (!inviteEmail || !profile) return;
     setInviteLoading(true);
@@ -712,7 +760,7 @@ function TeamTab() {
           type_compte: inviteRole,
           agence_id: profile.agence_id ?? null,
         } as Parameters<ReturnType<typeof supabase.from>["insert"]>[0])
-        .select("token")
+        .select("token, id")
         .single();
 
       if (tokenErr || !tokenData) {
@@ -724,6 +772,17 @@ function TeamTab() {
       const roleLabel = inviteRole === "cm" ? "CM" : "Créateur";
       await sendActivationEmail(inviteEmail, "", inviteRole, activationLink);
       toast.success(`Invitation envoyée à ${inviteEmail} (${roleLabel})`);
+
+      const newInvite: PendingInvite = {
+        id: tokenData.id,
+        token: tokenData.token,
+        email: inviteEmail,
+        type_compte: inviteRole,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+      };
+      setPendingInvites((prev) => [newInvite, ...prev]);
+      setInviteLinkModal({ open: true, link: activationLink, email: inviteEmail });
       setInviteEmail("");
     } catch {
       toast.error("Erreur lors de l'envoi de l'invitation.");
@@ -792,6 +851,57 @@ function TeamTab() {
         </Card>
       )}
 
+      {isAgence && pendingInvites.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" /> Invitations en attente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingInvites.map((invite) => (
+                <div key={invite.id} className="flex items-center justify-between p-3 rounded-lg border gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{invite.email}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                        En attente
+                      </Badge>
+                      <span className="text-xs text-muted-foreground font-sans">
+                        {ROLE_LABELS[invite.type_compte] ?? invite.type_compte}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => {
+                        copyToClipboard(`${window.location.origin}/activate/${invite.token}`)
+                          .then(() => toast.success("Lien copié"))
+                          .catch(() => toast.error("Impossible de copier le lien"));
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1" /> Copier
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                      onClick={() => { void handleCancelInvite(invite.id); }}
+                    >
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="font-serif">Membres de l'équipe</CardTitle>
@@ -841,7 +951,7 @@ function TeamTab() {
                     {isAgence && (
                       <TableCell>
                         {!isDm && !isSelf && (
-                          <Button variant="ghost" size="sm" className="text-destructive h-7 px-2">
+                          <Button variant="ghost" size="sm" className="text-destructive h-7 px-2" onClick={() => setMemberToRemove(m)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
@@ -855,6 +965,60 @@ function TeamTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Fix 4 — Modal lien d'activation après invitation */}
+      <Dialog open={inviteLinkModal.open} onOpenChange={(open) => { if (!open) setInviteLinkModal({ open: false, link: "", email: "" }); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Invitation créée !</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground font-sans">
+              Copiez le lien ci-dessous et envoyez-le à votre membre sur WhatsApp ou par email.
+            </p>
+            <div className="p-3 rounded-lg bg-muted text-xs font-mono break-all select-all">
+              {inviteLinkModal.link}
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                copyToClipboard(inviteLinkModal.link)
+                  .then(() => toast.success("Lien copié"))
+                  .catch(() => toast.error("Impossible de copier le lien"));
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" /> Copier le lien
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInviteLinkModal({ open: false, link: "", email: "" })}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fix 2 — AlertDialog confirmation suppression membre */}
+      <AlertDialog open={!!memberToRemove} onOpenChange={(open) => { if (!open) setMemberToRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirer {memberToRemove?.prenom} de l'équipe ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action révoquera son accès à l'agence.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { void handleRemoveMember(); }}
+              disabled={removingMember}
+            >
+              {removingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : "Retirer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {isAgence && (
         <Card>

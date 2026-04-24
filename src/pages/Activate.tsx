@@ -98,7 +98,11 @@ export default function Activate() {
       }
 
       setPageState("success");
-      setTimeout(() => navigate("/dashboard"), 2500);
+      const destination = getOnboardingDestination(tokenRow.type_compte);
+      if (destination.includes("onboarding=")) {
+        localStorage.setItem("onboarding_role", destination.split("onboarding=")[1]);
+      }
+      setTimeout(() => navigate(destination), 2500);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de l'activation");
       setPageState("form");
@@ -111,6 +115,16 @@ export default function Activate() {
     agence_standard: "Studio",
     agence_pro: "Elite",
     freemium: "Découverte",
+    dm: "Digital Manager",
+    cm: "Community Manager",
+    createur: "Créateur de contenu",
+  };
+
+  const getOnboardingDestination = (type_compte: string): string => {
+    if (type_compte === "cm") return "/dashboard?onboarding=cm";
+    if (type_compte === "createur") return "/dashboard?onboarding=createur";
+    if (type_compte === "dm" || type_compte.startsWith("agence")) return "/dashboard?onboarding=dm";
+    return "/dashboard";
   };
 
   return (
