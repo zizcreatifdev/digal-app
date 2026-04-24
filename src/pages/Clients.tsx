@@ -95,7 +95,7 @@ const ClientsPage = () => {
             <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
             <p className="text-muted-foreground font-sans mt-1">
               {activeClients.length} client{activeClients.length !== 1 ? "s" : ""} actif{activeClients.length !== 1 ? "s" : ""}
-              {isFreemium && ` · ${maxClients} max`}
+              {profile && isFreemium && ` · ${maxClients} max`}
             </p>
           </div>
           <Button onClick={handleAddClick}>

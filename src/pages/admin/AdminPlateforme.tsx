@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CalendarClock, Eye, EyeOff, Users2, MessageCircle } from "lucide-react";
+import { Loader2, CalendarClock, Eye, EyeOff, Users2, MessageCircle, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 
 function toDatetimeLocal(iso: string): string {
@@ -32,6 +32,7 @@ export default function AdminPlateforme() {
   const [referralEnabled, setReferralEnabled] = useState(true);
   const [tierValues, setTierValues] = useState<Record<string, string>>({ "3": "1", "5": "2", "10": "3", "20": "5" });
   const [waTemplate, setWaTemplate] = useState("Bonjour ! Je t'invite à essayer Digal, la plateforme pour les Community Managers et agences au Sénégal. Rejoins-moi ici : [Lien]");
+  const [thanksMsg, setThanksMsg] = useState("Merci pour vos retours !\nVotre Community Manager va prendre en compte vos commentaires.");
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["admin-plateforme-settings"],
@@ -39,7 +40,7 @@ export default function AdminPlateforme() {
       const { data, error } = await supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", ["launch_date", "show_countdown", "referral_enabled", "referral_tiers", "referral_whatsapp_template"]);
+        .in("key", ["launch_date", "show_countdown", "referral_enabled", "referral_tiers", "referral_whatsapp_template", "preview_thanks_message"]);
       if (error) throw error;
       return data ?? [];
     },
@@ -65,6 +66,9 @@ export default function AdminPlateforme() {
 
     const waRow = settings.find((r) => r.key === "referral_whatsapp_template");
     if (waRow?.value) setWaTemplate(waRow.value);
+
+    const thanksRow = settings.find((r) => r.key === "preview_thanks_message");
+    if (thanksRow?.value) setThanksMsg(thanksRow.value);
   }, [settings]);
 
   const mutation = useMutation({
@@ -104,6 +108,20 @@ export default function AdminPlateforme() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-plateforme-settings"] });
       toast.success("Paramètres parrainage enregistrés.");
+    },
+    onError: () => toast.error("Erreur lors de la sauvegarde."),
+  });
+
+  const thanksMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "preview_thanks_message", value: thanksMsg }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-plateforme-settings"] });
+      toast.success("Message de remerciement enregistré.");
     },
     onError: () => toast.error("Erreur lors de la sauvegarde."),
   });
@@ -261,6 +279,34 @@ export default function AdminPlateforme() {
               >
                 {referralMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Enregistrer les paramètres parrainage
+              </Button>
+            </CardContent>
+          </Card>
+          {/* ── Message de remerciement preview ── */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                Message après validation preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground font-sans">
+                Affiché au client une fois qu'il a cliqué sur "Envoyer mes retours au CM".
+              </p>
+              <Textarea
+                rows={4}
+                className="text-sm font-sans resize-none"
+                value={thanksMsg}
+                onChange={(e) => setThanksMsg(e.target.value)}
+              />
+              <Button
+                onClick={() => thanksMutation.mutate()}
+                disabled={thanksMutation.isPending || !thanksMsg.trim()}
+                className="w-full sm:w-auto"
+              >
+                {thanksMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Enregistrer le message
               </Button>
             </CardContent>
           </Card>

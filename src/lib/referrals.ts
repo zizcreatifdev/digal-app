@@ -66,7 +66,7 @@ export async function checkReferralQualification(userAuthId: string, newPlan: st
     const { data: existing } = await db
       .from("referrals")
       .select("id, status")
-      .eq("referred_id", userAuthId)
+      .eq("referee_id", userAuthId)
       .maybeSingle();
 
     if (existing?.status === "qualified" || existing?.status === "rewarded") return;
@@ -82,7 +82,7 @@ export async function checkReferralQualification(userAuthId: string, newPlan: st
     } else {
       await db.from("referrals").insert({
         referrer_id: referrerAuthId,
-        referred_id: userAuthId,
+        referee_id: userAuthId,
         status: "qualified",
         plan_referee: newPlan,
         qualified_at: now,
