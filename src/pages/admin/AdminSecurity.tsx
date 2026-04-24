@@ -91,8 +91,8 @@ export default function AdminSecurity() {
                       <TableCell className="text-sm font-medium">{l.action}</TableCell>
                       <TableCell>
                         {l.success
-                          ? <Badge className="bg-emerald-100 text-emerald-700"><ShieldCheck className="h-3 w-3 mr-1" /> OK</Badge>
-                          : <Badge className="bg-red-100 text-red-700"><ShieldAlert className="h-3 w-3 mr-1" /> Échec</Badge>
+                          ? <Badge className="bg-success/10 text-success"><ShieldCheck className="h-3 w-3 mr-1" /> OK</Badge>
+                          : <Badge className="bg-destructive/10 text-destructive"><ShieldAlert className="h-3 w-3 mr-1" /> Échec</Badge>
                         }
                       </TableCell>
                       <TableCell>

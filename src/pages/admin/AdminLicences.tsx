@@ -238,8 +238,8 @@ export default function AdminLicences() {
                         <TableCell><Badge variant="outline">{u.role}</Badge></TableCell>
                         <TableCell>
                           {expired
-                            ? <Badge className="bg-red-100 text-red-700">Expiré</Badge>
-                            : <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>
+                            ? <Badge className="bg-destructive/10 text-destructive">Expiré</Badge>
+                            : <Badge className="bg-success/10 text-success">Actif</Badge>
                           }
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -290,7 +290,7 @@ export default function AdminLicences() {
                       <TableCell>
                         {k.is_used
                           ? <Badge className="bg-slate-100 text-slate-700">Utilisée</Badge>
-                          : <Badge className="bg-emerald-100 text-emerald-700">Disponible</Badge>
+                          : <Badge className="bg-success/10 text-success">Disponible</Badge>
                         }
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">

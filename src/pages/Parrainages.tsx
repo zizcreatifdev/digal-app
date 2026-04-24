@@ -72,7 +72,6 @@ export default function Parrainages() {
   const queryClient = useQueryClient();
   const [copyPending, setCopyPending] = useState(false);
 
-  console.log("Parrainages rendered", { userId: user?.id });
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["parrainage-profile", user?.id],
@@ -392,7 +391,7 @@ export default function Parrainages() {
                         </TableCell>
                         <TableCell>
                           {isQualified
-                            ? <Badge className="bg-emerald-100 text-emerald-700 text-xs">Qualifié ✅</Badge>
+                            ? <Badge className="bg-success/10 text-success text-xs">Qualifié ✅</Badge>
                             : <Badge variant="outline" className="text-xs text-muted-foreground">En attente</Badge>
                           }
                         </TableCell>

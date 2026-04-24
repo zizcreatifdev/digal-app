@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Document, fetchDocuments } from "@/lib/facturation";
 import { Depense, Salaire, fetchDepenses, fetchSalaires, exportComptabiliteCSV } from "@/lib/comptabilite";
@@ -112,7 +112,9 @@ export default function Comptabilite() {
         </div>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-12">Chargement...</p>
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
         ) : (
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>

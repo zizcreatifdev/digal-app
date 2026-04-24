@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { FileText, Plus, Download, Eye } from "lucide-react";
+import { FileText, Plus, Download, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { KpiReportPreviewModal } from "@/components/kpi/KpiReportPreviewModal";
@@ -129,7 +129,11 @@ const KpiReportsPage = () => {
           </SelectContent>
         </Select>
 
-        {!selectedClient ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : !selectedClient ? (
           <div className="text-center py-16 text-muted-foreground">
             Sélectionnez un client pour voir ses rapports KPI.
           </div>

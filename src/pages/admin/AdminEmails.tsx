@@ -35,8 +35,8 @@ const destinataireOptions = [
 
 const statutColors: Record<string, string> = {
   brouillon: "bg-muted text-muted-foreground",
-  planifie: "bg-amber-100 text-amber-800",
-  envoye: "bg-green-100 text-green-800",
+  planifie: "bg-warning/10 text-warning",
+  envoye: "bg-success/10 text-success",
 };
 
 const AdminEmails = () => {

@@ -203,8 +203,8 @@ export default function AdminComptes() {
       if (updateErr) throw updateErr;
 
       // Referral: qualify filleul + apply any stocked months (fire-and-forget)
-      checkReferralQualification(userProfile.user_id, values.plan).catch(console.error);
-      applyReferralMonths(userProfile.user_id).catch(console.error);
+      checkReferralQualification(userProfile.user_id, values.plan).catch(() => {});
+      applyReferralMonths(userProfile.user_id).catch(() => {});
 
       // 4. Create document facture_licence (statut: payee)
       const now = new Date();
@@ -450,22 +450,22 @@ export default function AdminComptes() {
   }
 
   const getStatusBadge = (u: UserProfile) => {
-    if (u.role === "owner" || u.role === "dm") return <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>;
+    if (u.role === "owner" || u.role === "dm") return <Badge className="bg-success/10 text-success">Actif</Badge>;
     if (!u.licence_expiration) return <Badge variant="outline">Découverte</Badge>;
     const exp = new Date(u.licence_expiration);
-    if (exp < new Date()) return <Badge className="bg-red-100 text-red-700">Expiré</Badge>;
-    return <Badge className="bg-emerald-100 text-emerald-700">Actif</Badge>;
+    if (exp < new Date()) return <Badge className="bg-destructive/10 text-destructive">Expiré</Badge>;
+    return <Badge className="bg-success/10 text-success">Actif</Badge>;
   };
 
   const getRoleBadge = (role: string) => {
     const map: Record<string, { label: string; cls: string }> = {
       owner: { label: "Owner", cls: "bg-primary/10 text-primary border-primary/30" },
       dm: { label: "DM", cls: "bg-primary/10 text-primary border-primary/30" },
-      solo: { label: "Solo", cls: "bg-blue-100 text-blue-700" },
+      solo: { label: "Solo", cls: "bg-info/10 text-info" },
       freemium: { label: "Découverte", cls: "bg-muted text-muted-foreground" },
       agence_standard: { label: "Studio", cls: "bg-purple-100 text-purple-700" },
       agence_pro: { label: "Elite", cls: "bg-purple-100 text-purple-700" },
-      cm: { label: "CM", cls: "bg-gray-100 text-gray-700" },
+      cm: { label: "CM", cls: "bg-muted text-muted-foreground" },
       createur: { label: "Créateur", cls: "bg-sky-100 text-sky-700" },
     };
     const info = map[role] ?? { label: role, cls: "" };
@@ -563,8 +563,8 @@ export default function AdminComptes() {
       if (userErr) throw userErr;
 
       // Referral: qualify filleul + apply any stocked months (fire-and-forget)
-      checkReferralQualification(targetUser.user_id, planSlug).catch(console.error);
-      applyReferralMonths(targetUser.user_id).catch(console.error);
+      checkReferralQualification(targetUser.user_id, planSlug).catch(() => {});
+      applyReferralMonths(targetUser.user_id).catch(() => {});
 
       await logActivity(
         targetUser.user_id,
@@ -620,7 +620,7 @@ export default function AdminComptes() {
       toast.success("Compte suspendu");
     },
     onError: (err) => {
-      console.error("[suspendAccount]", err);
+      if (import.meta.env.DEV) console.error("[suspendAccount]", err);
       toast.error("Erreur lors de la suspension");
     },
   });
@@ -642,7 +642,7 @@ export default function AdminComptes() {
       toast.success("Compte réactivé");
     },
     onError: (err) => {
-      console.error("[reactivateAccount]", err);
+      if (import.meta.env.DEV) console.error("[reactivateAccount]", err);
       toast.error("Erreur lors de la réactivation");
     },
   });
@@ -663,7 +663,7 @@ export default function AdminComptes() {
       toast.success("Suppression annulée — compte réactivé");
     },
     onError: (err) => {
-      console.error("[cancelDeletion]", err);
+      if (import.meta.env.DEV) console.error("[cancelDeletion]", err);
       toast.error("Erreur lors de l'annulation");
     },
   });
@@ -688,7 +688,7 @@ export default function AdminComptes() {
       toast.success("Compte marqué pour suppression");
     },
     onError: (err) => {
-      console.error("[deleteAccount]", err);
+      if (import.meta.env.DEV) console.error("[deleteAccount]", err);
       toast.error("Erreur lors de la suppression");
     },
   });
@@ -766,8 +766,8 @@ export default function AdminComptes() {
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {getStatusBadge(u)}
-                            {isSuspended && <Badge className="bg-orange-100 text-orange-700">Suspendu</Badge>}
-                            {isDeleted && <Badge className="bg-red-100 text-red-700">Suppression planifiée</Badge>}
+                            {isSuspended && <Badge className="bg-warning/10 text-warning">Suspendu</Badge>}
+                            {isDeleted && <Badge className="bg-destructive/10 text-destructive">Suppression planifiée</Badge>}
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">

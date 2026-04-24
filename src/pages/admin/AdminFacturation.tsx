@@ -518,7 +518,7 @@ const AdminFacturation = () => {
                       {format(new Date(p.date_paiement), "dd MMM yyyy", { locale: fr })}
                     </TableCell>
                     <TableCell>
-                      <Badge className={p.statut === "paye" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}>
+                      <Badge className={p.statut === "paye" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>
                         {p.statut === "paye" ? "Payé" : "En attente"}
                       </Badge>
                     </TableCell>

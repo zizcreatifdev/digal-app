@@ -214,12 +214,12 @@ export default function AdminContrats() {
                       </p>
                       <div className="flex gap-2 mt-2">
                         {t.owner_signature_url && (
-                          <Badge className="text-[9px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <Badge className="text-[9px] bg-success/10 text-success border-emerald-200">
                             Signature ✓
                           </Badge>
                         )}
                         {t.owner_cachet_url && (
-                          <Badge className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge className="text-[9px] bg-info/10 text-info border-blue-200">
                             Cachet ✓
                           </Badge>
                         )}
@@ -265,7 +265,7 @@ export default function AdminContrats() {
                           </TableCell>
                           <TableCell>
                             <Badge className={c.type_contrat === "changement"
-                              ? "bg-amber-50 text-amber-700 text-[10px]"
+                              ? "bg-warning/10 text-warning text-[10px]"
                               : "bg-primary/10 text-primary text-[10px]"
                             }>
                               {c.type_contrat === "changement" ? "Changement" : "Souscription"}
@@ -279,7 +279,7 @@ export default function AdminContrats() {
                           </TableCell>
                           <TableCell>
                             <Badge className={c.statut === "signe"
-                              ? "bg-emerald-50 text-emerald-700"
+                              ? "bg-success/10 text-success"
                               : "bg-muted text-muted-foreground"
                             }>
                               {c.statut === "signe" ? "Signé" : "En attente"}
@@ -428,7 +428,7 @@ export default function AdminContrats() {
                       <p className="text-xs text-muted-foreground font-sans">{viewContract.email}</p>
                     </div>
                   </div>
-                  <Badge className={viewContract.statut === "signe" ? "bg-emerald-50 text-emerald-700" : ""}>
+                  <Badge className={viewContract.statut === "signe" ? "bg-success/10 text-success" : ""}>
                     {viewContract.statut === "signe" ? "Signé" : "En attente"}
                   </Badge>
                 </div>

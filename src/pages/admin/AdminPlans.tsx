@@ -271,7 +271,9 @@ const AdminPlans = () => {
           </div>
 
           {isLoading ? (
-            <p className="text-muted-foreground text-center py-12">Chargement...</p>
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {plans?.map((plan) => (

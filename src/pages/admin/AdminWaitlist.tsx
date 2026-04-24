@@ -74,11 +74,11 @@ const TYPE_COMPTE_TO_PLAN_TYPE: Record<string, string> = {
 };
 
 const ELITE_STATUTS = [
-  { value: "nouveau",        label: "Nouveau",        className: "bg-blue-100 text-blue-700" },
-  { value: "contacte",       label: "Contacté",       className: "bg-amber-100 text-amber-700" },
-  { value: "en_negociation", label: "En négociation", className: "bg-orange-100 text-orange-700" },
-  { value: "signe",          label: "Signé",          className: "bg-emerald-100 text-emerald-700" },
-  { value: "refuse",         label: "Refusé",         className: "bg-red-100 text-red-700" },
+  { value: "nouveau",        label: "Nouveau",        className: "bg-info/10 text-info" },
+  { value: "contacte",       label: "Contacté",       className: "bg-warning/10 text-warning" },
+  { value: "en_negociation", label: "En négociation", className: "bg-warning/10 text-warning" },
+  { value: "signe",          label: "Signé",          className: "bg-success/10 text-success" },
+  { value: "refuse",         label: "Refusé",         className: "bg-destructive/10 text-destructive" },
 ];
 
 // Maps waitlist.type_compte → activation_messages.plan_slug
@@ -115,24 +115,24 @@ function eliteStatutBadge(statut: string) {
 
 function waitlistStatutBadge(statut: string | null) {
   switch (statut) {
-    case "approuve": return <Badge className="bg-emerald-100 text-emerald-700 border-0">Approuvé</Badge>;
-    case "refuse":   return <Badge className="bg-red-100 text-red-700 border-0">Refusé</Badge>;
-    default:         return <Badge className="bg-amber-100 text-amber-700 border-0">En attente</Badge>;
+    case "approuve": return <Badge className="bg-success/10 text-success border-0">Approuvé</Badge>;
+    case "refuse":   return <Badge className="bg-destructive/10 text-destructive border-0">Refusé</Badge>;
+    default:         return <Badge className="bg-warning/10 text-warning border-0">En attente</Badge>;
   }
 }
 
 function activationBadge(tokenInfo: TokenInfo | undefined) {
   if (!tokenInfo) return null;
-  if (tokenInfo.is_used) return <Badge className="bg-emerald-100 text-emerald-700 text-[10px] border-0">Compte activé</Badge>;
-  if (new Date(tokenInfo.expires_at) < new Date()) return <Badge className="bg-red-100 text-red-700 text-[10px] border-0">Lien expiré</Badge>;
-  if (tokenInfo.message_copied_at) return <Badge className="bg-emerald-100 text-emerald-700 text-[10px] border-0">Message envoyé</Badge>;
-  return <Badge className="bg-amber-100 text-amber-700 text-[10px] border-0">En attente d'envoi</Badge>;
+  if (tokenInfo.is_used) return <Badge className="bg-success/10 text-success text-[10px] border-0">Compte activé</Badge>;
+  if (new Date(tokenInfo.expires_at) < new Date()) return <Badge className="bg-destructive/10 text-destructive text-[10px] border-0">Lien expiré</Badge>;
+  if (tokenInfo.message_copied_at) return <Badge className="bg-success/10 text-success text-[10px] border-0">Message envoyé</Badge>;
+  return <Badge className="bg-warning/10 text-warning text-[10px] border-0">En attente d'envoi</Badge>;
 }
 
 function accountStatusBadge(statut: string) {
-  if (statut === "suspendu") return <Badge className="bg-orange-100 text-orange-700 text-[10px] border-0">Compte suspendu</Badge>;
-  if (statut === "suppression_planifiee") return <Badge className="bg-red-100 text-red-700 text-[10px] border-0">Suppression en cours</Badge>;
-  return <Badge className="bg-emerald-100 text-emerald-700 text-[10px] border-0">Compte actif</Badge>;
+  if (statut === "suspendu") return <Badge className="bg-warning/10 text-warning text-[10px] border-0">Compte suspendu</Badge>;
+  if (statut === "suppression_planifiee") return <Badge className="bg-destructive/10 text-destructive text-[10px] border-0">Suppression en cours</Badge>;
+  return <Badge className="bg-success/10 text-success text-[10px] border-0">Compte actif</Badge>;
 }
 
 function applyVariables(
@@ -528,7 +528,7 @@ export default function AdminWaitlist() {
             <Star className="h-4 w-4" />
             Demandes Elite
             {eliteStats.nouveaux > 0 && (
-              <Badge className="text-[10px] h-4 px-1.5 bg-blue-100 text-blue-700 border-0">{eliteStats.nouveaux}</Badge>
+              <Badge className="text-[10px] h-4 px-1.5 bg-info/10 text-info border-0">{eliteStats.nouveaux}</Badge>
             )}
           </button>
           <button

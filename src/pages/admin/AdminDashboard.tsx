@@ -81,10 +81,10 @@ const roleToPlanSlug: Record<string, string> = {
 };
 
 const PRIORITY_CONFIG = {
-  urgent: { label: "URGENT", dot: "bg-red-500", badge: "bg-red-100 text-red-700", actionLabel: "Contacter" },
-  attention: { label: "ATTENTION", dot: "bg-orange-500", badge: "bg-orange-100 text-orange-700", actionLabel: "Contacter" },
+  urgent: { label: "URGENT", dot: "bg-red-500", badge: "bg-destructive/10 text-destructive", actionLabel: "Contacter" },
+  attention: { label: "ATTENTION", dot: "bg-orange-500", badge: "bg-warning/10 text-warning", actionLabel: "Contacter" },
   opportunite: { label: "OPPORTUNITÉ", dot: "bg-yellow-500", badge: "bg-yellow-100 text-yellow-700", actionLabel: "Envoyer offre" },
-  info: { label: "INFO", dot: "bg-blue-500", badge: "bg-blue-100 text-blue-700", actionLabel: "Relancer" },
+  info: { label: "INFO", dot: "bg-blue-500", badge: "bg-info/10 text-info", actionLabel: "Relancer" },
 } as const;
 
 /* ─── Data fetchers ──────────────────────────────────────── */

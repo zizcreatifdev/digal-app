@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
-import { Monitor, Smartphone, Tablet } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   ActivityLog,
@@ -97,7 +97,9 @@ export default function Journal() {
         </div>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-12">Chargement...</p>
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
         ) : logs.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">Aucune activité enregistrée</p>
         ) : (

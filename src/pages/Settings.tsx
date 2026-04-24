@@ -709,9 +709,9 @@ function TeamTab() {
   };
 
   const getRoleBadgeStyle = (role: string): string => {
-    if (role === "dm" || role?.startsWith("agence")) return "bg-[#C4522A] text-white border-transparent";
+    if (role === "dm" || role?.startsWith("agence")) return "bg-primary text-primary-foreground border-transparent";
     if (role === "cm") return "bg-muted text-muted-foreground border-transparent";
-    if (role === "createur") return "bg-blue-100 text-blue-800 border-transparent";
+    if (role === "createur") return "bg-info/10 text-info border-transparent";
     return "";
   };
 
@@ -1077,8 +1077,8 @@ function LicenseTab() {
       toast.success(`Licence activée : plan ${PLAN_LABELS[res.type ?? ""] ?? res.type} jusqu'au ${expiresDate}`);
       setKeyInput("");
       if (res.type && res.type !== "freemium") {
-        checkReferralQualification(user.id, res.type).catch(console.error);
-        applyReferralMonths(user.id).catch(console.error);
+        checkReferralQualification(user.id, res.type).catch(() => {});
+        applyReferralMonths(user.id).catch(() => {});
       }
       supabase.from("users").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         setProfile(data);

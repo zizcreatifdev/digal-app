@@ -148,15 +148,15 @@ export default function AdminParrainages() {
   const getUser = (id: string) => usersMap?.[id];
 
   const getStatusBadge = (status: string) => {
-    if (status === "rewarded") return <Badge className="bg-emerald-100 text-emerald-700 text-xs">Récompensé ✅</Badge>;
-    if (status === "qualified") return <Badge className="bg-blue-100 text-blue-700 text-xs">Qualifié</Badge>;
+    if (status === "rewarded") return <Badge className="bg-success/10 text-success text-xs">Récompensé ✅</Badge>;
+    if (status === "qualified") return <Badge className="bg-info/10 text-info text-xs">Qualifié</Badge>;
     return <Badge variant="outline" className="text-xs text-muted-foreground">En attente</Badge>;
   };
 
   const getQuotaStatusBadge = (status: string) => {
-    if (status === "approved") return <Badge className="bg-emerald-100 text-emerald-700 text-xs">Approuvé</Badge>;
-    if (status === "rejected") return <Badge className="bg-red-100 text-red-700 text-xs">Rejeté</Badge>;
-    return <Badge className="bg-amber-100 text-amber-700 text-xs">En attente</Badge>;
+    if (status === "approved") return <Badge className="bg-success/10 text-success text-xs">Approuvé</Badge>;
+    if (status === "rejected") return <Badge className="bg-destructive/10 text-destructive text-xs">Rejeté</Badge>;
+    return <Badge className="bg-warning/10 text-warning text-xs">En attente</Badge>;
   };
 
   return (
