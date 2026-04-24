@@ -56,7 +56,10 @@ export default function AdminSecurity() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Sécurité & Journal</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Sécurité & Journal</h1>
+          <p className="text-muted-foreground text-sm font-sans mt-1">Journal des connexions et événements de sécurité.</p>
+        </div>
 
         <div className="w-64">
           <Label className="text-xs">Rechercher</Label>

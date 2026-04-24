@@ -95,7 +95,10 @@ export default function Facturation() {
     <DashboardLayout>
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-serif font-bold">Facturation</h1>
+          <div>
+            <h1 className="text-2xl font-serif font-bold">Facturation</h1>
+            <p className="text-muted-foreground text-sm font-sans">Gérez vos devis et factures clients.</p>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setCreateType("devis")}>
               <Plus className="h-4 w-4 mr-1" /> Nouveau devis

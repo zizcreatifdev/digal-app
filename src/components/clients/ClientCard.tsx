@@ -18,7 +18,7 @@ export function ClientCard({ client, networks }: ClientCardProps) {
 
   return (
     <GlassCard
-      className="cursor-pointer"
+      className="cursor-pointer animate-fade-in-up"
       onClick={() => navigate(`/dashboard/clients/${client.id}`)}
     >
       <CardContent className="p-5">

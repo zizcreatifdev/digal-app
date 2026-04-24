@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-18_
-_Prompt courant : 56D — Interfaces parrainage complètes_
+_Dernière mise à jour : 2026-04-24_
+_Prompt courant : audit-mineur — Audit UX/UI mineurs complets_
 
 ---
 
@@ -329,7 +329,7 @@ _Prompt courant : 56D — Interfaces parrainage complètes_
 | Métrique | État |
 |----------|------|
 | Erreurs ESLint | ✅ 0 erreur |
-| Warnings ESLint | 13 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
+| Warnings ESLint | 15 warnings (shadcn/ui + exhaustive-deps — non bloquants) |
 | Tests unitaires | ✅ 137/137 passent |
 | Fichiers de tests | 10 fichiers |
 | TypeScript | 0 erreur (strict) |
@@ -428,3 +428,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | 56B | Page /ref/:code — 5 slides (accueil+parrain+avantages+formulaire+succès), inscription avec referred_by, redirect si connecté | 2026-04-18 |
 | 56C | Logique métier parrainage : rewardReferrer, checkReferralQualification, applyReferralMonths, requestQuota, expiry-reminders Part 4 auto-approve, migration SQL | 2026-04-18 |
 | 56D | Interfaces parrainage : Parrainages.tsx, AppSidebar, OnboardingChecklist slide, AdminParrainages (2 tabs), AdminSidebar, AdminPlateforme settings, AdminComptes quota, AdminDashboard 4 KPIs | 2026-04-18 |
+| audit-critique | 6 fixes critiques : Comptabilite try/catch, Journal try/catch, AdminParrainages onError, Settings void handleInvite, AdminEmails comptage, AdminPlateforme tier validation | 2026-04-24 |
+| audit-important-1 | 6 fixes importants : Landing dark mode, Login/Waitlist RHF+Zod, PreviewPage isFreemium, Journal pagination, Crypto key gen, ReferralLanding console.error | 2026-04-24 |
+| audit-important-2 | 6 fixes importants : Empty states avec icônes, Clients search, Responsive modals max-h, Tooltips AdminComptes/AdminLicences, Page title descriptions | 2026-04-24 |
+| audit-mineur | 8 fixes mineurs : Activate schema min(2)/confirmPassword, animate-fade-in-up tailwind+ClientCard+Dashboard, EditorialCalendar tooltips nav, Textarea/Select rounded-lg, Facturation+AdminSecurity descriptions, Register.tsx RHF+Zod+ios-scroll | 2026-04-24 |

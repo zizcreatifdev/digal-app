@@ -13,14 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 
 const activateSchema = z.object({
-  prenom: z.string().min(1, "Prénom obligatoire"),
-  nom: z.string().min(1, "Nom obligatoire"),
+  prenom: z.string().min(2, "Minimum 2 caractères"),
+  nom: z.string().min(2, "Minimum 2 caractères"),
   agence_nom: z.string().optional(),
-  password: z.string().min(8, "8 caractères minimum"),
-  confirm_password: z.string(),
-}).refine(d => d.password === d.confirm_password, {
+  password: z.string().min(8, "Minimum 8 caractères"),
+  confirmPassword: z.string(),
+}).refine(d => d.password === d.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
-  path: ["confirm_password"],
+  path: ["confirmPassword"],
 });
 
 type FormData = z.infer<typeof activateSchema>;
@@ -43,7 +43,7 @@ export default function Activate() {
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(activateSchema),
-    defaultValues: { prenom: "", nom: "", agence_nom: "", password: "", confirm_password: "" },
+    defaultValues: { prenom: "", nom: "", agence_nom: "", password: "", confirmPassword: "" },
   });
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function Activate() {
         if (new Date(data.expires_at) < new Date()) { setPageState("expired"); return; }
         const row = data as TokenRow;
         setTokenRow(row);
-        reset({ prenom: row.prenom, nom: row.nom, agence_nom: "", password: "", confirm_password: "" });
+        reset({ prenom: row.prenom, nom: row.nom, agence_nom: "", password: "", confirmPassword: "" });
         setPageState("form");
       });
   }, [token, reset]);
@@ -213,9 +213,9 @@ export default function Activate() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="confirm_password" className="font-sans text-xs">Confirmer le mot de passe *</Label>
-                  <Input id="confirm_password" type="password" {...register("confirm_password")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} />
-                  {errors.confirm_password && <p className="text-xs text-destructive">{errors.confirm_password.message}</p>}
+                  <Label htmlFor="confirmPassword" className="font-sans text-xs">Confirmer le mot de passe *</Label>
+                  <Input id="confirmPassword" type="password" {...register("confirmPassword")} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} />
+                  {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
                 </div>
 
                 <Button type="submit" className="w-full" disabled={pageState === "activating"}>

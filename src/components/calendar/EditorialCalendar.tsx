@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight, Plus, CalendarDays } from "lucide-react";
 import { Post, fetchPosts, RESEAU_LABELS } from "@/lib/posts";
 import { PostCard } from "@/components/calendar/PostCard";
@@ -129,15 +130,25 @@ export function EditorialCalendar({ clientId, clientName, clientColor, activeNet
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{view === "semaine" ? "Semaine précédente" : "Mois précédent"}</TooltipContent>
+          </Tooltip>
           <h3 className="font-semibold font-serif text-base capitalize min-w-[200px] text-center">
             {title}
           </h3>
-          <Button variant="ghost" size="icon" onClick={() => navigate(1)}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => navigate(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{view === "semaine" ? "Semaine suivante" : "Mois suivant"}</TooltipContent>
+          </Tooltip>
           <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="text-xs font-sans">
             Aujourd'hui
           </Button>
