@@ -117,6 +117,9 @@ export type Database = {
       }
       clients: {
         Row: {
+          assigned_cm: string | null
+          assigned_creator: string | null
+          assigned_dm: string | null
           contact_email: string | null
           contact_nom: string | null
           contact_poste: string | null
@@ -129,11 +132,15 @@ export type Database = {
           id: string
           logo_url: string | null
           nom: string
+          preview_slug: string | null
           statut: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          assigned_cm?: string | null
+          assigned_creator?: string | null
+          assigned_dm?: string | null
           contact_email?: string | null
           contact_nom?: string | null
           contact_poste?: string | null
@@ -146,11 +153,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           nom: string
+          preview_slug?: string | null
           statut?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          assigned_cm?: string | null
+          assigned_creator?: string | null
+          assigned_dm?: string | null
           contact_email?: string | null
           contact_nom?: string | null
           contact_poste?: string | null
@@ -163,6 +174,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           nom?: string
+          preview_slug?: string | null
           statut?: string
           updated_at?: string
           user_id?: string

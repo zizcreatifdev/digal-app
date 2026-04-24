@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Users, FileText, Link2, Receipt, ArrowUpRight, Plus,
-  Lock, Clock, AlertTriangle, UserPlus,
+  Lock, Clock, AlertTriangle, UserPlus, UserCheck,
   Loader2, BarChart2, Upload, Settings,
   TrendingUp, TrendingDown, CheckCircle2, CalendarCheck, Sun, Moon,
   Instagram, Facebook, Linkedin, Twitter, Music, AlertCircle,
@@ -158,6 +158,7 @@ const Dashboard = () => {
   const [markingPublished, setMarkingPublished] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [unassignedCount, setUnassignedCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -186,6 +187,21 @@ const Dashboard = () => {
     };
     check();
   }, [user]);
+
+  // Alert: DM clients without assigned CM
+  useEffect(() => {
+    if (!user || !profile) return;
+    const isDm = profile.role === "dm" || (typeof profile.role === "string" && profile.role.startsWith("agence"));
+    if (!isDm) return;
+    supabase
+      .from("clients")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("id", { count: "exact", head: true } as any)
+      .eq("user_id", user.id)
+      .eq("statut", "actif")
+      .is("assigned_cm", null)
+      .then(({ count }) => setUnassignedCount(count ?? 0));
+  }, [user, profile]);
 
   useEffect(() => {
     if (!user) return;
@@ -422,6 +438,19 @@ const Dashboard = () => {
             Ajouter un client
           </Button>
         </div>
+
+        {/* ── Alerte DM : clients sans CM ── */}
+        {unassignedCount > 0 && (
+          <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+            <p className="text-sm font-sans flex-1">
+              <span className="font-semibold">{unassignedCount} client{unassignedCount > 1 ? "s" : ""}</span> sans Community Manager assigné
+            </p>
+            <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/clients")}>
+              <UserCheck className="h-4 w-4 mr-1.5" /> Assigner maintenant
+            </Button>
+          </div>
+        )}
 
         {/* ── Hero card ── */}
         <div

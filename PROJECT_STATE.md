@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-24_
-_Prompt courant : audit-mineur — Audit UX/UI mineurs complets_
+_Prompt courant : prompt-C — Équipe assignée au client_
 
 ---
 

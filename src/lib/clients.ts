@@ -15,6 +15,9 @@ export interface Client {
   facturation_mode: string;
   statut: string;
   preview_slug: string | null;
+  assigned_dm: string | null;
+  assigned_cm: string | null;
+  assigned_creator: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -5,13 +5,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, CalendarDays } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface CalendarClient {
   id: string;
   nom: string;
   couleur_marque: string | null;
   logo_url: string | null;
+  assigned_cm: string | null;
 }
+
+interface CmInfo { prenom: string; nom: string; avatar_url: string | null; }
 
 const CalendarPage = () => {
   const { user } = useAuth();
@@ -20,6 +24,7 @@ const CalendarPage = () => {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileRole, setProfileRole] = useState<string | null | undefined>(undefined);
+  const [cmInfo, setCmInfo] = useState<CmInfo | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -35,7 +40,7 @@ const CalendarPage = () => {
     if (!user || profileRole === undefined) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase.from("clients") as any)
-      .select("id, nom, couleur_marque, logo_url")
+      .select("id, nom, couleur_marque, logo_url, assigned_cm")
       .eq("statut", "actif")
       .order("nom");
 
@@ -55,6 +60,21 @@ const CalendarPage = () => {
 
   useEffect(() => {
     if (!selectedClient) return;
+    const client = clients.find((c) => c.id === selectedClient);
+    if (client?.assigned_cm) {
+      supabase
+        .from("users")
+        .select("prenom, nom, avatar_url")
+        .eq("user_id", client.assigned_cm)
+        .maybeSingle()
+        .then(({ data }) => setCmInfo(data ?? null));
+    } else {
+      setCmInfo(null);
+    }
+  }, [selectedClient, clients]);
+
+  useEffect(() => {
+    if (!selectedClient) return;
     supabase
       .from("client_networks")
       .select("reseau")
@@ -71,6 +91,19 @@ const CalendarPage = () => {
           <div>
             <h1 className="text-2xl font-bold font-serif">Calendrier éditorial</h1>
             <p className="text-muted-foreground text-sm">Planifiez et gérez vos publications</p>
+            {cmInfo && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <Avatar className="h-5 w-5 shrink-0">
+                  {cmInfo.avatar_url && <AvatarImage src={cmInfo.avatar_url} />}
+                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                    {cmInfo.prenom[0]}{cmInfo.nom[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground font-sans">
+                  CM : {cmInfo.prenom} {cmInfo.nom}
+                </span>
+              </div>
+            )}
           </div>
           {clients.length > 0 && (
             <div className="flex items-center gap-3">

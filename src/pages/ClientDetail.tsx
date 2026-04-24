@@ -6,9 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Link2, BarChart3, Receipt, Archive, Loader2,
   Calendar, FolderOpen, Activity, Pencil, Lock, CheckCircle2,
-  User, Briefcase, Mail, Phone,
+  User, Briefcase, Mail, Phone, Users,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
 import { useRef, useState, useEffect } from "react";
@@ -60,6 +62,15 @@ const ClientDetail = () => {
   const [contactTel, setContactTel] = useState("");
   const [savingContact, setSavingContact] = useState(false);
 
+  // Team state
+  interface TeamMember { user_id: string; prenom: string; nom: string; avatar_url: string | null; role: string; }
+  const [dmInfo, setDmInfo] = useState<TeamMember | null>(null);
+  const [teamCms, setTeamCms] = useState<TeamMember[]>([]);
+  const [teamCreators, setTeamCreators] = useState<TeamMember[]>([]);
+  const [assignedCm, setAssignedCm] = useState<string>("");
+  const [assignedCreator, setAssignedCreator] = useState<string>("");
+  const [savingTeam, setSavingTeam] = useState(false);
+
   // Slug edit — initialized once per client id, not reset on logo/status updates
   const [slugEdit, setSlugEdit] = useState<string | null>(null);
   const prevClientIdRef = useRef<string | undefined>(undefined);
@@ -77,6 +88,34 @@ const ClientDetail = () => {
     setContactPoste(client.contact_poste ?? "");
     setContactEmail(client.contact_email ?? "");
     setContactTel(client.contact_telephone ?? "");
+    setAssignedCm(client.assigned_cm ?? "");
+    setAssignedCreator(client.assigned_creator ?? "");
+  }, [client]);
+
+  // Load team members for Équipe tab
+  useEffect(() => {
+    if (!client) return;
+    (async () => {
+      // Fetch the DM (owner of the client)
+      const { data: dmData } = await supabase
+        .from("users")
+        .select("user_id, prenom, nom, avatar_url, role, agence_id")
+        .eq("user_id", client.user_id)
+        .maybeSingle();
+      if (dmData) setDmInfo({ user_id: dmData.user_id, prenom: dmData.prenom, nom: dmData.nom, avatar_url: dmData.avatar_url, role: dmData.role });
+
+      // Fetch team members via agence_id
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const agenceId = (dmData as any)?.agence_id;
+      if (!agenceId) return;
+      const { data: members } = await supabase
+        .from("users")
+        .select("user_id, prenom, nom, avatar_url, role")
+        .eq("agence_id", agenceId);
+      const list = (members ?? []) as TeamMember[];
+      setTeamCms(list.filter((m) => m.role === "cm"));
+      setTeamCreators(list.filter((m) => m.role === "createur"));
+    })();
   }, [client]);
 
   const handleSaveContacts = async () => {
@@ -98,6 +137,25 @@ const ClientDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["client", client.id] });
       setContactEditing(false);
       toast.success("Contacts enregistrés");
+    }
+  };
+
+  const handleSaveTeam = async () => {
+    if (!client) return;
+    setSavingTeam(true);
+    const { error } = await supabase
+      .from("clients")
+      .update({
+        assigned_cm: assignedCm || null,
+        assigned_creator: assignedCreator || null,
+      })
+      .eq("id", client.id);
+    setSavingTeam(false);
+    if (error) {
+      toast.error("Erreur lors de l'assignation");
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["client", client.id] });
+      toast.success("Équipe assignée");
     }
   };
 
@@ -342,6 +400,9 @@ const ClientDetail = () => {
             <TabsTrigger value="activite" className="font-sans">
               <Activity className="h-3.5 w-3.5 mr-1" /> Activité
             </TabsTrigger>
+            <TabsTrigger value="equipe" className="font-sans">
+              <Users className="h-3.5 w-3.5 mr-1" /> Équipe
+            </TabsTrigger>
             <TabsTrigger value="contacts" className="font-sans">
               <User className="h-3.5 w-3.5 mr-1" /> Contacts
             </TabsTrigger>
@@ -374,6 +435,86 @@ const ClientDetail = () => {
 
           <TabsContent value="activite" className="mt-4">
             <PreviewLinksHistory clientId={client.id} />
+          </TabsContent>
+
+          <TabsContent value="equipe" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-serif">Équipe assignée</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* DM row — automatic */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium font-sans w-36 shrink-0">Digital Manager</span>
+                  {dmInfo ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Avatar className="h-7 w-7 shrink-0">
+                        {dmInfo.avatar_url && <AvatarImage src={dmInfo.avatar_url} />}
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {dmInfo.prenom[0]}{dmInfo.nom[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-sans">{dmInfo.prenom} {dmInfo.nom}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground font-sans flex-1">—</span>
+                  )}
+                </div>
+
+                {/* CM row */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium font-sans w-36 shrink-0">Community Manager</span>
+                  <div className="flex items-center gap-2 flex-1">
+                    {teamCms.length > 0 ? (
+                      <Select value={assignedCm} onValueChange={setAssignedCm}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Sélectionner un CM" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Aucun —</SelectItem>
+                          {teamCms.map((m) => (
+                            <SelectItem key={m.user_id} value={m.user_id}>
+                              {m.prenom} {m.nom}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-sm text-muted-foreground font-sans">Aucun CM dans votre équipe</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Creator row */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium font-sans w-36 shrink-0">Créateur</span>
+                  <div className="flex items-center gap-2 flex-1">
+                    {teamCreators.length > 0 ? (
+                      <Select value={assignedCreator} onValueChange={setAssignedCreator}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Sélectionner un créateur (optionnel)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Aucun —</SelectItem>
+                          {teamCreators.map((m) => (
+                            <SelectItem key={m.user_id} value={m.user_id}>
+                              {m.prenom} {m.nom}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-sm text-muted-foreground font-sans">Aucun créateur dans votre équipe</span>
+                    )}
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveTeam} disabled={savingTeam} size="sm">
+                  {savingTeam && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                  Assigner
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="contacts" className="mt-4">
