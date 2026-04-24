@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -24,6 +24,7 @@ import { RESEAUX } from "@/lib/clients";
 import type { Tables } from "@/integrations/supabase/types";
 import { isPushSupported, isPushSubscribed, subscribeToPush, unsubscribeFromPush, getNotificationPermission } from "@/lib/push-notifications";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
+import { ImageCropModal, LOGO_ACCEPT, LOGO_MAX_BYTES } from "@/components/ui/ImageCropModal";
 import { sendActivationEmail } from "@/lib/emails";
 import { checkReferralQualification, applyReferralMonths } from "@/lib/referrals";
 
@@ -42,6 +43,9 @@ function ProfileTab() {
   const [logoUrl, setLogoUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -76,11 +80,25 @@ function ProfileTab() {
     if (url) { setAvatarUrl(url); toast.success("Photo mise à jour"); }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await uploadFile(file, "logo");
-    if (url) { setLogoUrl(url); toast.success("Logo mis à jour"); }
+    if (file.size > LOGO_MAX_BYTES) { toast.error("Fichier trop lourd (max 5 Mo)"); e.target.value = ""; return; }
+    setPendingLogoFile(file);
+    e.target.value = "";
+  };
+
+  const handleLogoCropConfirm = async (blob: Blob) => {
+    setPendingLogoFile(null);
+    if (!user) return;
+    setUploadingLogo(true);
+    const path = `${user.id}/logo/${Date.now()}.png`;
+    const { error } = await supabase.storage.from("user-uploads").upload(path, blob, { contentType: "image/png", upsert: false });
+    setUploadingLogo(false);
+    if (error) { toast.error("Erreur d'upload du logo"); return; }
+    const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
+    setLogoUrl(publicUrl);
+    toast.success("Logo mis à jour");
   };
 
   const handleSave = async () => {
@@ -143,20 +161,44 @@ function ProfileTab() {
           
           {/* Logo upload */}
           <div>
-            <Label className="flex items-center gap-2"><Upload className="h-4 w-4" /> Logo</Label>
+            <Label className="flex items-center gap-2"><Upload className="h-4 w-4" /> Logo agence</Label>
             <div className="flex items-center gap-3 mt-2">
-              {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-12 w-12 rounded border object-contain bg-background" />
-              ) : (
-                <div className="h-12 w-12 rounded border border-dashed border-input flex items-center justify-center">
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-              <label className="cursor-pointer">
-                <Button variant="outline" size="sm" asChild><span>Choisir un fichier</span></Button>
-                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-              </label>
+              <div className="h-16 w-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted shrink-0">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+                ) : (
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Button
+                  variant="outline" size="sm" type="button"
+                  disabled={uploadingLogo}
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  {uploadingLogo
+                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Envoi…</>
+                    : <><Upload className="h-3.5 w-3.5" /> {logoUrl ? "Changer" : "Choisir"}</>
+                  }
+                </Button>
+                {logoUrl && (
+                  <Button variant="ghost" size="sm" type="button"
+                    className="text-xs text-destructive hover:text-destructive"
+                    onClick={() => setLogoUrl("")}
+                  >
+                    Supprimer
+                  </Button>
+                )}
+                <p className="text-[10px] text-muted-foreground">PNG, JPG, SVG, WEBP — 5 Mo max</p>
+              </div>
             </div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept={LOGO_ACCEPT}
+              className="hidden"
+              onChange={handleLogoFileSelect}
+            />
           </div>
 
           <div>
@@ -166,7 +208,7 @@ function ProfileTab() {
               <span className="text-sm text-muted-foreground font-mono">{brandColor}</span>
             </div>
           </div>
-          <Button onClick={handleSave} disabled={saving || uploading}>
+          <Button onClick={handleSave} disabled={saving || uploading || uploadingLogo}>
             {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </CardContent>
@@ -174,6 +216,12 @@ function ProfileTab() {
 
       <PreviewSettingsCard />
       <PushNotificationsCard />
+
+      <ImageCropModal
+        file={pendingLogoFile}
+        onConfirm={handleLogoCropConfirm}
+        onCancel={() => setPendingLogoFile(null)}
+      />
     </div>
   );
 }

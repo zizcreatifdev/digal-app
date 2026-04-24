@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogoCropModal } from "@/components/ui/logo-crop-modal";
+import { ImageCropModal, LOGO_ACCEPT, LOGO_MAX_BYTES } from "@/components/ui/ImageCropModal";
 import { RESEAUX, PAYMENT_MODES, updateClient, Client, ClientNetwork } from "@/lib/clients";
 import { logClientAction } from "@/lib/activity-logs";
 import { useAuth } from "@/hooks/useAuth";
@@ -106,7 +106,9 @@ export function EditClientModal({ open, onOpenChange, client, networks, onSucces
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setPendingLogoFile(file);
+    if (!file) return;
+    if (file.size > LOGO_MAX_BYTES) { toast.error("Fichier trop lourd (max 5 Mo)"); e.target.value = ""; return; }
+    setPendingLogoFile(file);
     e.target.value = "";
   };
 
@@ -222,13 +224,13 @@ export function EditClientModal({ open, onOpenChange, client, networks, onSucces
                         <X className="h-3 w-3" /> Supprimer
                       </Button>
                     )}
-                    <p className="text-[10px] text-muted-foreground font-sans">PNG, JPG ou SVG</p>
+                    <p className="text-[10px] text-muted-foreground font-sans">PNG, JPG, SVG, WEBP — 5 Mo max</p>
                   </div>
                 </div>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/svg+xml"
+                  accept={LOGO_ACCEPT}
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -411,7 +413,7 @@ export function EditClientModal({ open, onOpenChange, client, networks, onSucces
         </DialogContent>
       </Dialog>
 
-      <LogoCropModal
+      <ImageCropModal
         file={pendingLogoFile}
         onConfirm={handleCropConfirm}
         onCancel={() => setPendingLogoFile(null)}
