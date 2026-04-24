@@ -15,6 +15,7 @@ import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLi
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
 import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
 import { EditClientModal } from "@/components/clients/EditClientModal";
+import { ClientLogoButton } from "@/components/clients/ClientLogoButton";
 import { DropBoxReview } from "@/components/clients/DropBoxReview";
 import { PreviewLinksHistory } from "@/components/clients/PreviewLinksHistory";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
@@ -179,12 +180,11 @@ const ClientDetail = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-1">
-            <div
-              className="h-14 w-14 rounded-xl flex items-center justify-center text-white font-bold font-serif text-xl shrink-0"
-              style={{ backgroundColor: client.couleur_marque }}
-            >
-              {client.nom.charAt(0).toUpperCase()}
-            </div>
+            <ClientLogoButton
+              client={client}
+              size="lg"
+              onLogoChange={(url) => setClient({ ...client, logo_url: url })}
+            />
             {client.couleur_secondaire && (
               <div
                 className="h-6 w-6 rounded-full border-2 border-background -ml-3 mt-8"

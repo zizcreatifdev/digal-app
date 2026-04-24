@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Client, RESEAUX } from "@/lib/clients";
 import { CardContent } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
+import { ClientLogoButton } from "@/components/clients/ClientLogoButton";
 import { useNavigate } from "react-router-dom";
 
 interface ClientCardProps {
@@ -11,6 +13,8 @@ interface ClientCardProps {
 
 export function ClientCard({ client, networks }: ClientCardProps) {
   const navigate = useNavigate();
+  // Local override so the avatar updates immediately after crop without waiting for a parent refetch
+  const [logoUrl, setLogoUrl] = useState(client.logo_url);
 
   return (
     <GlassCard
@@ -19,16 +23,11 @@ export function ClientCard({ client, networks }: ClientCardProps) {
     >
       <CardContent className="p-5">
         <div className="flex items-start gap-3">
-          <div
-            className="h-10 w-10 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
-            style={{ backgroundColor: client.logo_url ? "transparent" : (client.couleur_marque || "hsl(var(--primary))") }}
-          >
-            {client.logo_url ? (
-              <img src={client.logo_url} alt={client.nom} className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-white font-bold font-serif text-sm">{client.nom.charAt(0).toUpperCase()}</span>
-            )}
-          </div>
+          <ClientLogoButton
+            client={{ ...client, logo_url: logoUrl }}
+            size="sm"
+            onLogoChange={setLogoUrl}
+          />
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold font-serif truncate">{client.nom}</h3>
             <div className="flex flex-wrap gap-1 mt-1.5">
