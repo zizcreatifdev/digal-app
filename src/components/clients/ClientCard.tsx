@@ -19,12 +19,15 @@ export function ClientCard({ client, networks }: ClientCardProps) {
     >
       <CardContent className="p-5">
         <div className="flex items-start gap-3">
-          {/* Color dot as logo placeholder */}
           <div
-            className="h-10 w-10 rounded-lg shrink-0 flex items-center justify-center text-white font-bold font-serif text-sm"
-            style={{ backgroundColor: client.couleur_marque || "hsl(var(--primary))" }}
+            className="h-10 w-10 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
+            style={{ backgroundColor: client.logo_url ? "transparent" : (client.couleur_marque || "hsl(var(--primary))") }}
           >
-            {client.nom.charAt(0).toUpperCase()}
+            {client.logo_url ? (
+              <img src={client.logo_url} alt={client.nom} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-white font-bold font-serif text-sm">{client.nom.charAt(0).toUpperCase()}</span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold font-serif truncate">{client.nom}</h3>
