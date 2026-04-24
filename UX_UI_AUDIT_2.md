@@ -1,111 +1,71 @@
-# UX/UI Audit — Partie 2
-_Dashboard CM, Clients, Calendrier, Preview, Facturation_
-_Date : 2026-04-24_
+# Audit UX/UI — Partie 2 : Dashboard CM · Clients · Calendrier · Preview · Facturation
 
 ---
 
-### Dashboard CM (`Dashboard.tsx`)
+### Dashboard CM (`src/pages/Dashboard.tsx`)
+✅ Hero card contextuel (contenu adapté matin/après-midi/soir) avec valeur centrale chiffrée et CTA
+✅ 4 KPI cards GlassCard avec DeltaBadge semaine précédente et spinners Loader2 inline
+✅ Widget "À publier aujourd'hui" — marquage "Publié" actionnable sans quitter le dashboard
 
-✅ `isFreemium` calculé dynamiquement via `getAccountAccess(profile)` — correct
-✅ GlassCard + spotlight, KPI grid `md:grid-cols-2 lg:grid-cols-4`, dark: variants sur les fonds d'icônes
-✅ "À publier aujourd'hui" : empty state avec icône `<CheckCircle2>` — meilleure pratique de l'app
+⚠️ Couleurs hardcodées dans `ACTIVITY_COLOR_MAP` / `ACTIVITY_BG_MAP` (`bg-blue-100`, `bg-violet-100`…) — non sémantiques, pas supportées en dark mode
+⚠️ Hero card `style={{ background: "linear-gradient(135deg, #E8511A…)" }}` — couleurs hardcodées, non thémables
+⚠️ `(supabase as any)` lignes 163 et 211 — contourne le typage généré, supprime la sécurité TS
 
-⚠️ H1 salutation : `font-semibold` au lieu de `font-bold` — incohérent avec toutes les autres pages
-⚠️ Hero card : `style={{ background: "linear-gradient(135deg, #E8511A 0%, #C4522A 100%)" }}` — inline style hardcodé, non thématisable
-⚠️ Couleurs d'activité (`text-emerald-600`, `text-violet-600`…) sans `dark:` — lisibilité dégradée en mode sombre
-
-❌ "Activité récente" empty state : `<p>Aucune activité récente.</p>` sans icône — incohérent avec "À publier"
-❌ KPI icon containers : `rounded-xl` (40×40px) mais les GlassCard sous-jacentes utilisent `rounded-2xl` — mélange de rayons
-
----
-
-### Clients — liste (`Clients.tsx`)
-
-✅ Grid `sm:grid-cols-2 lg:grid-cols-3`, Loader2 centré, limite freemium gérée proprement
-✅ `ClientLogoButton` intégré dans `ClientCard` — logo éditable au survol, overlay Camera
-✅ Onglets Actifs / Archivés avec compteurs clairs
-
-⚠️ H1 "Clients" : `text-3xl font-bold tracking-tight` sans `font-serif` — incohérent avec Dashboard, Facturation, Calendrier
-⚠️ Empty state actifs : texte seul, aucune icône (ex. `<Users>`) ni appel à l'action proéminent
-⚠️ Empty state archivés : idem, texte seul
-
-❌ Aucun tri ni filtre par réseau social sur la liste — pour les agences avec 10+ clients, navigation difficile
-❌ Bouton "Ajouter un client" sans `size="sm"` sur mobile — déborde du layout sur petits écrans
+❌ `fetchStats` silently catch sans feedback UI — si la requête échoue, les KPI restent à 0 sans toast ni message d'erreur
+❌ Emoji `👋` hardcodé dans le JSX (ligne 350) — contrevient à la convention CLAUDE.md ("uniquement si demandé")
 
 ---
 
-### Clients — fiche (`ClientDetail.tsx`)
+### Clients (`src/pages/Clients.tsx`)
+✅ React Query (`useQuery` + invalidation) bien câblé — cache partagé avec ClientDetail
+✅ États vides actionnables : empty state actifs → CTA "Ajouter votre premier client" affiché directement
+✅ Tabs Actifs / Archivés avec badge count mis à jour en temps réel
 
-✅ Header responsive `flex-col sm:flex-row`, actions `flex-wrap gap-2` — solide sur mobile
-✅ `ClientLogoButton size="lg"` — logo éditable au clic depuis la fiche, DB + état local mis à jour
-✅ Tabs complets : Calendrier · Liens · Boîte dépôt · Factures · Rapport KPI
+⚠️ `networkMap` chargé via `useEffect` standalone (Supabase direct) — pas en React Query, pas de cache, refetch à chaque remontage
+⚠️ Aucun filtre / recherche par nom — UX dégradée dès 10+ clients
+⚠️ `h1` ligne 92 : `text-3xl font-bold tracking-tight` sans `font-serif` — incohérence avec toutes les autres pages
 
-⚠️ H1 nom du client : `text-2xl font-bold tracking-tight truncate` sans `font-serif` — incohérent
-⚠️ Barre de progression mensuelle : `bg-emerald-500` hardcodé — devrait utiliser `bg-success`
-⚠️ Barre progress container : `rounded-lg` au lieu de `rounded-full` — incohérent avec l'UI
-
-❌ Tab "Factures" visible pour tous y compris freemium, affiche `"La facturation sera bientôt disponible ici."` — crée une attente non satisfaite
-❌ La couleur secondaire du client s'affiche via `title` tooltip uniquement — aucun label visible
-
----
-
-### Calendrier éditorial (`CalendarPage.tsx`)
-
-✅ H1 `font-serif` présent, délégation propre à `<EditorialCalendar>` — séparation des responsabilités
-✅ Filtrage par client avec `<Select>` shadcn, gestion du rôle CM (clients assignés uniquement)
-✅ Aucun `console.log` ni couleur hardcodée dans le wrapper de page
-
-⚠️ État chargement : `<p className="text-muted-foreground text-sm">Chargement...</p>` sans `<Loader2>` — incohérent
-⚠️ Quand aucun client sélectionné après chargement : retourne `null` sans aucun message d'état vide
-⚠️ `<Select>` client sans `className` de largeur responsive — peut déborder sur petits écrans
-
-❌ Pendant le chargement initial, la page entière retourne avant le layout → flash sans navigation visible
-❌ Si l'utilisateur n'a aucun client, rien ne s'affiche et rien ne l'invite à en créer un
+❌ Onglet "Archivés" n'affiche pas de spinner pendant le chargement (même `loading` que l'onglet actifs, mais le contenu archived s'affiche vide sans indicateur)
+❌ Pas de pagination ni virtualisation — liste plate potentiellement illimitée
 
 ---
 
-### Lien de prévisualisation (`PreviewPage.tsx`)
+### Calendrier éditorial (`src/pages/CalendarPage.tsx`)
+✅ Auto-sélection du premier client au chargement — zéro friction pour démarrer
+✅ Support `assigned_cm` — CM externe voit les clients qui lui sont assignés
+✅ Networks rechargés dynamiquement à chaque changement de client sélectionné
 
-✅ Container `max-w-4xl mx-auto px-4`, onglets réseaux avec `overflow-x-auto` scroll mobile
-✅ Empty state posts vides avec icône `<Inbox>`, états finaux (Merci / Expiré) avec icônes sémantiques
-✅ `font-serif` sur les titres d'état, `font-sans` sur le corps — convention respectée
+⚠️ État chargement : `<p className="text-muted-foreground text-sm">Chargement...</p>` (ligne 84) — devrait être Loader2
+⚠️ Fallback couleur `"#C4522A"` hardcodé ligne 93 — devrait être `var(--primary)` ou token CSS
+⚠️ `(supabase.from("clients") as any)` ligne 29 — contourne le typage généré
 
-⚠️ Grille stats : `grid grid-cols-4` sans breakpoint responsive — 4 colonnes cramped < 380px
-⚠️ Boutons Valider/Refuser : `bg-green-600`/`bg-red-600` hardcodés — contournent entièrement le système de variants
-⚠️ Spinner de chargement : `<div className="border-[3px] border-gray-200 animate-spin">` au lieu de `<Loader2>` — incohérent
-
-❌ `const isFreemium = true` **hardcodé ligne 56** — le watermark "Créé avec Digal" s'affiche toujours, même pour les comptes payants
-❌ Zéro classe `dark:` sur toute la page — `bg-[#FAFAF8]`, `text-gray-*`, `bg-white` partout — page cassée en mode sombre
-
----
-
-### Facturation (`Facturation.tsx`)
-
-✅ `isFreemium` correctement calculé depuis le profil, `<ProUpgradeModal>` bien intégré
-✅ `font-serif` sur le H1, structure onglets Devis / Factures / Récurrent claire
-✅ Limitation freemium avec message d'explication et CTA upgrade visible
-
-⚠️ Double padding : `DashboardLayout` (`p-6`) + wrapper interne `p-6 space-y-6` → `48px` d'indentation au lieu de `24px`
-⚠️ États de chargement (×2) : `"Chargement..."` en texte seul, sans `<Loader2>` — incohérent avec Dashboard et Clients
-⚠️ Onglet "Récurrent" navigable et visible mais contenu 100 % placeholder
-
-❌ Onglet "Récurrent" cliquable pour tous les plans → frustration UX garantie pour les utilisateurs payants
-❌ Aucun empty state iconé pour les listes de devis/factures vides (premier accès ou après suppression)
+❌ Condition `profileRole === undefined` (ligne 27) incorrecte — initial state est `null`, pas `undefined`, le useEffect peut se déclencher avant que le rôle soit chargé
+❌ Aucune gestion d'erreur si la query clients échoue — liste silencieusement vide
 
 ---
 
-## Synthèse Partie 2
+### Page Preview client (`src/pages/PreviewPage.tsx`)
+✅ Timeout 15 s sur toutes les requêtes Supabase + `previewClient` sans auth — robuste en accès public
+✅ Countdown temps réel vers expiration du lien — UX orientée client très utile
+✅ `NetworkMockup` par réseau + `AnimatePresence` — expérience de validation premium
 
-| Page | `font-serif` H1 | Loader2 | Empty state iconé | Dark mode | Problème bloquant |
-|------|:-:|:-:|:-:|:-:|:--|
-| Dashboard CM | ✅ | ✅ | ⚠️ partiel | ⚠️ partiel | — |
-| Clients liste | ❌ | ✅ | ❌ | ✅ | — |
-| Clients fiche | ❌ | ✅ | n/a | ✅ | Tab Factures placeholder |
-| Calendrier | ✅ | ❌ | ❌ | ✅ | Retour `null` silencieux |
-| Preview | ✅ | ❌ | ✅ | ❌ | `isFreemium = true` hardcodé |
-| Facturation | ✅ | ❌ | ❌ | ✅ | Double padding, tab placeholder |
+⚠️ Nombreuses couleurs hardcodées : `bg-[#FAFAF8]`, `from-[#C4522A]`, `bg-green-600`, `bg-amber-50` — page non thémable
+⚠️ `isFreemium = true` (ligne 56) hardcodé — watermark Digal toujours affiché, logique conditionnelle absente
+⚠️ Stats cards lignes 432-435 : `bg-gray-50`, `bg-green-50`, `bg-red-50`, `bg-amber-50` — couleurs hardcodées
 
-**Top 3 bugs prioritaires :**
-1. 🔴 `PreviewPage.tsx` ligne 56 : `const isFreemium = true` — watermark affiché pour TOUS les utilisateurs
-2. 🔴 `PreviewPage.tsx` — zéro `dark:` class — page cassée en mode sombre
-3. 🟠 `Facturation.tsx` + `CalendarPage.tsx` — loading states sans spinner — mauvaise perception de performance
+❌ `handleValidateAll` / `handleRefuseAll` : boucle `for…of` séquentielle (lignes 213-219, 232-237) — N requêtes séquentielles au lieu d'un `Promise.all` — lent avec beaucoup de posts
+❌ Bouton "Envoyer le commentaire" désactivé si commentaire vide mais `handleRefusePost` accepte un commentaire vide — incohérence UX/API
+
+---
+
+### Facturation (`src/pages/Facturation.tsx`)
+✅ Gestion Freemium complète : rendu bloqué proprement avec Lock icon, message clair et CTA licence
+✅ Navigation depuis ClientDetail via `location.state` — pré-remplit le client et ouvre le modal automatiquement
+✅ Tabs devis / factures avec count dynamique en entête
+
+⚠️ Chargement affiché avec `<p>Chargement...</p>` (lignes 121, 129) — devrait être Loader2 (incohérence avec les autres pages)
+⚠️ Onglet "Récurrent" visible avec "Bientôt disponible" — frustrant UX, devrait être masqué ou `disabled`
+⚠️ `profileRole` / `profilePlan` chargés via useState/useEffect — duplique le pattern `getAccountAccess` déjà utilisé ailleurs
+
+❌ `isFreemium = profileRole === "freemium" && !profilePlan` (ligne 42) — logique dupliquée de `getAccountAccess()` — source de désynchronisation
+❌ Aucune gestion d'erreur si `fetchDocuments` échoue — liste silencieusement vide
