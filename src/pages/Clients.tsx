@@ -3,32 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Loader2 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import { fetchClients, Client } from "@/lib/clients";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientCard } from "@/components/clients/ClientCard";
 import { AddClientModal } from "@/components/clients/AddClientModal";
 import { FreemiumLimitModal } from "@/components/FreemiumLimitModal";
 import { useAuth } from "@/hooks/useAuth";
 import { getAccountAccess } from "@/lib/account-access";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchClients } from "@/lib/clients";
 
 const FREEMIUM_CLIENT_LIMIT = 2;
 
 const ClientsPage = () => {
   const { user } = useAuth();
-  const [activeClients, setActiveClients] = useState<Client[]>([]);
-  const [archivedClients, setArchivedClients] = useState<Client[]>([]);
-  const [networkMap, setNetworkMap] = useState<Record<string, string[]>>({});
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [networkMap, setNetworkMap] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      return;
-    }
+    if (!user) { setProfileLoaded(true); return; }
     supabase
       .from("users")
       .select("role, plan")
@@ -36,48 +33,48 @@ const ClientsPage = () => {
       .maybeSingle()
       .then(({ data, error }) => {
         if (!error && data) setProfile(data);
+        setProfileLoaded(true);
       });
   }, [user]);
 
-  const { isFreemium } = getAccountAccess(profile);
-  const maxClients = isFreemium ? FREEMIUM_CLIENT_LIMIT : Infinity;
+  const role = profile?.role ?? null;
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const role = profile?.role;
-      const [active, archived] = await Promise.all([
-        fetchClients("actif", { role }),
-        fetchClients("archive", { role }),
-      ]);
-      setActiveClients(active);
-      setArchivedClients(archived);
+  const { data: activeClients = [], isLoading: activeLoading } = useQuery({
+    queryKey: ["clients", "actif", role],
+    queryFn: () => fetchClients("actif", { role }),
+    enabled: profileLoaded,
+  });
 
-      const allIds = [...active, ...archived].map((c) => c.id);
-      if (allIds.length > 0) {
-        const { data: nets } = await supabase
-          .from("client_networks")
-          .select("client_id, reseau")
-          .in("client_id", allIds);
+  const { data: archivedClients = [], isLoading: archiveLoading } = useQuery({
+    queryKey: ["clients", "archive", role],
+    queryFn: () => fetchClients("archive", { role }),
+    enabled: profileLoaded,
+  });
+
+  const loading = !profileLoaded || activeLoading || archiveLoading;
+
+  // Fetch network map whenever the client lists change
+  useEffect(() => {
+    const allIds = [...activeClients, ...archivedClients].map((c) => c.id);
+    if (allIds.length === 0) { setNetworkMap({}); return; }
+    supabase
+      .from("client_networks")
+      .select("client_id, reseau")
+      .in("client_id", allIds)
+      .then(({ data: nets }) => {
         const map: Record<string, string[]> = {};
         (nets ?? []).forEach((n: { client_id: string; reseau: string }) => {
           if (!map[n.client_id]) map[n.client_id] = [];
           map[n.client_id].push(n.reseau);
         });
         setNetworkMap(map);
-      }
-    } catch {
-      // silently fail, empty state shown
-    } finally {
-      setLoading(false);
-    }
-  }, [profile]);
+      });
+  }, [activeClients, archivedClients]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const { isFreemium } = getAccountAccess(profile);
+  const maxClients = isFreemium ? FREEMIUM_CLIENT_LIMIT : Infinity;
 
   const handleAddClick = () => {
-    // Only apply the freemium limit when the profile row is confirmed (non-null).
-    // If profile is still loading or has no DB row, always open the add modal.
     const isConfirmedFreemium = profile?.role === "freemium" && !profile?.plan;
     if (isConfirmedFreemium && activeClients.length >= maxClients) {
       setLimitModalOpen(true);
@@ -158,7 +155,7 @@ const ClientsPage = () => {
       <AddClientModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        onSuccess={loadData}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["clients"] })}
       />
 
       <FreemiumLimitModal

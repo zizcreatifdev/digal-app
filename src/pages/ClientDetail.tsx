@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { fetchClient, fetchClientNetworks, archiveClient, restoreClient, updateClientSlug, slugifyClientName, Client, ClientNetwork, RESEAUX } from "@/lib/clients";
+import { archiveClient, restoreClient, updateClientSlug, slugifyClientName, RESEAUX } from "@/lib/clients";
+import type { Client } from "@/lib/clients";
 import { EditClientModal } from "@/components/clients/EditClientModal";
 import { ClientLogoButton } from "@/components/clients/ClientLogoButton";
 import { DropBoxReview } from "@/components/clients/DropBoxReview";
@@ -23,6 +24,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { useQueryClient } from "@tanstack/react-query";
+import { useClient, useClientNetworks } from "@/hooks/useClientQueries";
 
 const FREEMIUM_ARCHIVE_LIMIT = 3;
 
@@ -30,32 +33,34 @@ const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [client, setClient] = useState<Client | null>(null);
-  const [networks, setNetworks] = useState<ClientNetwork[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // ── Server state (React Query) ─────────────────────────────────────
+  const { data: client, isLoading: clientLoading, isError: clientError } = useClient(id);
+  const { data: networks = [], isLoading: networksLoading } = useClientNetworks(id);
+  const loading = clientLoading || networksLoading;
+
+  // ── Local UI state ────────────────────────────────────────────────
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [kpiModalOpen, setKpiModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [archiveLimitModalOpen, setArchiveLimitModalOpen] = useState(false);
   const [factureLimitModalOpen, setFactureLimitModalOpen] = useState(false);
-  const [slugEdit, setSlugEdit] = useState<string | null>(null);
   const [savingSlug, setSavingSlug] = useState(false);
   const [profile, setProfile] = useState<{ role: string; plan: string | null } | null>(null);
   const [monthProgress, setMonthProgress] = useState<{ total: number; validated: number } | null>(null);
 
+  // Slug edit — initialized once per client id, not reset on logo/status updates
+  const [slugEdit, setSlugEdit] = useState<string | null>(null);
+  const prevClientIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    Promise.all([fetchClient(id), fetchClientNetworks(id)])
-      .then(([c, n]) => {
-        setClient(c);
-        setNetworks(n);
-        setSlugEdit(c.preview_slug ?? slugifyClientName(c.nom));
-      })
-      .catch(() => toast.error("Client introuvable"))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (client && client.id !== prevClientIdRef.current) {
+      prevClientIdRef.current = client.id;
+      setSlugEdit(client.preview_slug ?? slugifyClientName(client.nom));
+    }
+  }, [client]);
 
+  // Profile fetch (for freemium check)
   useEffect(() => {
     if (!user) return;
     supabase
@@ -68,6 +73,7 @@ const ClientDetail = () => {
       });
   }, [user]);
 
+  // Monthly progress
   useEffect(() => {
     if (!id) return;
     const start = startOfMonth(new Date());
@@ -87,6 +93,11 @@ const ClientDetail = () => {
       });
   }, [id]);
 
+  // Show toast on client fetch error
+  useEffect(() => {
+    if (clientError) toast.error("Client introuvable");
+  }, [clientError]);
+
   const isFreemium = profile?.role === "freemium" && !profile?.plan;
 
   const handleFactureClick = () => {
@@ -102,7 +113,9 @@ const ClientDetail = () => {
     setSavingSlug(true);
     try {
       await updateClientSlug(client.id, slugEdit.trim());
-      setClient({ ...client, preview_slug: slugEdit.trim() || null });
+      queryClient.setQueryData<Client>(["client", id], (old) =>
+        old ? { ...old, preview_slug: slugEdit.trim() || null } : old
+      );
       toast.success("Slug mis à jour");
     } catch {
       toast.error("Erreur lors de la mise à jour du slug");
@@ -116,13 +129,13 @@ const ClientDetail = () => {
     try {
       if (client.statut === "actif") {
         // Freemium: check archived clients limit
-        const { data: profile } = await supabase
+        const { data: profileData } = await supabase
           .from("users")
           .select("role, plan")
           .eq("user_id", user.id)
           .single();
-        const isFreemium = profile?.role === "freemium" && !profile?.plan;
-        if (isFreemium) {
+        const isFreemiumCheck = profileData?.role === "freemium" && !profileData?.plan;
+        if (isFreemiumCheck) {
           const { count } = await supabase
             .from("clients")
             .select("id", { count: "exact", head: true })
@@ -134,11 +147,17 @@ const ClientDetail = () => {
           }
         }
         await archiveClient(client.id);
-        setClient({ ...client, statut: "archive" });
+        queryClient.setQueryData<Client>(["client", id], (old) =>
+          old ? { ...old, statut: "archive" } : old
+        );
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
         toast.success("Client archivé");
       } else {
         await restoreClient(client.id);
-        setClient({ ...client, statut: "actif" });
+        queryClient.setQueryData<Client>(["client", id], (old) =>
+          old ? { ...old, statut: "actif" } : old
+        );
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
         toast.success("Client restauré");
       }
     } catch {
@@ -156,7 +175,7 @@ const ClientDetail = () => {
     );
   }
 
-  if (!client) {
+  if (clientError || !client) {
     return (
       <DashboardLayout pageTitle="Client">
         <div className="text-center py-24">
@@ -183,7 +202,12 @@ const ClientDetail = () => {
             <ClientLogoButton
               client={client}
               size="lg"
-              onLogoChange={(url) => setClient({ ...client, logo_url: url })}
+              onLogoChange={(url) => {
+                // Optimistic update — invalidation already triggered in ClientLogoButton
+                queryClient.setQueryData<Client>(["client", id], (old) =>
+                  old ? { ...old, logo_url: url } : old
+                );
+              }}
             />
             {client.couleur_secondaire && (
               <div
@@ -377,12 +401,7 @@ const ClientDetail = () => {
         onOpenChange={setEditModalOpen}
         client={client}
         networks={networks}
-        onSuccess={() => {
-          if (!id) return;
-          Promise.all([fetchClient(id), fetchClientNetworks(id)])
-            .then(([c, n]) => { setClient(c); setNetworks(n); })
-            .catch(() => toast.error("Erreur lors du rechargement du client"));
-        }}
+        onSuccess={() => {}}
       />
 
       <FreemiumLimitModal

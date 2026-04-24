@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { updateClient, type Client } from "@/lib/clients";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ClientLogoButtonProps {
   client: Client;
@@ -16,6 +17,7 @@ interface ClientLogoButtonProps {
 
 export function ClientLogoButton({ client, size = "sm", onLogoChange, className }: ClientLogoButtonProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -54,7 +56,9 @@ export function ClientLogoButton({ client, size = "sm", onLogoChange, className 
       const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
       await updateClient(client.id, { logo_url: publicUrl });
       onLogoChange(publicUrl);
-      toast.success("Logo mis à jour");
+      queryClient.invalidateQueries({ queryKey: ["client", client.id] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Logo mis à jour partout ✅");
     } catch {
       toast.error("Erreur lors de la mise à jour du logo");
     } finally {

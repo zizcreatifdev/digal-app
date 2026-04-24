@@ -15,6 +15,7 @@ import { logClientAction } from "@/lib/activity-logs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Upload, X } from "lucide-react";
 
 interface EditClientModalProps {
@@ -36,6 +37,7 @@ async function uploadClientLogo(userId: string, blob: Blob): Promise<string> {
 
 export function EditClientModal({ open, onOpenChange, client, networks, onSuccess }: EditClientModalProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState("identite");
@@ -157,6 +159,8 @@ export function EditClientModal({ open, onOpenChange, client, networks, onSucces
 
       toast.success("Client modifié avec succès");
       logClientAction(user.id, "Client modifié", nom);
+      queryClient.invalidateQueries({ queryKey: ["client", client.id] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
