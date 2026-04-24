@@ -115,3 +115,128 @@ Classées par impact visuel / effort d'implémentation :
 
 **Note couleurs :** L'orange inspiration `#FF5300` est plus vif que le `#C4522A` actuel de Digal.
 Conserver `#C4522A` comme brand color, utiliser `#FF5300` uniquement pour hover/états actifs forts.
+
+---
+
+## Section 7 — Glassmorphism (détail)
+
+**Ce qu'on voit :**
+- Utilisé sur : carte flottante "Development 1,302" (img03), hero card centrale (img11/14/15), top bar en dark mode
+- Technique : fond semi-transparent `~rgba(20,10,5,0.82)` + `backdrop-blur` ~8–12px (`blur-sm` à `blur-md`)
+- Bordure glass : `1px solid rgba(255,140,60,0.12)` — orange très désaturé, à peine visible
+- En light mode : pas de vrai glassmorphism — les cards sont opaques blanc/crème
+- En dark mode : la card hero laisse transparaître le fond lumineux orange derrière elle
+- Opacité background : ~80–85 % — le contenu reste lisible, le fond filtre juste
+
+**Adaptation Digal :**
+- Appliquer aux modals en dark mode : `bg-[#1A0E08]/85 backdrop-blur-md border border-white/5`
+- Appliquer à la topbar sticky des pages publiques (PreviewPage) : `bg-white/80 backdrop-blur-xl` (déjà partiellement fait)
+- Ne pas abuser : réserver au dark mode et aux éléments flottants (tooltips, modals, popovers)
+- Fichiers : `src/pages/PreviewPage.tsx`, `src/components/ui/dialog.tsx`, `src/index.css`
+
+---
+
+## Section 8 — Arrondis (border-radius détaillé)
+
+**Relevé précis image par image :**
+- **Cards** : `rounded-2xl` — ~16–20px, visible sur toutes les KPI cards (img05, img11, img12)
+- **Boutons primaires** : `rounded-full` — pill complet, ex. "Upgrade to PRO", "Enregistrer" (img07)
+- **Inputs / dropdowns** : `rounded-lg` (~8–10px) pour les champs texte ; `rounded-full` pour le sélecteur "Monthly" (img04/10)
+- **Modals** : non visibles directement — par cohérence avec les cards : `rounded-2xl` ou `rounded-3xl`
+- **Sidebar items actifs** : `rounded-full` pill pleine largeur (img11/16)
+- **Sidebar items inactifs** : pas de background, pas de radius visible
+- **Heatmap cells** : `rounded-lg` ~8px (img12), carrés avec coins légèrement arrondis
+- **Badges / tags** : `rounded-full` — ex. point coloré légende heatmap, badge notification
+- **Icônes dans cards** : conteneur `rounded-xl` ou `rounded-full` selon la forme
+- **Bottom tab actif (mobile)** : `rounded-xl` ~12px — carré orange avec coins arrondis (img04/10)
+
+**Adaptation Digal :**
+- Audit et standardisation : cards → `rounded-2xl`, boutons → `rounded-full`, inputs → `rounded-lg`
+- Sidebar active pill : passer de `rounded-md` à `rounded-full` dans `DashboardLayout.tsx`
+- Fichiers : `src/components/DashboardLayout.tsx`, `src/components/ui/button.tsx`, `src/components/ui/input.tsx`
+
+---
+
+## Section 9 — Shadows (ombres)
+
+**Ce qu'on voit :**
+- **Light mode** : ombres très douces, presque imperceptibles — équivalent `shadow-sm` (`0 1px 4px rgba(0,0,0,0.06)`)
+- Jamais d'ombre noire pure — toujours teintée chaud : `rgba(80,30,10,0.08)`
+- Les cards ne "flottent" pas — elles reposent sur le fond, ombre rasante uniquement
+- Les boutons CTA orange ont une ombre colorée : `0 4px 12px rgba(196,82,42,0.25)` (glow chaud)
+- **Dark mode** : zéro box-shadow visible — l'élévation est rendue par la différence de couleur de fond
+- Bordure `1px solid rgba(255,255,255,0.06)` remplace l'ombre en dark mode
+- La sidebar n'a pas d'ombre — intégrée dans le layout, pas flottante
+
+**Adaptation Digal :**
+- Remplacer `shadow-md` générique par `shadow-[0_2px_8px_rgba(80,30,10,0.08)]` sur les cards
+- Ajouter glow sur les boutons primaires : `shadow-[0_4px_14px_rgba(196,82,42,0.3)]`
+- En dark mode : supprimer les shadows, ajouter `border border-white/5` sur les cards
+- Fichiers : `src/components/ui/card.tsx`, `src/components/ui/button.tsx`, `src/index.css`
+
+---
+
+## Section 10 — Calendrier détaillé
+
+**Ce qu'on voit (img12 — Weekly Workload) :**
+- Widget card `rounded-2xl`, fond blanc/crème, padding généreux
+- En-tête : icône orange + titre bold + "View all" lien gris + icône refresh
+- Légende horizontale : 4 niveaux avec point coloré + label (`Low / Medium / High / Fully Occupied`)
+- Grille : lignes = identifiants (FEB, FT1, FKG…), colonnes = numéros de jours (18 → 29)
+- Cellules vides (Low) : **texture hachures diagonales** — lignes obliques orange très clair sur fond crème
+- Cellules Medium : orange clair uni `~#EAAA88`
+- Cellules High : orange soutenu `~#C4522A`
+- Cellules Full : orange foncé `~#8B3010`
+- Taille cellule : ~32px × 32px, `rounded-lg` ~8px, gap ~3–4px entre cellules
+- Pas d'état hover visible dans les captures — probablement tooltip on hover
+
+**Mini-calendrier mensuel (img04/10) :**
+- Ligne de jours Mon–Sun, chiffres en texte gris clair
+- Date active : cercle orange plein `rounded-full`, texte blanc
+- Flèches `<` `>` pour naviguer entre mois, titre mois centré bold
+
+**Adaptation Digal :**
+- Calendrier éditorial : ajouter vue heatmap (lignes = réseaux, colonnes = jours du mois)
+- Statut couleurs : `brouillon` = crème haché, `en_attente` = orange clair, `programmé` = orange, `publié` = orange foncé
+- Tooltip on hover : afficher titre du post + statut + réseau
+- Fichiers : `src/pages/Calendrier.tsx`, nouveau composant `src/components/calendar/HeatmapView.tsx`
+
+---
+
+## Section 11 — Responsive mobile
+
+**Ce qu'on voit (img04 light, img09 dark, img10 light clean) :**
+- **Sidebar** : complètement absente sur mobile — remplacée par bottom tab bar 5 onglets
+- **Bottom bar** : icônes outline gris, actif = fond orange `rounded-xl` avec icône blanc
+- **Cards** : empilées en colonne unique, pleine largeur, même `rounded-2xl`
+- **Topbar mobile** : sélecteur période (pill "Monthly" + icône calendrier) à gauche + cloche + avatar à droite
+- **Mini-calendrier** : inline dans le scroll, occupe toute la largeur, compact
+- **Fond** : crème `#FAF7F4` (light) ou `#130400` (dark) — jamais blanc pur ni gris neutre
+- Pas de hamburger menu, pas de drawer latéral — navigation 100 % bottom bar
+
+**Adaptation Digal :**
+- Masquer la sidebar sous `md:` — afficher bottom bar sur `< md`
+- Bottom bar : 5 icônes (Dashboard, Clients, Calendrier, Facturation, Profil)
+- Indicateur actif : `bg-primary rounded-xl p-2` autour de l'icône active
+- Fichiers : `src/components/DashboardLayout.tsx` (breakpoint sidebar), nouveau `src/components/BottomNav.tsx`
+
+---
+
+## Section 12 — Animations et transitions
+
+**Ce qu'on voit et ce qu'on infère :**
+- **Cards à l'entrée** : fade-in + `translateY(10–16px)` → `translateY(0)`, durée ~300–400ms, `ease-out`
+- **Compteurs KPI** : animation count-up de 0 vers la valeur finale (standard pour ce type de dashboard)
+- **Heatmap cells** : apparition en stagger (délai progressif colonne par colonne), ~20ms par cellule
+- **Graphique donut/bar** : fill progressif depuis 0 %, ~600ms
+- **Theme toggle light↔dark** : transition CSS `color-scheme`, toutes les couleurs en `transition-colors 200ms`
+- **Sidebar item hover** : léger fond `bg-primary/8`, transition ~150ms
+- **Boutons hover** : légère élévation `scale(1.02)` + ombre légèrement renforcée, ~150ms
+- **Bottom tab switch** : fond orange glisse / fade d'un onglet à l'autre, ~200ms
+- **Loading** : pas de spinner visible — probablement skeleton screens en forme de cards
+
+**Adaptation Digal (avec Framer Motion déjà présent) :**
+- Cards dashboard : `initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.3, delay: index*0.05 }}`
+- KPI counters : utiliser `useSpring` ou `animate` de Framer pour count-up
+- Heatmap cells : `staggerChildren: 0.015` dans le container
+- Fichiers : `src/pages/Dashboard.tsx`, `src/pages/KpiReportsPage.tsx`, `src/components/calendar/HeatmapView.tsx`
