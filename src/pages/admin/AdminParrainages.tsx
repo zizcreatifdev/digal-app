@@ -106,7 +106,7 @@ export default function AdminParrainages() {
       queryClient.invalidateQueries({ queryKey: ["admin-referrals-list"] });
       toast.success("Filleul marqué comme récompensé");
     },
-    onError: () => toast.error("Erreur lors de la mise à jour"),
+    onError: (err) => { toast.error("Erreur lors de la mise à jour"); if (import.meta.env.DEV) console.error(err); },
     onSettled: () => setMarkingId(null),
   });
 
@@ -129,7 +129,7 @@ export default function AdminParrainages() {
       queryClient.invalidateQueries({ queryKey: ["admin-quota-requests"] });
       toast.success("Demande approuvée");
     },
-    onError: () => toast.error("Erreur lors de l'approbation"),
+    onError: (err) => { toast.error("Erreur lors de l'approbation"); if (import.meta.env.DEV) console.error(err); },
   });
 
   const rejectQuota = useMutation({
@@ -142,7 +142,7 @@ export default function AdminParrainages() {
       queryClient.invalidateQueries({ queryKey: ["admin-quota-requests"] });
       toast.success("Demande rejetée");
     },
-    onError: () => toast.error("Erreur lors du rejet"),
+    onError: (err) => { toast.error("Erreur lors du rejet"); if (import.meta.env.DEV) console.error(err); },
   });
 
   const getUser = (id: string) => usersMap?.[id];

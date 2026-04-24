@@ -44,6 +44,7 @@ const AdminEmails = () => {
   const [emails, setEmails] = useState<MarketingEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [recipientCount, setRecipientCount] = useState<number | null>(null);
   const [form, setForm] = useState({
     objet: "",
     corps: "",
@@ -62,6 +63,11 @@ const AdminEmails = () => {
   };
 
   useEffect(() => { fetchEmails(); }, []);
+
+  useEffect(() => {
+    setRecipientCount(null);
+    computeDestinataires(form.destinataires).then(setRecipientCount);
+  }, [form.destinataires]);
 
   const computeDestinataires = async (target: string): Promise<number> => {
     if (target === "waitlist") {
@@ -271,6 +277,12 @@ const AdminEmails = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {recipientCount !== null && (
+                  <p className="text-xs text-muted-foreground font-sans flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {recipientCount} destinataire{recipientCount !== 1 ? "s" : ""} concerné{recipientCount !== 1 ? "s" : ""}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="font-sans text-sm">Date d'envoi (vide = brouillon)</Label>

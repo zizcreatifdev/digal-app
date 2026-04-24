@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Monitor, Smartphone, Tablet, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import {
   ActivityLog,
@@ -56,6 +57,10 @@ export default function Journal() {
         dateTo: dateTo || undefined,
       });
       setLogs(data);
+    } catch (err) {
+      setLogs([]);
+      toast.error("Impossible de charger le journal");
+      if (import.meta.env.DEV) console.error(err);
     } finally {
       setLoading(false);
     }

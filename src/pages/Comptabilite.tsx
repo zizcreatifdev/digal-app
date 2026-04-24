@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { Document, fetchDocuments } from "@/lib/facturation";
 import { Depense, Salaire, fetchDepenses, fetchSalaires, exportComptabiliteCSV } from "@/lib/comptabilite";
@@ -74,6 +75,9 @@ export default function Comptabilite() {
       setDocumentsPrev(docsPrev);
       setDepensesPrev(depsPrev);
       setSalairesPrev(salsPrev);
+    } catch (err) {
+      toast.error("Erreur lors du chargement");
+      if (import.meta.env.DEV) console.error(err);
     } finally {
       setLoading(false);
     }

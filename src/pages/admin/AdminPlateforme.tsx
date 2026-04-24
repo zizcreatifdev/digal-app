@@ -273,7 +273,19 @@ export default function AdminPlateforme() {
               </div>
 
               <Button
-                onClick={() => referralMutation.mutate()}
+                onClick={() => {
+                  const invalid = TIER_KEYS.some((k) => {
+                    const val = tierValues[k];
+                    if (!val || val === "") return false;
+                    const n = parseInt(val, 10);
+                    return isNaN(n) || n <= 0;
+                  });
+                  if (invalid) {
+                    toast.error("Format invalide. Les valeurs doivent être des entiers positifs.");
+                    return;
+                  }
+                  referralMutation.mutate();
+                }}
                 disabled={referralMutation.isPending}
                 className="w-full sm:w-auto"
               >

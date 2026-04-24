@@ -749,7 +749,7 @@ function TeamTab() {
                 </Select>
               </div>
             </div>
-            <Button onClick={() => { void handleInvite(); }} disabled={inviteLoading}>
+            <Button onClick={() => { handleInvite().catch((err) => { if (import.meta.env.DEV) console.error(err); }); }} disabled={inviteLoading}>
               {inviteLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
               Inviter
             </Button>
