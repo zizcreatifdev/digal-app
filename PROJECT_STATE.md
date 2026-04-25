@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-25_
-_Prompt courant : onboarding-A — DM Agence_
+_Prompt courant : onboarding-B — CM Agence + Créateur_
 
 ---
 
@@ -227,6 +227,8 @@ _Prompt courant : onboarding-A — DM Agence_
 | Profil utilisateur | ✅ Complet | |
 | Invitation équipe | ✅ Complet (fix-invitation) | Token + email + modal lien + invitations en attente + annulation + suppression membre + typeLabel complet + redirect onboarding |
 | Onboarding DM Agence | ✅ Complet (onboarding-A) | OnboardingDM.tsx — 5 étapes (identité/équipe/invites/client/félicitations), déclenché via localStorage+rôle |
+| Onboarding CM Agence | ✅ Complet (onboarding-B) | OnboardingCM.tsx — intro + 3 explications + profil + final, workflow visuel statuts |
+| Onboarding Créateur | ✅ Complet (onboarding-B) | OnboardingCreateur.tsx — intro + 4 explications (missions/upload/dépôt/équipe) + profil + final, redirect /dashboard/createur |
 | Répartition équipe (nb_cm/nb_createurs) | ✅ Complet (prompt-52) | Card "Répartition équipe" dans TeamTab, quota/progression, save users.nb_cm/nb_createurs |
 | Clé licence | ✅ Complet | |
 | Historique licences | ✅ Complet | |

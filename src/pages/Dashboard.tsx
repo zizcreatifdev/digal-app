@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import { OnboardingDM } from "@/components/OnboardingDM";
+import { OnboardingCM } from "@/components/OnboardingCM";
+import { OnboardingCreateur } from "@/components/OnboardingCreateur";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getAccountAccess } from "@/lib/account-access";
@@ -145,6 +147,8 @@ const Dashboard = () => {
   const [upgradeModal, setUpgradeModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showOnboardingDM, setShowOnboardingDM] = useState(false);
+  const [showOnboardingCM, setShowOnboardingCM] = useState(false);
+  const [showOnboardingCreateur, setShowOnboardingCreateur] = useState(false);
   const [profile, setProfile] = useState<{
     role?: string | null; plan?: string | null;
     licence_expiration?: string | null; prenom?: string | null;
@@ -169,10 +173,15 @@ const Dashboard = () => {
       const { data: prof } = await (supabase as any).from("users").select("*").eq("user_id", user.id).maybeSingle();
       setProfile(prof);
       if (!prof?.onboarding_completed) {
-        const isDmRole = prof?.role === "dm" || (typeof prof?.role === "string" && prof.role.startsWith("agence"));
         const onboardingRole = localStorage.getItem("onboarding_role");
+        const role = typeof prof?.role === "string" ? prof.role : "";
+        const isDmRole = role === "dm" || role.startsWith("agence");
         if (isDmRole && onboardingRole === "dm") {
           setShowOnboardingDM(true);
+        } else if (role === "cm" && onboardingRole === "cm") {
+          setShowOnboardingCM(true);
+        } else if (role === "createur" && onboardingRole === "createur") {
+          setShowOnboardingCreateur(true);
         } else {
           setShowOnboarding(true);
         }
@@ -420,6 +429,8 @@ const Dashboard = () => {
 
   if (checkingOnboarding) return null;
   if (showOnboardingDM) return <OnboardingDM onComplete={() => setShowOnboardingDM(false)} />;
+  if (showOnboardingCM) return <OnboardingCM onComplete={() => setShowOnboardingCM(false)} />;
+  if (showOnboardingCreateur) return <OnboardingCreateur onComplete={() => setShowOnboardingCreateur(false)} />;
   if (showOnboarding && profile) return <OnboardingWizard profile={profile} onComplete={() => setShowOnboarding(false)} />;
 
   return (
