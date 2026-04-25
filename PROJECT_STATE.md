@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-25_
-_Prompt courant : fix-diagnostic — Corrections issues diagnostics_
+_Prompt courant : glassmorphism — Liquid glass UI_
 
 ---
 
@@ -442,3 +442,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | diag-1 | Diagnostics phases 1-2-3 : DIAGNOSTIC_1.md, DIAGNOSTIC_2.md, DIAGNOSTIC_3.md | 2026-04-25 |
 | diag-bugs | 8 fixes diagnostics : Register min(8), ReferralLanding logo invalide, ClientDetail "none"→null, GeneratePreviewLink copyToClipboard, Parrainages garde referral_code, OnboardingWizard PLAN_LABELS, Settings ImageCropModal tampon/signature, ProblemSection logo | 2026-04-25 |
 | diag-ameliorations | 9 améliorations : Waitlist logo mobile, Activate/CompteSuspendu dark mode, PreviewPage ios-scroll-container, LandingHeader dark mode, Dashboard fetchStats dédupliqué (useCallback), KpiReportsPage activeNetworks + icônes empty states | 2026-04-25 |
+| glassmorphism | Liquid glass UI : Hero card (sheen + highlight + ring + shadow + bouton glass), GlassCard light mode (backdrop-blur-16 + inset sheen), Dialog + AlertDialog (overlay backdrop-blur-sm + contenu bg/85 backdrop-blur-xl) | 2026-04-25 |
