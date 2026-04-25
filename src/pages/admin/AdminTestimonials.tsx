@@ -57,13 +57,13 @@ const EMPTY_FORM: FormState = {
 
 /* ── Upload photo ───────────────────────────────────────── */
 async function uploadPhoto(blob: Blob, id: string): Promise<string> {
-  const path = `${id}.png`;
+  const path = `photos/${id}-${Date.now()}.png`;
   const { error } = await supabase.storage
     .from("testimonials")
-    .upload(path, blob, { upsert: true, contentType: "image/png" });
+    .upload(path, blob, { contentType: "image/png" });
   if (error) throw error;
   const { data } = supabase.storage.from("testimonials").getPublicUrl(path);
-  return `${data.publicUrl}?t=${Date.now()}`;
+  return data.publicUrl;
 }
 
 /* ── Page ───────────────────────────────────────────────── */
