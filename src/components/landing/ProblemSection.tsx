@@ -73,8 +73,11 @@ export function ProblemSection() {
                 Avec Digal
               </p>
               <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold font-serif text-foreground">Digal</span>
-                <span className="w-2 h-2 rounded-full bg-primary" />
+                <img
+                  src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
+                  alt="Digal"
+                  className="h-8 w-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
+                />
               </div>
               <p className="text-center text-xs text-muted-foreground font-sans mt-2">
                 Tout en un seul outil
