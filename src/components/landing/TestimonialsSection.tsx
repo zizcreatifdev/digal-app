@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
+/* ── Types ─────────────────────────────────────────────── */
 interface Testimonial {
   id: string;
   texte: string;
@@ -21,6 +22,9 @@ interface Stat {
   libelle: string;
 }
 
+type Position = "front" | "middle" | "back";
+
+/* ── Defaults ───────────────────────────────────────────── */
 const DEFAULT_SECTION: SectionConfig = {
   badge: "Témoignages",
   titre: "Ils font confiance à Digal",
@@ -58,35 +62,18 @@ const STATIC_FALLBACK: Testimonial[] = [
   },
 ];
 
-/* ── Fan card (portrait, photo en haut) ─────────────────── */
-function FanCard({
+/* ── Carte individuelle ─────────────────────────────────── */
+function TestimonialCard({
   testimonial,
-  fanIndex,   // 0 = devant, 1 = milieu, 2 = derrière
-  total,
-  onSwipedAway,
+  position,
+  handleShuffle,
 }: {
   testimonial: Testimonial;
-  fanIndex: number;
-  total: number;
-  onSwipedAway: () => void;
+  position: Position;
+  handleShuffle: () => void;
 }) {
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-250, 250], [-22, 22]);
-  const cardOpacity = useTransform(x, [-200, -80, 0, 80, 200], [0, 1, 1, 1, 0]);
-
-  // Positions statiques pour l'éventail
-  const fanRotations = [0, -10, 8];
-  const fanScales   = [1, 0.92, 0.84];
-  const fanYOffset  = [0, 14, 28];
-  const fanOpacity  = [1, 0.75, 0.5];
-  const fanBlur     = [0, 3, 6];
-
-  const isFront = fanIndex === 0;
-
-  const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
-    const swipe = Math.abs(info.offset.x) > 90 || Math.abs(info.velocity.x) > 400;
-    if (swipe) onSwipedAway();
-  };
+  const dragStartX = useRef(0);
+  const isFront = position === "front";
 
   const initials = testimonial.nom
     .split(" ")
@@ -97,100 +84,69 @@ function FanCard({
 
   return (
     <motion.div
-      key={testimonial.id}
-      className="absolute"
       style={{
-        width: 280,
-        height: 380,
-        left: "50%",
-        top: "50%",
-        marginLeft: -140,
-        marginTop: -190,
-        zIndex: total - fanIndex,
-        rotate: fanRotations[fanIndex] ?? 0,
-        scale: fanScales[fanIndex] ?? 1,
-        y: fanYOffset[fanIndex] ?? 0,
-        opacity: fanOpacity[fanIndex] ?? 1,
-        filter: fanBlur[fanIndex] ? `blur(${fanBlur[fanIndex]}px)` : undefined,
-        ...(isFront ? { x, rotate, opacity: cardOpacity } : {}),
+        zIndex: position === "front" ? 2 : position === "middle" ? 1 : 0,
+      }}
+      animate={{
+        rotate:
+          position === "front" ? "-6deg" : position === "middle" ? "0deg" : "6deg",
+        x:
+          position === "front" ? "0%" : position === "middle" ? "33%" : "66%",
       }}
       drag={isFront ? "x" : false}
-      dragElastic={0.15}
-      dragConstraints={{ left: 0, right: 0 }}
-      onDragEnd={handleDragEnd}
-      whileDrag={{ scale: 1.04 }}
-      style={
-        isFront
-          ? { x, rotate, opacity: cardOpacity, width: 280, height: 380, left: "50%", top: "50%", marginLeft: -140, marginTop: -190, position: "absolute", zIndex: total }
-          : { width: 280, height: 380, left: "50%", top: "50%", marginLeft: -140, marginTop: -190, position: "absolute", zIndex: total - fanIndex, rotate: fanRotations[fanIndex] ?? 0, scale: fanScales[fanIndex] ?? 1, y: fanYOffset[fanIndex] ?? 0, opacity: fanOpacity[fanIndex] ?? 1, filter: fanBlur[fanIndex] ? `blur(${fanBlur[fanIndex]}px)` : undefined }
-      }
+      dragElastic={0.35}
+      dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+      onDragStart={(e) => {
+        dragStartX.current = (e as PointerEvent).clientX;
+      }}
+      onDragEnd={(e) => {
+        if (dragStartX.current - (e as PointerEvent).clientX > 150) {
+          handleShuffle();
+        }
+        dragStartX.current = 0;
+      }}
+      transition={{ duration: 0.35 }}
+      className={`absolute left-0 top-0 h-[450px] w-[350px] select-none glass-card p-6 flex flex-col items-center gap-5 ${
+        isFront ? "cursor-grab active:cursor-grabbing" : ""
+      }`}
     >
-      {/* Glass card */}
-      <div
-        className="w-full h-full rounded-3xl flex flex-col items-center p-6 select-none"
-        style={{
-          background: "rgba(255,255,255,0.07)",
-          backdropFilter: "blur(20px) saturate(150%)",
-          WebkitBackdropFilter: "blur(20px) saturate(150%)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-          cursor: isFront ? "grab" : "default",
-        }}
-      >
-        {/* Photo en haut */}
-        <div className="mt-2 mb-5">
-          {testimonial.photo_url ? (
-            <img
-              src={testimonial.photo_url}
-              alt={testimonial.nom}
-              className="h-20 w-20 rounded-full object-cover"
-              style={{ border: "3px solid rgba(232,81,26,0.6)", boxShadow: "0 0 0 3px rgba(232,81,26,0.15)" }}
-            />
-          ) : (
-            <div
-              className="h-20 w-20 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(232,81,26,0.20)", border: "3px solid rgba(232,81,26,0.50)" }}
-            >
-              <span className="text-xl font-bold font-sans" style={{ color: "rgba(232,81,26,0.9)" }}>
-                {initials}
-              </span>
-            </div>
-          )}
+      {/* Photo en haut */}
+      {testimonial.photo_url ? (
+        <img
+          src={testimonial.photo_url}
+          alt={testimonial.nom}
+          className="pointer-events-none h-28 w-28 rounded-full object-cover ring-4 ring-primary/20 mt-2"
+        />
+      ) : (
+        <div className="pointer-events-none mt-2 h-28 w-28 rounded-full bg-primary/10 ring-4 ring-primary/20 flex items-center justify-center">
+          <span className="text-3xl font-bold text-primary font-sans">{initials}</span>
         </div>
+      )}
 
-        {/* Quote */}
-        <p
-          className="font-sans text-sm leading-relaxed text-center italic flex-1"
-          style={{ color: "rgba(255,255,255,0.82)" }}
-        >
-          &ldquo;{testimonial.texte}&rdquo;
-        </p>
+      {/* Citation */}
+      <p className="pointer-events-none text-center text-muted-foreground font-sans text-sm leading-relaxed italic flex-1">
+        &ldquo;{testimonial.texte}&rdquo;
+      </p>
 
-        {/* Nom / Fonction */}
-        <div className="mt-4 text-center">
-          <p className="font-semibold font-sans text-sm" style={{ color: "rgba(255,255,255,0.95)" }}>
-            {testimonial.nom}
-          </p>
-          {testimonial.fonction && (
-            <p className="font-sans text-xs mt-0.5" style={{ color: "rgba(232,81,26,0.80)" }}>
-              {testimonial.fonction}
-            </p>
-          )}
-        </div>
+      {/* Auteur */}
+      <div className="pointer-events-none text-center">
+        <p className="font-semibold font-sans text-foreground">{testimonial.nom}</p>
+        {testimonial.fonction && (
+          <p className="text-primary font-sans text-sm mt-0.5">{testimonial.fonction}</p>
+        )}
       </div>
     </motion.div>
   );
 }
 
-/* ── Section principale ──────────────────────────────────── */
+/* ── Section ────────────────────────────────────────────── */
 export function TestimonialsSection() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(STATIC_FALLBACK);
   const [section, setSection] = useState<SectionConfig>(DEFAULT_SECTION);
   const [stats, setStats] = useState<Stat[]>(DEFAULT_STATS);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [positions, setPositions] = useState<Position[]>(["front", "middle", "back"]);
 
   useEffect(() => {
-    // Témoignages
     supabase
       .from("testimonials")
       .select("id, texte, nom, fonction, photo_url")
@@ -200,7 +156,6 @@ export function TestimonialsSection() {
         if (data && data.length > 0) setTestimonials(data as Testimonial[]);
       });
 
-    // Config section
     supabase
       .from("testimonials_config")
       .select("id, data")
@@ -213,74 +168,58 @@ export function TestimonialsSection() {
       });
   }, []);
 
-  const handleSwipe = () => {
-    setCurrentIndex((i) => (i + 1) % testimonials.length);
+  const handleShuffle = () => {
+    setPositions((prev) => {
+      const next = [...prev] as Position[];
+      next.unshift(next.pop()!);
+      return next;
+    });
   };
 
-  // Les 3 cartes visibles dans l'éventail (0=devant, 1=milieu, 2=derrière)
-  const fanCards = [0, 1, 2].map((offset) => ({
-    testimonial: testimonials[(currentIndex + offset) % testimonials.length],
-    fanIndex: offset,
-  }));
+  const displayed = testimonials.slice(0, 3);
 
   return (
-    <section
-      className="py-28 px-4 overflow-hidden"
-      style={{ background: "linear-gradient(160deg, #0B0F1C 0%, #141824 60%, #0E1118 100%)" }}
-    >
-      <div className="max-w-5xl mx-auto">
+    <section className="py-24 px-4 bg-background overflow-hidden">
+      <div className="max-w-6xl mx-auto">
+
         {/* En-tête */}
         <div className="text-center mb-20">
-          <span
-            className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold font-sans mb-5"
-            style={{ background: "rgba(232,81,26,0.15)", color: "rgba(232,81,26,0.90)" }}
-          >
+          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold font-sans mb-4">
             {section.badge}
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4" style={{ color: "rgba(255,255,255,0.95)" }}>
+          <h2 className="text-3xl md:text-4xl font-bold font-serif text-foreground mb-4">
             {section.titre}
           </h2>
-          <p className="font-sans text-base max-w-lg mx-auto" style={{ color: "rgba(255,255,255,0.50)" }}>
+          <p className="text-muted-foreground font-sans text-lg max-w-xl mx-auto">
             {section.sous_titre}
           </p>
         </div>
 
-        {/* Fan stack centré */}
-        <div className="relative mx-auto mb-24" style={{ height: 420, maxWidth: 320 }}>
-          {/* Cartes affichées de derrière vers devant */}
-          {[...fanCards].reverse().map(({ testimonial, fanIndex }) => (
-            <FanCard
-              key={`${testimonial.id}-${fanIndex}`}
-              testimonial={testimonial}
-              fanIndex={fanIndex}
-              total={3}
-              onSwipedAway={handleSwipe}
-            />
-          ))}
+        {/* Stack de cartes — même conteneur que la référence */}
+        <div className="grid place-content-center mb-6">
+          <div className="relative -ml-[100px] h-[450px] w-[350px] md:-ml-[175px]">
+            {displayed.map((t, i) => (
+              <TestimonialCard
+                key={t.id}
+                testimonial={t}
+                position={positions[i] ?? "back"}
+                handleShuffle={handleShuffle}
+              />
+            ))}
+          </div>
         </div>
 
-        {/* Instruction glisser */}
-        <p className="text-center font-sans text-xs mb-16" style={{ color: "rgba(255,255,255,0.30)" }}>
-          ← Faites glisser pour voir d&rsquo;autres avis →
+        {/* Indication glisser */}
+        <p className="text-center text-muted-foreground font-sans text-xs mb-16">
+          ← Glissez la carte vers la gauche pour voir le suivant
         </p>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map((stat) => (
-            <div
-              key={stat.libelle}
-              className="rounded-2xl p-5 text-center"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <p className="text-3xl font-bold font-serif mb-1" style={{ color: "rgba(232,81,26,0.90)" }}>
-                {stat.valeur}
-              </p>
-              <p className="font-sans text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
-                {stat.libelle}
-              </p>
+            <div key={stat.libelle} className="glass-card p-5 text-center">
+              <p className="text-3xl font-bold font-serif text-primary">{stat.valeur}</p>
+              <p className="text-muted-foreground font-sans text-sm mt-1">{stat.libelle}</p>
             </div>
           ))}
         </div>
