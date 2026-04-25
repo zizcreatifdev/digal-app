@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-25_
-_Prompt courant : onboarding-B — CM Agence + Créateur_
+_Prompt courant : fix-diagnostic — Corrections issues diagnostics_
 
 ---
 
@@ -352,6 +352,10 @@ _Prompt courant : onboarding-B — CM Agence + Créateur_
 | 6 | ~~Race condition PDF KpiReportsPage setTimeout~~ | ✅ Corrigé (prompt-50) — `handleDirectDownload(report)` |
 | 7 | ~~Settings agence_standard → "Digital Manager"~~ | ✅ Corrigé (prompt-50) — "Studio" |
 | 8 | ~~Valeur 0 filtrée des PDFs KPI~~ | ✅ Corrigé (prompt-50) — 0 est une valeur valide |
+| 9 | ~~Register.tsx mot de passe min 6 vs Login min 8~~ | ✅ Corrigé (diag-bugs) — harmonisé min 8 |
+| 10 | ~~ClientDetail.tsx "none" écrit en BDD pour assigned_cm/assigned_creator~~ | ✅ Corrigé (diag-bugs) — `=== "none" ? null` |
+| 11 | ~~ReferralLanding.tsx code invalide affichait texte brut~~ | ✅ Corrigé (diag-bugs) — logo image |
+| 12 | ~~OnboardingWizard PLAN_LABELS slugs obsolètes~~ | ✅ Corrigé (diag-bugs) — `solo/agence_standard/agence_pro` |
 
 ---
 
@@ -435,3 +439,6 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | audit-important-1 | 6 fixes importants : Landing dark mode, Login/Waitlist RHF+Zod, PreviewPage isFreemium, Journal pagination, Crypto key gen, ReferralLanding console.error | 2026-04-24 |
 | audit-important-2 | 6 fixes importants : Empty states avec icônes, Clients search, Responsive modals max-h, Tooltips AdminComptes/AdminLicences, Page title descriptions | 2026-04-24 |
 | audit-mineur | 8 fixes mineurs : Activate schema min(2)/confirmPassword, animate-fade-in-up tailwind+ClientCard+Dashboard, EditorialCalendar tooltips nav, Textarea/Select rounded-lg, Facturation+AdminSecurity descriptions, Register.tsx RHF+Zod+ios-scroll | 2026-04-24 |
+| diag-1 | Diagnostics phases 1-2-3 : DIAGNOSTIC_1.md, DIAGNOSTIC_2.md, DIAGNOSTIC_3.md | 2026-04-25 |
+| diag-bugs | 8 fixes diagnostics : Register min(8), ReferralLanding logo invalide, ClientDetail "none"→null, GeneratePreviewLink copyToClipboard, Parrainages garde referral_code, OnboardingWizard PLAN_LABELS, Settings ImageCropModal tampon/signature, ProblemSection logo | 2026-04-25 |
+| diag-ameliorations | 9 améliorations : Waitlist logo mobile, Activate/CompteSuspendu dark mode, PreviewPage ios-scroll-container, LandingHeader dark mode, Dashboard fetchStats dédupliqué (useCallback), KpiReportsPage activeNetworks + icônes empty states | 2026-04-25 |
