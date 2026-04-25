@@ -76,7 +76,7 @@ export function ProblemSection() {
                 <img
                   src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
                   alt="Digal"
-                  className="h-8 w-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
+                  className="h-10 w-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
                 />
               </div>
               <p className="text-center text-xs text-muted-foreground font-sans mt-2">

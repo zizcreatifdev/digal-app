@@ -126,10 +126,13 @@ const Waitlist = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md border-0 shadow-none bg-transparent">
           <CardHeader className="space-y-2 text-center lg:text-left">
-            <div className="lg:hidden mb-6">
-              <Link to="/" className="inline-flex items-center gap-1">
-                <span className="text-4xl font-bold font-serif text-foreground">Digal</span>
-                <span className="w-2 h-2 rounded-full bg-primary mt-1" />
+            <div className="lg:hidden mb-6 flex justify-center">
+              <Link to="/">
+                <img
+                  src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
+                  alt="Digal"
+                  className="h-10 w-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
+                />
               </Link>
             </div>
             <Badge variant="outline" className="w-fit border-primary/30 text-primary text-xs">

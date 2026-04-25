@@ -12,7 +12,7 @@ const CompteSuspendu = () => {
         <img
           src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
           alt="Digal"
-          className="w-32 mx-auto"
+          className="w-32 mx-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}

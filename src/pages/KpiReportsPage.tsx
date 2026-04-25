@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { FileText, Plus, Download, Eye, Loader2, AlertCircle } from "lucide-react";
+import { FileText, Plus, Download, Eye, Loader2, AlertCircle, MousePointerClick } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { KpiReportPreviewModal } from "@/components/kpi/KpiReportPreviewModal";
@@ -32,6 +32,7 @@ const KpiReportsPage = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<KpiReportPreviewData | null>(null);
   const [cmName, setCmName] = useState<string>("");
+  const [activeNetworks, setActiveNetworks] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -61,6 +62,15 @@ const KpiReportsPage = () => {
   useEffect(() => {
     refreshReports();
   }, [selectedClient, user]);
+
+  useEffect(() => {
+    if (!selectedClient) { setActiveNetworks([]); return; }
+    supabase
+      .from("client_networks")
+      .select("reseau")
+      .eq("client_id", selectedClient)
+      .then(({ data }) => setActiveNetworks((data ?? []).map((n) => n.reseau)));
+  }, [selectedClient]);
 
   const selectedClientData = clients.find((c) => c.id === selectedClient);
 
@@ -143,12 +153,14 @@ const KpiReportsPage = () => {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : !selectedClient ? (
-          <div className="text-center py-16 text-muted-foreground">
-            Sélectionnez un client pour voir ses rapports KPI.
+          <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+            <MousePointerClick className="h-8 w-8 opacity-40" />
+            <p className="text-sm font-sans">Sélectionnez un client pour voir ses rapports KPI.</p>
           </div>
         ) : reports.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            Aucun rapport pour ce client. Créez votre premier rapport.
+          <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+            <FileText className="h-8 w-8 opacity-40" />
+            <p className="text-sm font-sans">Aucun rapport pour ce client. Créez votre premier rapport.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -186,7 +198,7 @@ const KpiReportsPage = () => {
           clientId={selectedClient}
           clientName={selectedClientData?.nom ?? ""}
           clientLogoUrl={selectedClientData?.logo_url ?? null}
-          activeNetworks={[]}
+          activeNetworks={activeNetworks}
           onCreated={refreshReports}
         />
       )}

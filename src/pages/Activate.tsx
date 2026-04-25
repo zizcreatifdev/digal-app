@@ -135,7 +135,7 @@ export default function Activate() {
           <img
             src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
             alt="Digal"
-            className="h-10 w-auto"
+            className="h-10 w-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
           />
         </div>
 

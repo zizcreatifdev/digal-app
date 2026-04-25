@@ -362,6 +362,7 @@ const PreviewPage = () => {
   const refusedCount = actions.filter(a => a.decision === "refuse").length;
 
   return (
+    <div className="ios-scroll-container">
     <div className="min-h-screen bg-[#FAFAF8]">
       {/* === STICKY HEADER === */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100">
@@ -734,6 +735,7 @@ const PreviewPage = () => {
           Créé avec <img src={digalLogo} alt="Digal" className="h-4 w-4 inline-block" loading="lazy" width={16} height={16} /> <span className="font-serif font-bold">Digal</span>
         </div>
       )}
+    </div>
     </div>
   );
 };
