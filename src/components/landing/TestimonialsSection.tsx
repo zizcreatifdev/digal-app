@@ -11,40 +11,26 @@ interface Testimonial {
   ordre: number;
 }
 
-/* ── Couleurs des cartes ─────────────────────────────────── */
-const SCHEMES = [
-  {
-    bg: "#E8511A",
-    text: "#ffffff",
-    sub: "rgba(255,255,255,0.72)",
-    avatarBg: "rgba(255,255,255,0.22)",
-    avatarText: "#ffffff",
-  },
-  {
-    bg: "#111111",
-    text: "#ffffff",
-    sub: "rgba(255,255,255,0.55)",
-    avatarBg: "rgba(255,255,255,0.12)",
-    avatarText: "#ffffff",
-  },
-  {
-    bg: "#FAF7F4",
-    text: "#111111",
-    sub: "#777777",
-    avatarBg: "rgba(232,81,26,0.12)",
-    avatarText: "#E8511A",
-  },
-] as const;
+/* ── Couleur unique crème ────────────────────────────────── */
+const CARD = {
+  bg: "#FAF7F4",
+  text: "#111111",
+  sub: "#777777",
+  avatarBg: "rgba(232,81,26,0.12)",
+  avatarText: "#E8511A",
+  border: "1px solid rgba(80,30,10,0.08)",
+  boxShadow: "0 2px 12px rgba(80,30,10,0.08)",
+} as const;
 
-/* ── 7 emplacements : colonne, hauteur min, couleur ─────── */
+/* ── 7 emplacements : colonne, hauteur min ───────────────── */
 const SLOTS = [
-  { col: "left",   minH: 280, schemeIdx: 0 },
-  { col: "left",   minH: 180, schemeIdx: 1 },
-  { col: "center", minH: 210, schemeIdx: 2 },
-  { col: "center", minH: 210, schemeIdx: 0 },
-  { col: "center", minH: 210, schemeIdx: 1 },
-  { col: "right",  minH: 180, schemeIdx: 2 },
-  { col: "right",  minH: 280, schemeIdx: 0 },
+  { col: "left",   minH: 280 },
+  { col: "left",   minH: 180 },
+  { col: "center", minH: 210 },
+  { col: "center", minH: 210 },
+  { col: "center", minH: 210 },
+  { col: "right",  minH: 180 },
+  { col: "right",  minH: 280 },
 ] as const;
 
 /* délais stagger en ms */
@@ -60,7 +46,6 @@ interface CardProps {
 
 function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
   const slot = SLOTS[slotIdx];
-  const scheme = SCHEMES[slot.schemeIdx];
 
   const initials = testimonial.nom
     .split(" ")
@@ -75,7 +60,9 @@ function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
       data-slot={slotIdx}
       className="rounded-2xl p-6 flex flex-col gap-4"
       style={{
-        backgroundColor: scheme.bg,
+        backgroundColor: CARD.bg,
+        border: CARD.border,
+        boxShadow: CARD.boxShadow,
         minHeight: slot.minH,
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(28px)",
@@ -85,7 +72,7 @@ function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
       {/* Citation */}
       <p
         className="font-sans text-sm leading-relaxed italic flex-1"
-        style={{ color: scheme.sub }}
+        style={{ color: CARD.sub }}
       >
         &ldquo;{testimonial.texte}&rdquo;
       </p>
@@ -97,26 +84,26 @@ function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
             src={testimonial.photo_url}
             alt={testimonial.nom}
             className="h-16 w-16 rounded-full object-cover shrink-0"
-            style={{ border: "2px solid rgba(255,255,255,0.25)" }}
+            style={{ border: CARD.border }}
           />
         ) : (
           <div
             className="h-16 w-16 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: scheme.avatarBg }}
+            style={{ backgroundColor: CARD.avatarBg }}
           >
             <span
               className="font-semibold font-sans text-sm"
-              style={{ color: scheme.avatarText }}
+              style={{ color: CARD.avatarText }}
             >
               {initials}
             </span>
           </div>
         )}
         <div>
-          <p className="font-semibold font-sans text-sm" style={{ color: scheme.text }}>
+          <p className="font-semibold font-sans text-sm" style={{ color: CARD.text }}>
             {testimonial.nom}
           </p>
-          <p className="font-sans text-xs" style={{ color: scheme.sub }}>
+          <p className="font-sans text-xs" style={{ color: CARD.sub }}>
             {testimonial.fonction}
           </p>
         </div>

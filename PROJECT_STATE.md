@@ -310,7 +310,7 @@ _Prompt courant : testimonials-refonte — Grille bento 3 colonnes, Intersection
 | Elite sur mesure | ✅ (prompt-41) | Carte Elite : "Tarif sur mesure" + "Demander un devis" → EliteContactModal |
 | Texte membres dynamique | ✅ (prompt-52) | getMemberText() depuis plans.max_membres — remplace textes hardcodés |
 | EliteContactModal | ✅ (prompt-41) | Form 6 champs, insert table elite_requests, toast 24h |
-| TestimonialsSection | ✅ (testimonials-refonte) | Grille bento 3 colonnes (gauche 2, centre 3, droite 2), couleurs alternées orange/noir/crème, IntersectionObserver fade-in-up stagger, fond blanc, pas de framer-motion, positionné après MockupsSection |
+| TestimonialsSection | ✅ (testimonials-fix) | Grille bento 3 colonnes (gauche 2, centre 3, droite 2), couleur unique crème #FAF7F4, IntersectionObserver fade-in-up stagger, fond blanc, pas de framer-motion, positionné après MockupsSection |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
 | Page /privacy | ✅ (prompt-10) | |
@@ -449,3 +449,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | testimonials-redesign | TestimonialsSection redesign : fond sombre #0B0F1C, fan stack 3 cartes en éventail (rotations [-10°,0°,+8°] scales [0.84,0.92,1]), photo en haut de chaque carte, drag/swipe framer-motion, stats 2×4 grid en bas ; AdminTestimonials : panneau config éditable (badge, titre, sous-titre, 4 stats avec valeur+libellé), upsert testimonials_config, collapsible ; migration 000039_testimonials_config.sql | 2026-04-25 |
 | testimonials-v3 | TestimonialsSection : fond blanc bg-background, animation exacte référence (fan gauche→droite : front -6° x=0%, middle 0° x=33%, back +6° x=66%, drag-left-150px→shuffle), glass-card, photo en haut, stats en bas ; migration 000040_seed_testimonials.sql (3 témoignages par défaut) pour cohérence admin/landing | 2026-04-25 |
 | testimonials-refonte | Refonte complète : migration 000041 (DROP+CREATE table testimonials avec est_actif, 3 témoignages seed Ayssata/Moussa/Fatou) ; TestimonialsSection grille bento 3 colonnes 7 emplacements (orange/noir/crème, IntersectionObserver fade-in-up stagger, no framer-motion, positionné avant PricingSection) ; AdminTestimonials drag-and-drop HTML5 réordonnancement + CRUD complet + ImageCropModal ; AdminSidebar groupe "Landing" avec Quote icon | 2026-04-25 |
+| testimonials-fix | Fix 3 problèmes : migration 000042 RLS WITH CHECK(true) + DELETE doublons ; AdminTestimonials fragment JSX fermé + compteur actifs/masqués ; TestimonialsSection couleur unique crème #FAF7F4 (suppression SCHEMES multi-couleurs) | 2026-04-25 |

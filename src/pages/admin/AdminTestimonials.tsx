@@ -135,7 +135,8 @@ const AdminTestimonials = () => {
         )
       );
       void qc.invalidateQueries({ queryKey: ["admin-testimonials"] });
-    } catch {
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("Testimonials reorder error:", err);
       toast.error("Erreur lors du réordonnancement");
     }
 
@@ -206,7 +207,8 @@ const AdminTestimonials = () => {
       void qc.invalidateQueries({ queryKey: ["admin-testimonials"] });
       toast.success(editTarget ? "Témoignage mis à jour" : "Témoignage ajouté");
       setDialogOpen(false);
-    } catch {
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("Testimonials save error:", err);
       toast.error("Erreur lors de la sauvegarde");
     } finally {
       setSaving(false);
@@ -244,7 +246,7 @@ const AdminTestimonials = () => {
           </Button>
         </div>
 
-        {/* Liste */}
+        {/* Liste — tous les témoignages (actifs + inactifs) */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground font-sans">
             Chargement…
@@ -255,6 +257,12 @@ const AdminTestimonials = () => {
             <p>Aucun témoignage. Cliquez sur &laquo; Ajouter &raquo;.</p>
           </div>
         ) : (
+          <>
+            <p className="text-xs text-muted-foreground font-sans">
+              {testimonials.length} témoignage{testimonials.length > 1 ? "s" : ""} ·{" "}
+              {testimonials.filter((t) => t.est_actif).length} actif{testimonials.filter((t) => t.est_actif).length > 1 ? "s" : ""} ·{" "}
+              {testimonials.filter((t) => !t.est_actif).length} masqué{testimonials.filter((t) => !t.est_actif).length > 1 ? "s" : ""}
+            </p>
           <div className="space-y-2">
             {testimonials.map((t) => (
               <div
@@ -323,6 +331,7 @@ const AdminTestimonials = () => {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 
