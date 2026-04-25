@@ -8,6 +8,7 @@ import { MockupsSection } from "@/components/landing/MockupsSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const LandingPage = () => {
@@ -22,6 +23,7 @@ const LandingPage = () => {
       <TeamRolesSection />
       <MockupsSection />
       <PricingSection />
+      <TestimonialsSection />
       <CtaSection />
       <LandingFooter />
     </div>

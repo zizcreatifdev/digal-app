@@ -41,6 +41,7 @@ import AdminContrats from "./pages/admin/AdminContrats";
 import AdminProfil from "./pages/admin/AdminProfil";
 import AdminPlateforme from "./pages/admin/AdminPlateforme";
 import AdminParrainages from "./pages/admin/AdminParrainages";
+import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import Parrainages from "./pages/Parrainages";
 import DocsPage from "./pages/DocsPage";
 import Privacy from "./pages/Privacy";
@@ -338,6 +339,16 @@ const App = () => (
                 <AuthGuard requiredRole="admin">
                   <AdminTotpGate>
                     <AdminParrainages />
+                  </AdminTotpGate>
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/admin/temoignages"
+              element={
+                <AuthGuard requiredRole="admin">
+                  <AdminTotpGate>
+                    <AdminTestimonials />
                   </AdminTotpGate>
                 </AuthGuard>
               }

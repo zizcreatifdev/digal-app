@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, ClipboardList, KeyRound, Mail, Receipt,
-  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog, Settings2, Users2,
+  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog, Settings2, Users2, MessageSquareQuote,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +33,7 @@ const userSubItems = [
 
 const otherItems = [
   { title: "Formules & Tarifs", url: "/admin/plans", icon: Tag },
+  { title: "Témoignages", url: "/admin/temoignages", icon: MessageSquareQuote },
   { title: "Contrats", url: "/admin/contrats", icon: PenTool },
   { title: "Emails marketing", url: "/admin/emails", icon: Mail },
   { title: "Facturation Owner", url: "/admin/facturation", icon: Receipt },

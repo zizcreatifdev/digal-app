@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-25_
-_Prompt courant : glassmorphism — Liquid glass UI_
+_Prompt courant : liquid-glass + testimonials — Hero liquid glass, section témoignages landing + admin CRUD_
 
 ---
 
@@ -275,6 +275,7 @@ _Prompt courant : glassmorphism — Liquid glass UI_
 | TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
 | Paramètres plateforme | ✅ Complet (prompt-44) | /admin/plateforme — widget countdown : date+heure, toggle show/hide, aperçu jours restants |
 | Suspension/Suppression complète | ✅ Complet (prompt-55) | AuthGuard check statut, page /compte-suspendu, edge fn ban-user, toggle comptes supprimés, cron suppression définitive J+30 |
+| Gestion témoignages | ✅ Complet (liquid-glass) | /admin/temoignages — CRUD complet, upload photo (ImageCropModal), toggle actif, ordre |
 
 ---
 
@@ -309,6 +310,7 @@ _Prompt courant : glassmorphism — Liquid glass UI_
 | Elite sur mesure | ✅ (prompt-41) | Carte Elite : "Tarif sur mesure" + "Demander un devis" → EliteContactModal |
 | Texte membres dynamique | ✅ (prompt-52) | getMemberText() depuis plans.max_membres — remplace textes hardcodés |
 | EliteContactModal | ✅ (prompt-41) | Form 6 champs, insert table elite_requests, toast 24h |
+| TestimonialsSection | ✅ (liquid-glass) | Stack cards drag/swipe (framer-motion), fallback statique, chargement depuis Supabase `testimonials` |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
 | Page /privacy | ✅ (prompt-10) | |
@@ -443,3 +445,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | diag-bugs | 8 fixes diagnostics : Register min(8), ReferralLanding logo invalide, ClientDetail "none"→null, GeneratePreviewLink copyToClipboard, Parrainages garde referral_code, OnboardingWizard PLAN_LABELS, Settings ImageCropModal tampon/signature, ProblemSection logo | 2026-04-25 |
 | diag-ameliorations | 9 améliorations : Waitlist logo mobile, Activate/CompteSuspendu dark mode, PreviewPage ios-scroll-container, LandingHeader dark mode, Dashboard fetchStats dédupliqué (useCallback), KpiReportsPage activeNetworks + icônes empty states | 2026-04-25 |
 | glassmorphism | Liquid glass UI : Hero card (sheen + highlight + ring + shadow + bouton glass), GlassCard light mode (backdrop-blur-16 + inset sheen), Dialog + AlertDialog (overlay backdrop-blur-sm + contenu bg/85 backdrop-blur-xl) | 2026-04-25 |
+| liquid-glass | Hero card refactorisé : .liquid-glass-hero CSS (backdrop-blur-28 + saturate + multi-layer inset shadows, suppression overlay divs) ; TestimonialsSection landing (stack drag/swipe framer-motion + fallback statique + stats grid) ; AdminTestimonials CRUD (photo ImageCropModal, toggle actif, supprimer) ; migration 000038_testimonials.sql (table + RLS + storage bucket) | 2026-04-25 |
