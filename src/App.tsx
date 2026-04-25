@@ -42,7 +42,6 @@ import AdminProfil from "./pages/admin/AdminProfil";
 import AdminPlateforme from "./pages/admin/AdminPlateforme";
 import AdminParrainages from "./pages/admin/AdminParrainages";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
-import { GlassFilter } from "@/components/ui/GlassFilter";
 import Parrainages from "./pages/Parrainages";
 import DocsPage from "./pages/DocsPage";
 import Privacy from "./pages/Privacy";
@@ -89,7 +88,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <GlassFilter />
           <Routes>
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />

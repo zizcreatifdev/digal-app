@@ -427,8 +427,8 @@ const Dashboard = () => {
 
         {/* ── Hero card ── */}
         <div
-          className="liquid-glass-hero rounded-2xl p-6 text-white cursor-pointer select-none"
-          style={{ filter: "url(#radio-glass)" }}
+          className="rounded-2xl p-6 text-white cursor-pointer select-none shadow-orange-glow"
+          style={{ background: "linear-gradient(135deg, #E8511A 0%, #C4522A 100%)" }}
           onClick={() => navigate(heroContent.href)}
         >
           <div className="flex items-center justify-between">
@@ -467,7 +467,7 @@ const Dashboard = () => {
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 animate-fade-in-up">
           {/* Clients actifs */}
-          <GlassCard className="liquid-glass-card">
+          <GlassCard className="dark:liquid-glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Clients actifs</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
@@ -502,7 +502,7 @@ const Dashboard = () => {
           </GlassCard>
 
           {/* Posts cette semaine */}
-          <GlassCard className="liquid-glass-card">
+          <GlassCard className="dark:liquid-glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Posts cette semaine</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
@@ -526,7 +526,7 @@ const Dashboard = () => {
           </GlassCard>
 
           {/* Liens en attente */}
-          <GlassCard className="liquid-glass-card">
+          <GlassCard className="dark:liquid-glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Liens en attente</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
@@ -557,7 +557,7 @@ const Dashboard = () => {
 
           {/* Factures impayées */}
           <GlassCard
-            className={isFreemium ? "liquid-glass-card opacity-60 cursor-pointer" : "liquid-glass-card"}
+            className={isFreemium ? "dark:liquid-glass-card opacity-60 cursor-pointer" : "dark:liquid-glass-card"}
             onClick={() => isFreemium && setUpgradeModal(true)}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
