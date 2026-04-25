@@ -127,27 +127,39 @@
   --mouse-y: 50%;
 }
 
-/* Light mode: opaque white card with warm shadow */
+/* Light mode: frosted glass card */
 .glass-card {
-  background: #ffffff;
-  border: 1px solid rgba(80, 30, 10, 0.08);
-  box-shadow: 0 2px 12px rgba(80, 30, 10, 0.08);
-  transition: box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 2px 16px rgba(80, 30, 10, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .glass-card:hover {
-  box-shadow: 0 4px 24px rgba(80, 30, 10, 0.12);
+  box-shadow:
+    0 6px 28px rgba(80, 30, 10, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 1);
 }
 
 /* Dark mode: glassmorphism + spotlight */
 .dark .glass-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: none;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 .dark .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Spotlight radial gradient — only in dark mode */

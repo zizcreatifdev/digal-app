@@ -427,11 +427,18 @@ const Dashboard = () => {
 
         {/* ── Hero card ── */}
         <div
-          className="rounded-2xl p-6 text-white cursor-pointer select-none"
+          className="relative rounded-2xl p-6 text-white cursor-pointer select-none overflow-hidden border border-white/25 shadow-2xl shadow-orange-900/25"
           style={{ background: "linear-gradient(135deg, #E8511A 0%, #C4522A 100%)" }}
           onClick={() => navigate(heroContent.href)}
         >
-          <div className="flex items-center justify-between">
+          {/* Glass sheen — reflet lumineux en haut */}
+          <div className="absolute inset-x-0 top-0 h-2/5 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+          {/* Highlight latéral gauche */}
+          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+          {/* Bord intérieur glass */}
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/15 pointer-events-none" />
+
+          <div className="relative flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-white/70 text-sm font-sans font-medium uppercase tracking-wider">
                 {hour < 12 ? "Ce matin" : hour < 18 ? "Cet après-midi" : "Ce soir"}
@@ -444,7 +451,7 @@ const Dashboard = () => {
               {heroContent.icon}
               <Button
                 size="sm"
-                className="bg-white text-orange-700 hover:bg-white/90 font-semibold shadow-none"
+                className="bg-white/20 hover:bg-white/30 text-white font-semibold shadow-none backdrop-blur-sm border border-white/30"
                 onClick={(e) => { e.stopPropagation(); navigate(heroContent.href); }}
               >
                 Voir →
