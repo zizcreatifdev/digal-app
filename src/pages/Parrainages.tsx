@@ -231,7 +231,9 @@ export default function Parrainages() {
   }
 
   const referralCode: string = profile.referral_code ?? "";
-  const referralLink = `${APP_URL}/ref/${referralCode}`;
+  const referralLink: string | null = referralCode
+    ? `${APP_URL}/ref/${referralCode}`
+    : null;
   const quota: number = profile.referral_quota ?? 3;
   const quotaUsed: number = profile.referral_count ?? 0;
   const monthsEarned: number = profile.referral_months_earned ?? 0;
@@ -249,6 +251,7 @@ export default function Parrainages() {
   const remaining: number | null = nextTierCount != null ? nextTierCount - qualifiedCount : null;
 
   const copyLink = async () => {
+    if (!referralLink) return;
     setCopyPending(true);
     try { await copyToClipboard(referralLink); toast.success("Lien copié !"); }
     catch { toast.error("Impossible de copier"); }
@@ -256,6 +259,7 @@ export default function Parrainages() {
   };
 
   const shareWhatsApp = () => {
+    if (!referralLink) return;
     const template = (waTemplate ?? "").replace("[Prénom parrain]", profile.prenom ?? "").replace("[Lien]", referralLink);
     window.open(`https://wa.me/?text=${encodeURIComponent(template)}`, "_blank");
   };
@@ -288,17 +292,25 @@ export default function Parrainages() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border">
-              <span className="flex-1 text-sm font-mono text-muted-foreground truncate">{referralLink}</span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={copyLink} disabled={copyPending} className="gap-1.5">
-                <Copy className="h-3.5 w-3.5" /> Copier le lien
-              </Button>
-              <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5 text-success border-success/40 hover:bg-success/5">
-                <MessageCircle className="h-3.5 w-3.5" /> Partager WhatsApp
-              </Button>
-            </div>
+            {referralLink ? (
+              <>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border">
+                  <span className="flex-1 text-sm font-mono text-muted-foreground truncate">{referralLink}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={copyLink} disabled={copyPending} className="gap-1.5">
+                    <Copy className="h-3.5 w-3.5" /> Copier le lien
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={shareWhatsApp} className="gap-1.5 text-success border-success/40 hover:bg-success/5">
+                    <MessageCircle className="h-3.5 w-3.5" /> Partager WhatsApp
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground font-sans py-2">
+                Votre code de parrainage est en cours de génération…
+              </p>
+            )}
           </CardContent>
         </Card>
 

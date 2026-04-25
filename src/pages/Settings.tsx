@@ -408,6 +408,10 @@ function BillingSettingsTab() {
   const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [uploadingTampon, setUploadingTampon] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [pendingTamponFile, setPendingTamponFile] = useState<File | null>(null);
+  const [pendingSignatureFile, setPendingSignatureFile] = useState<File | null>(null);
+  const tamponInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -465,17 +469,15 @@ function BillingSettingsTab() {
     setPaymentMethods((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
   };
 
-  const uploadStampFile = async (file: File, field: "tampon" | "signature") => {
+  const uploadStampBlob = async (blob: Blob, field: "tampon" | "signature") => {
     if (!user) return;
     const setter = field === "tampon" ? setUploadingTampon : setUploadingSignature;
     setter(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${field}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, file, { upsert: true });
+      const path = `${user.id}/${field}/${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, blob, { contentType: "image/png", upsert: true });
       if (upErr) { toast.error("Erreur d'upload"); return; }
       const { data: { publicUrl } } = supabase.storage.from("user-uploads").getPublicUrl(path);
-      // Save URL to users table
       const col = field === "tampon" ? { tampon_url: publicUrl } : { signature_url: publicUrl };
       await supabase.from("users").update(col).eq("user_id", user.id);
       if (field === "tampon") { setTamponsUrl(publicUrl); toast.success("Tampon mis à jour"); }
@@ -485,12 +487,50 @@ function BillingSettingsTab() {
     }
   };
 
+  const handleTamponFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > LOGO_MAX_BYTES) { toast.error("Fichier trop lourd (max 5 Mo)"); return; }
+    setPendingTamponFile(file);
+  };
+
+  const handleSignatureFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > LOGO_MAX_BYTES) { toast.error("Fichier trop lourd (max 5 Mo)"); return; }
+    setPendingSignatureFile(file);
+  };
+
+  const handleTamponCropConfirm = async (blob: Blob) => {
+    setPendingTamponFile(null);
+    await uploadStampBlob(blob, "tampon");
+  };
+
+  const handleSignatureCropConfirm = async (blob: Blob) => {
+    setPendingSignatureFile(null);
+    await uploadStampBlob(blob, "signature");
+  };
+
   const paymentLabels: Record<string, string> = {
     wave: "Wave", yas: "YAS", orange_money: "Orange Money", virement: "Virement bancaire", cash: "Cash",
   };
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <ImageCropModal
+        file={pendingTamponFile}
+        onConfirm={(blob) => { void handleTamponCropConfirm(blob); }}
+        onCancel={() => setPendingTamponFile(null)}
+        aspect={undefined}
+      />
+      <ImageCropModal
+        file={pendingSignatureFile}
+        onConfirm={(blob) => { void handleSignatureCropConfirm(blob); }}
+        onCancel={() => setPendingSignatureFile(null)}
+        aspect={undefined}
+      />
       <Card>
         <CardHeader>
           <CardTitle className="font-serif flex items-center gap-2"><FileText className="h-5 w-5" /> Documents</CardTitle>
@@ -542,10 +582,11 @@ function BillingSettingsTab() {
                   </>
                 )}
                 <input
+                  ref={tamponInputRef}
                   type="file"
-                  accept="image/png,image/webp"
+                  accept={LOGO_ACCEPT}
                   className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStampFile(f, "tampon"); }}
+                  onChange={handleTamponFileSelect}
                 />
               </label>
               {tamponsUrl && (
@@ -572,10 +613,11 @@ function BillingSettingsTab() {
                   </>
                 )}
                 <input
+                  ref={signatureInputRef}
                   type="file"
-                  accept="image/png,image/webp"
+                  accept={LOGO_ACCEPT}
                   className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStampFile(f, "signature"); }}
+                  onChange={handleSignatureFileSelect}
                 />
               </label>
               {signatureUrl && (

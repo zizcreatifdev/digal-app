@@ -13,6 +13,7 @@ import { logPreviewAction } from "@/lib/activity-logs";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, Link2 } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -94,12 +95,15 @@ export function GeneratePreviewLinkModal({ open, onOpenChange, clientId, clientN
     }
   };
 
-  const handleCopy = () => {
-    if (generatedUrl) {
-      navigator.clipboard.writeText(generatedUrl);
+  const handleCopy = async () => {
+    if (!generatedUrl) return;
+    try {
+      await copyToClipboard(generatedUrl);
       setCopied(true);
       toast.success("Lien copié !");
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Impossible de copier le lien");
     }
   };
 

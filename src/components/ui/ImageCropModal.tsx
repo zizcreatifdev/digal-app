@@ -54,9 +54,10 @@ interface ImageCropModalProps {
   file: File | null;
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
+  aspect?: number;
 }
 
-export function ImageCropModal({ file, onConfirm, onCancel }: ImageCropModalProps) {
+export function ImageCropModal({ file, onConfirm, onCancel, aspect = 1 }: ImageCropModalProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSrc, setImgSrc] = useState("");
   const [crop, setCrop] = useState<Crop>();
@@ -113,7 +114,7 @@ export function ImageCropModal({ file, onConfirm, onCancel }: ImageCropModalProp
         </DialogHeader>
 
         <p className="text-xs text-muted-foreground font-sans -mt-2">
-          Déplacez et redimensionnez le cadre carré pour choisir la zone à conserver.
+          Déplacez et redimensionnez le cadre pour choisir la zone à conserver.
         </p>
 
         {imgSrc && (
@@ -122,7 +123,7 @@ export function ImageCropModal({ file, onConfirm, onCancel }: ImageCropModalProp
               crop={crop}
               onChange={(_, pct) => setCrop(pct)}
               onComplete={(c) => setCompletedCrop(c)}
-              aspect={1}
+              aspect={aspect}
               minWidth={40}
             >
               <img

@@ -146,8 +146,8 @@ const ClientDetail = () => {
     const { error } = await supabase
       .from("clients")
       .update({
-        assigned_cm: assignedCm || null,
-        assigned_creator: assignedCreator || null,
+        assigned_cm: assignedCm === "none" ? null : assignedCm || null,
+        assigned_creator: assignedCreator === "none" ? null : assignedCreator || null,
       })
       .eq("id", client.id);
     setSavingTeam(false);

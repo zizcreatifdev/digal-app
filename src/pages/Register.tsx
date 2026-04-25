@@ -15,7 +15,7 @@ const registerSchema = z.object({
   prenom: z.string().min(1, "Prénom obligatoire"),
   nom: z.string().min(1, "Nom obligatoire"),
   email: z.string().email("Email invalide"),
-  password: z.string().min(6, "6 caractères minimum"),
+  password: z.string().min(8, "Minimum 8 caractères"),
   confirmPassword: z.string(),
 }).refine(d => d.password === d.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",

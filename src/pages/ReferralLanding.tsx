@@ -113,7 +113,11 @@ const ReferralLanding = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-md w-full text-center space-y-6">
-          <h1 className="text-3xl font-bold font-serif">Digal</h1>
+          <img
+            src="/logos/Logo%20Digal_iconorange_ettext_ennoir.svg.svg"
+            alt="Digal"
+            className="h-10 w-auto mx-auto dark:content-[url('/logos/Logo%20Digal_iconorange_ettext_enblanc.svg')]"
+          />
           <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
             <XCircle className="h-8 w-8 text-destructive" />
           </div>
