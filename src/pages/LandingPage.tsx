@@ -22,8 +22,8 @@ const LandingPage = () => {
       <SolutionSection />
       <TeamRolesSection />
       <MockupsSection />
-      <PricingSection />
       <TestimonialsSection />
+      <PricingSection />
       <CtaSection />
       <LandingFooter />
     </div>

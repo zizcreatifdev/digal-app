@@ -1,79 +1,66 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
-/* ── Types ─────────────────────────────────────────────── */
 interface Testimonial {
   id: string;
-  texte: string;
   nom: string;
   fonction: string;
+  texte: string;
   photo_url: string | null;
+  est_actif: boolean;
+  ordre: number;
 }
 
-interface SectionConfig {
-  badge: string;
-  titre: string;
-  sous_titre: string;
-}
-
-interface Stat {
-  valeur: string;
-  libelle: string;
-}
-
-type Position = "front" | "middle" | "back";
-
-/* ── Defaults ───────────────────────────────────────────── */
-const DEFAULT_SECTION: SectionConfig = {
-  badge: "Témoignages",
-  titre: "Ils font confiance à Digal",
-  sous_titre: "Des community managers et agences au Sénégal qui ont transformé leur activité.",
-};
-
-const DEFAULT_STATS: Stat[] = [
-  { valeur: "500+", libelle: "Community Managers actifs" },
-  { valeur: "3h", libelle: "Économisées par jour en moyenne" },
-  { valeur: "98%", libelle: "Taux de satisfaction client" },
-  { valeur: "2×", libelle: "Plus de clients fidélisés" },
-];
-
-const STATIC_FALLBACK: Testimonial[] = [
+/* ── Couleurs des cartes ─────────────────────────────────── */
+const SCHEMES = [
   {
-    id: "1",
-    texte: "Digal a complètement transformé ma façon de gérer mes clients. Je gagne au moins 3h par jour sur la création de contenu et les rapports.",
-    nom: "Aminata Diallo",
-    fonction: "Community Manager Freelance",
-    photo_url: null,
+    bg: "#E8511A",
+    text: "#ffffff",
+    sub: "rgba(255,255,255,0.72)",
+    avatarBg: "rgba(255,255,255,0.22)",
+    avatarText: "#ffffff",
   },
   {
-    id: "2",
-    texte: "Enfin un outil pensé pour le marché africain. La gestion de la TVA et du BRS en automatique, c'est un gain de temps énorme pour mon agence.",
-    nom: "Moussa Sow",
-    fonction: "Directeur, Agence Pixel",
-    photo_url: null,
+    bg: "#111111",
+    text: "#ffffff",
+    sub: "rgba(255,255,255,0.55)",
+    avatarBg: "rgba(255,255,255,0.12)",
+    avatarText: "#ffffff",
   },
   {
-    id: "3",
-    texte: "Mes clients adorent les rapports de performance. Ça m'a permis de justifier mes tarifs et de fidéliser tout mon portefeuille.",
-    nom: "Fatou Ndiaye",
-    fonction: "CM & Stratège Digital",
-    photo_url: null,
+    bg: "#FAF7F4",
+    text: "#111111",
+    sub: "#777777",
+    avatarBg: "rgba(232,81,26,0.12)",
+    avatarText: "#E8511A",
   },
-];
+] as const;
 
-/* ── Carte individuelle ─────────────────────────────────── */
-function TestimonialCard({
-  testimonial,
-  position,
-  handleShuffle,
-}: {
+/* ── 7 emplacements : colonne, hauteur min, couleur ─────── */
+const SLOTS = [
+  { col: "left",   minH: 280, schemeIdx: 0 },
+  { col: "left",   minH: 180, schemeIdx: 1 },
+  { col: "center", minH: 210, schemeIdx: 2 },
+  { col: "center", minH: 210, schemeIdx: 0 },
+  { col: "center", minH: 210, schemeIdx: 1 },
+  { col: "right",  minH: 180, schemeIdx: 2 },
+  { col: "right",  minH: 280, schemeIdx: 0 },
+] as const;
+
+/* délais stagger en ms */
+const DELAYS = [0, 120, 60, 180, 300, 90, 210];
+
+/* ── Carte ────────────────────────────────────────────────── */
+interface CardProps {
   testimonial: Testimonial;
-  position: Position;
-  handleShuffle: () => void;
-}) {
-  const dragStartX = useRef(0);
-  const isFront = position === "front";
+  slotIdx: number;
+  visible: boolean;
+  refCb: (el: HTMLDivElement | null) => void;
+}
+
+function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
+  const slot = SLOTS[slotIdx];
+  const scheme = SCHEMES[slot.schemeIdx];
 
   const initials = testimonial.nom
     .split(" ")
@@ -83,145 +70,154 @@ function TestimonialCard({
     .slice(0, 2);
 
   return (
-    <motion.div
+    <div
+      ref={refCb}
+      data-slot={slotIdx}
+      className="rounded-2xl p-6 flex flex-col gap-4"
       style={{
-        zIndex: position === "front" ? 2 : position === "middle" ? 1 : 0,
+        backgroundColor: scheme.bg,
+        minHeight: slot.minH,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(28px)",
+        transition: `opacity 0.55s ease ${DELAYS[slotIdx]}ms, transform 0.55s ease ${DELAYS[slotIdx]}ms`,
       }}
-      animate={{
-        rotate:
-          position === "front" ? "-6deg" : position === "middle" ? "0deg" : "6deg",
-        x:
-          position === "front" ? "0%" : position === "middle" ? "33%" : "66%",
-      }}
-      drag={isFront ? "x" : false}
-      dragElastic={0.35}
-      dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-      onDragStart={(e) => {
-        dragStartX.current = (e as PointerEvent).clientX;
-      }}
-      onDragEnd={(e) => {
-        if (dragStartX.current - (e as PointerEvent).clientX > 150) {
-          handleShuffle();
-        }
-        dragStartX.current = 0;
-      }}
-      transition={{ duration: 0.35 }}
-      className={`absolute left-0 top-0 h-[450px] w-[350px] select-none glass-card p-6 flex flex-col items-center gap-5 ${
-        isFront ? "cursor-grab active:cursor-grabbing" : ""
-      }`}
     >
-      {/* Photo en haut */}
-      {testimonial.photo_url ? (
-        <img
-          src={testimonial.photo_url}
-          alt={testimonial.nom}
-          className="pointer-events-none h-28 w-28 rounded-full object-cover ring-4 ring-primary/20 mt-2"
-        />
-      ) : (
-        <div className="pointer-events-none mt-2 h-28 w-28 rounded-full bg-primary/10 ring-4 ring-primary/20 flex items-center justify-center">
-          <span className="text-3xl font-bold text-primary font-sans">{initials}</span>
-        </div>
-      )}
-
       {/* Citation */}
-      <p className="pointer-events-none text-center text-muted-foreground font-sans text-sm leading-relaxed italic flex-1">
+      <p
+        className="font-sans text-sm leading-relaxed italic flex-1"
+        style={{ color: scheme.sub }}
+      >
         &ldquo;{testimonial.texte}&rdquo;
       </p>
 
       {/* Auteur */}
-      <div className="pointer-events-none text-center">
-        <p className="font-semibold font-sans text-foreground">{testimonial.nom}</p>
-        {testimonial.fonction && (
-          <p className="text-primary font-sans text-sm mt-0.5">{testimonial.fonction}</p>
+      <div className="flex items-center gap-3">
+        {testimonial.photo_url ? (
+          <img
+            src={testimonial.photo_url}
+            alt={testimonial.nom}
+            className="h-16 w-16 rounded-full object-cover shrink-0"
+            style={{ border: "2px solid rgba(255,255,255,0.25)" }}
+          />
+        ) : (
+          <div
+            className="h-16 w-16 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: scheme.avatarBg }}
+          >
+            <span
+              className="font-semibold font-sans text-sm"
+              style={{ color: scheme.avatarText }}
+            >
+              {initials}
+            </span>
+          </div>
         )}
+        <div>
+          <p className="font-semibold font-sans text-sm" style={{ color: scheme.text }}>
+            {testimonial.nom}
+          </p>
+          <p className="font-sans text-xs" style={{ color: scheme.sub }}>
+            {testimonial.fonction}
+          </p>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-/* ── Section ────────────────────────────────────────────── */
+/* ── Section principale ──────────────────────────────────── */
 export function TestimonialsSection() {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(STATIC_FALLBACK);
-  const [section, setSection] = useState<SectionConfig>(DEFAULT_SECTION);
-  const [stats, setStats] = useState<Stat[]>(DEFAULT_STATS);
-  const [positions, setPositions] = useState<Position[]>(["front", "middle", "back"]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [visibleSlots, setVisibleSlots] = useState<Set<number>>(new Set());
+  const refs = useRef<Array<HTMLDivElement | null>>(Array(SLOTS.length).fill(null));
 
+  /* Chargement Supabase */
   useEffect(() => {
     supabase
       .from("testimonials")
-      .select("id, texte, nom, fonction, photo_url")
-      .eq("actif", true)
-      .order("ordre", { ascending: true })
+      .select("id, nom, fonction, texte, photo_url, est_actif, ordre")
+      .eq("est_actif", true)
+      .order("ordre")
       .then(({ data }) => {
-        if (data && data.length > 0) setTestimonials(data as Testimonial[]);
-      });
-
-    supabase
-      .from("testimonials_config")
-      .select("id, data")
-      .in("id", ["section", "stats"])
-      .then(({ data }) => {
-        data?.forEach((row) => {
-          if (row.id === "section") setSection(row.data as SectionConfig);
-          if (row.id === "stats") setStats(row.data as Stat[]);
-        });
+        if (data && data.length > 0) {
+          setTestimonials(data as Testimonial[]);
+        }
       });
   }, []);
 
-  const handleShuffle = () => {
-    setPositions((prev) => {
-      const next = [...prev] as Position[];
-      next.unshift(next.pop()!);
-      return next;
-    });
-  };
+  /* IntersectionObserver — fade-in-up au scroll */
+  useEffect(() => {
+    if (testimonials.length === 0) return;
 
-  const displayed = testimonials.slice(0, 3);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.getAttribute("data-slot"));
+            setVisibleSlots((prev) => new Set([...prev, idx]));
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08 }
+    );
+
+    refs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [testimonials]);
+
+  if (testimonials.length === 0) return null;
+
+  /* Distribution des 7 emplacements par colonne */
+  const leftSlots   = [0, 1];
+  const centerSlots = [2, 3, 4];
+  const rightSlots  = [5, 6];
+
+  const renderCard = (slotIdx: number) => (
+    <TestimonialCard
+      key={slotIdx}
+      testimonial={testimonials[slotIdx % testimonials.length]}
+      slotIdx={slotIdx}
+      visible={visibleSlots.has(slotIdx)}
+      refCb={(el) => { refs.current[slotIdx] = el; }}
+    />
+  );
 
   return (
-    <section className="py-24 px-4 bg-background overflow-hidden">
+    <section className="py-24 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
 
         {/* En-tête */}
-        <div className="text-center mb-20">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold font-sans mb-4">
-            {section.badge}
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold font-serif text-foreground mb-4">
-            {section.titre}
+        <div className="text-center mb-14">
+          <h2 className="text-3xl md:text-4xl font-bold font-serif text-[#111111] mb-3">
+            Ce que disent nos utilisateurs
           </h2>
-          <p className="text-muted-foreground font-sans text-lg max-w-xl mx-auto">
-            {section.sous_titre}
+          <p className="font-sans text-[#777777] text-lg">
+            Ils ont transformé leur workflow avec Digal
           </p>
         </div>
 
-        {/* Stack de cartes — même conteneur que la référence */}
-        <div className="grid place-content-center mb-6">
-          <div className="relative -ml-[100px] h-[450px] w-[350px] md:-ml-[175px]">
-            {displayed.map((t, i) => (
-              <TestimonialCard
-                key={t.id}
-                testimonial={t}
-                position={positions[i] ?? "back"}
-                handleShuffle={handleShuffle}
-              />
-            ))}
+        {/* Grille 3 colonnes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          {/* Colonne gauche : grande + petite */}
+          <div className="flex flex-col gap-4">
+            {leftSlots.map(renderCard)}
           </div>
-        </div>
 
-        {/* Indication glisser */}
-        <p className="text-center text-muted-foreground font-sans text-xs mb-16">
-          ← Glissez la carte vers la gauche pour voir le suivant
-        </p>
+          {/* Colonne centre : 3 cartes égales */}
+          <div className="flex flex-col gap-4">
+            {centerSlots.map(renderCard)}
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <div key={stat.libelle} className="glass-card p-5 text-center">
-              <p className="text-3xl font-bold font-serif text-primary">{stat.valeur}</p>
-              <p className="text-muted-foreground font-sans text-sm mt-1">{stat.libelle}</p>
-            </div>
-          ))}
+          {/* Colonne droite : petite + grande */}
+          <div className="flex flex-col gap-4">
+            {rightSlots.map(renderCard)}
+          </div>
+
         </div>
       </div>
     </section>

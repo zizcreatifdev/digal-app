@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Users, ClipboardList, KeyRound, Mail, Receipt,
-  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool, UserCog, Settings2, Users2, MessageSquareQuote,
+  BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool,
+  UserCog, Settings2, Users2, Quote,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +34,6 @@ const userSubItems = [
 
 const otherItems = [
   { title: "Formules & Tarifs", url: "/admin/plans", icon: Tag },
-  { title: "Témoignages", url: "/admin/temoignages", icon: MessageSquareQuote },
   { title: "Contrats", url: "/admin/contrats", icon: PenTool },
   { title: "Emails marketing", url: "/admin/emails", icon: Mail },
   { title: "Facturation Owner", url: "/admin/facturation", icon: Receipt },
@@ -41,6 +41,10 @@ const otherItems = [
   { title: "Documentation", url: "/admin/documentation", icon: FileText },
   { title: "Sécurité & Journal", url: "/admin/securite", icon: ShieldCheck },
   { title: "Paramètres plateforme", url: "/admin/plateforme", icon: Settings2 },
+];
+
+const landingItems = [
+  { title: "Témoignages", url: "/admin/temoignages", icon: Quote },
 ];
 
 export function AdminSidebar() {
@@ -137,6 +141,30 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {otherItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className="!rounded-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-primary/10 transition-all duration-200"
+                      activeClassName="!rounded-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="font-sans">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/50 uppercase text-[10px] tracking-widest font-sans">
+            {!collapsed && "Landing"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {landingItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
