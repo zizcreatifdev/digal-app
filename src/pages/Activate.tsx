@@ -195,7 +195,8 @@ export default function Activate() {
             <CardHeader>
               <CardTitle className="font-serif text-xl">Activer votre compte</CardTitle>
               <p className="text-sm text-muted-foreground font-sans">
-                Compte <strong>{typeLabel[tokenRow.type_compte] ?? tokenRow.type_compte}</strong> pour <strong>{tokenRow.email}</strong>
+                Compte <strong>{typeLabel[tokenRow.type_compte] ?? tokenRow.type_compte}</strong>
+                {tokenRow.email ? <> pour <strong>{tokenRow.email}</strong></> : null}
               </p>
             </CardHeader>
             <CardContent>

@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { OnboardingDM } from "@/components/OnboardingDM";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getAccountAccess } from "@/lib/account-access";
@@ -143,6 +144,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [upgradeModal, setUpgradeModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboardingDM, setShowOnboardingDM] = useState(false);
   const [profile, setProfile] = useState<{
     role?: string | null; plan?: string | null;
     licence_expiration?: string | null; prenom?: string | null;
@@ -166,7 +168,15 @@ const Dashboard = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: prof } = await (supabase as any).from("users").select("*").eq("user_id", user.id).maybeSingle();
       setProfile(prof);
-      if (!prof?.onboarding_completed) setShowOnboarding(true);
+      if (!prof?.onboarding_completed) {
+        const isDmRole = prof?.role === "dm" || (typeof prof?.role === "string" && prof.role.startsWith("agence"));
+        const onboardingRole = localStorage.getItem("onboarding_role");
+        if (isDmRole && onboardingRole === "dm") {
+          setShowOnboardingDM(true);
+        } else {
+          setShowOnboarding(true);
+        }
+      }
 
       if (prof?.licence_expiration && prof.role !== "freemium") {
         const expiry = new Date(prof.licence_expiration);
@@ -409,6 +419,7 @@ const Dashboard = () => {
   })();
 
   if (checkingOnboarding) return null;
+  if (showOnboardingDM) return <OnboardingDM onComplete={() => setShowOnboardingDM(false)} />;
   if (showOnboarding && profile) return <OnboardingWizard profile={profile} onComplete={() => setShowOnboarding(false)} />;
 
   return (
