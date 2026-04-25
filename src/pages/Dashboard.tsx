@@ -428,6 +428,7 @@ const Dashboard = () => {
         {/* ── Hero card ── */}
         <div
           className="liquid-glass-hero rounded-2xl p-6 text-white cursor-pointer select-none"
+          style={{ filter: "url(#radio-glass)" }}
           onClick={() => navigate(heroContent.href)}
         >
           <div className="flex items-center justify-between">
@@ -466,7 +467,7 @@ const Dashboard = () => {
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 animate-fade-in-up">
           {/* Clients actifs */}
-          <GlassCard>
+          <GlassCard className="liquid-glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Clients actifs</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
@@ -501,7 +502,7 @@ const Dashboard = () => {
           </GlassCard>
 
           {/* Posts cette semaine */}
-          <GlassCard>
+          <GlassCard className="liquid-glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Posts cette semaine</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
@@ -525,7 +526,7 @@ const Dashboard = () => {
           </GlassCard>
 
           {/* Liens en attente */}
-          <GlassCard>
+          <GlassCard className="liquid-glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium font-sans text-muted-foreground">Liens en attente</CardTitle>
               <div className="h-8 w-8 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
@@ -556,7 +557,7 @@ const Dashboard = () => {
 
           {/* Factures impayées */}
           <GlassCard
-            className={isFreemium ? "opacity-60 cursor-pointer" : ""}
+            className={isFreemium ? "liquid-glass-card opacity-60 cursor-pointer" : "liquid-glass-card"}
             onClick={() => isFreemium && setUpgradeModal(true)}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
