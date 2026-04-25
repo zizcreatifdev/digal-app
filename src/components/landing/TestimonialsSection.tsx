@@ -11,7 +11,6 @@ interface Testimonial {
   ordre: number;
 }
 
-/* ── Couleur unique crème ────────────────────────────────── */
 const CARD = {
   bg: "#FAF7F4",
   text: "#111111",
@@ -22,30 +21,16 @@ const CARD = {
   boxShadow: "0 2px 12px rgba(80,30,10,0.08)",
 } as const;
 
-/* ── 7 emplacements : colonne, hauteur min ───────────────── */
-const SLOTS = [
-  { col: "left",   minH: 280 },
-  { col: "left",   minH: 180 },
-  { col: "center", minH: 210 },
-  { col: "center", minH: 210 },
-  { col: "center", minH: 210 },
-  { col: "right",  minH: 180 },
-  { col: "right",  minH: 280 },
-] as const;
-
-/* délais stagger en ms */
-const DELAYS = [0, 120, 60, 180, 300, 90, 210];
-
 /* ── Carte ────────────────────────────────────────────────── */
 interface CardProps {
   testimonial: Testimonial;
-  slotIdx: number;
+  idx: number;
   visible: boolean;
   refCb: (el: HTMLDivElement | null) => void;
 }
 
-function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
-  const slot = SLOTS[slotIdx];
+function TestimonialCard({ testimonial, idx, visible, refCb }: CardProps) {
+  const delay = idx * 80;
 
   const initials = testimonial.nom
     .split(" ")
@@ -57,16 +42,16 @@ function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
   return (
     <div
       ref={refCb}
-      data-slot={slotIdx}
+      data-idx={idx}
       className="rounded-2xl p-6 flex flex-col gap-4"
       style={{
         backgroundColor: CARD.bg,
         border: CARD.border,
         boxShadow: CARD.boxShadow,
-        minHeight: slot.minH,
+        minHeight: 220,
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(28px)",
-        transition: `opacity 0.55s ease ${DELAYS[slotIdx]}ms, transform 0.55s ease ${DELAYS[slotIdx]}ms`,
+        transition: `opacity 0.55s ease ${delay}ms, transform 0.55s ease ${delay}ms`,
       }}
     >
       {/* Citation */}
@@ -83,12 +68,12 @@ function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
           <img
             src={testimonial.photo_url}
             alt={testimonial.nom}
-            className="h-16 w-16 rounded-full object-cover shrink-0"
+            className="h-12 w-12 rounded-full object-cover shrink-0"
             style={{ border: CARD.border }}
           />
         ) : (
           <div
-            className="h-16 w-16 rounded-full flex items-center justify-center shrink-0"
+            className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
             style={{ backgroundColor: CARD.avatarBg }}
           >
             <span
@@ -115,10 +100,9 @@ function TestimonialCard({ testimonial, slotIdx, visible, refCb }: CardProps) {
 /* ── Section principale ──────────────────────────────────── */
 export function TestimonialsSection() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [visibleSlots, setVisibleSlots] = useState<Set<number>>(new Set());
-  const refs = useRef<Array<HTMLDivElement | null>>(Array(SLOTS.length).fill(null));
+  const [visibleSet, setVisibleSet] = useState<Set<number>>(new Set());
+  const refs = useRef<Array<HTMLDivElement | null>>([]);
 
-  /* Chargement Supabase */
   useEffect(() => {
     supabase
       .from("testimonials")
@@ -127,12 +111,12 @@ export function TestimonialsSection() {
       .order("ordre")
       .then(({ data }) => {
         if (data && data.length > 0) {
+          refs.current = Array(data.length).fill(null);
           setTestimonials(data as Testimonial[]);
         }
       });
   }, []);
 
-  /* IntersectionObserver — fade-in-up au scroll */
   useEffect(() => {
     if (testimonials.length === 0) return;
 
@@ -140,8 +124,8 @@ export function TestimonialsSection() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const idx = Number(entry.target.getAttribute("data-slot"));
-            setVisibleSlots((prev) => new Set([...prev, idx]));
+            const idx = Number(entry.target.getAttribute("data-idx"));
+            setVisibleSet((prev) => new Set([...prev, idx]));
             observer.unobserve(entry.target);
           }
         });
@@ -149,35 +133,16 @@ export function TestimonialsSection() {
       { threshold: 0.08 }
     );
 
-    refs.current.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-
+    refs.current.forEach((el) => { if (el) observer.observe(el); });
     return () => observer.disconnect();
   }, [testimonials]);
 
   if (testimonials.length === 0) return null;
 
-  /* Distribution des 7 emplacements par colonne */
-  const leftSlots   = [0, 1];
-  const centerSlots = [2, 3, 4];
-  const rightSlots  = [5, 6];
-
-  const renderCard = (slotIdx: number) => (
-    <TestimonialCard
-      key={slotIdx}
-      testimonial={testimonials[slotIdx % testimonials.length]}
-      slotIdx={slotIdx}
-      visible={visibleSlots.has(slotIdx)}
-      refCb={(el) => { refs.current[slotIdx] = el; }}
-    />
-  );
-
   return (
     <section className="py-24 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
 
-        {/* En-tête */}
         <div className="text-center mb-14">
           <h2 className="text-3xl md:text-4xl font-bold font-serif text-[#111111] mb-3">
             Ce que disent nos utilisateurs
@@ -187,25 +152,18 @@ export function TestimonialsSection() {
           </p>
         </div>
 
-        {/* Grille 3 colonnes */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-          {/* Colonne gauche : grande + petite */}
-          <div className="flex flex-col gap-4">
-            {leftSlots.map(renderCard)}
-          </div>
-
-          {/* Colonne centre : 3 cartes égales */}
-          <div className="flex flex-col gap-4">
-            {centerSlots.map(renderCard)}
-          </div>
-
-          {/* Colonne droite : petite + grande */}
-          <div className="flex flex-col gap-4">
-            {rightSlots.map(renderCard)}
-          </div>
-
+          {testimonials.map((t, idx) => (
+            <TestimonialCard
+              key={t.id}
+              testimonial={t}
+              idx={idx}
+              visible={visibleSet.has(idx)}
+              refCb={(el) => { refs.current[idx] = el; }}
+            />
+          ))}
         </div>
+
       </div>
     </section>
   );
