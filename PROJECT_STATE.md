@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-25_
-_Prompt courant : liquid-glass + testimonials — Hero liquid glass, section témoignages landing + admin CRUD_
+_Prompt courant : testimonials-redesign — Fan stack sombre + config admin complète_
 
 ---
 
@@ -275,7 +275,7 @@ _Prompt courant : liquid-glass + testimonials — Hero liquid glass, section té
 | TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
 | Paramètres plateforme | ✅ Complet (prompt-44) | /admin/plateforme — widget countdown : date+heure, toggle show/hide, aperçu jours restants |
 | Suspension/Suppression complète | ✅ Complet (prompt-55) | AuthGuard check statut, page /compte-suspendu, edge fn ban-user, toggle comptes supprimés, cron suppression définitive J+30 |
-| Gestion témoignages | ✅ Complet (liquid-glass) | /admin/temoignages — CRUD complet, upload photo (ImageCropModal), toggle actif, ordre |
+| Gestion témoignages | ✅ Complet (testimonials-redesign) | /admin/temoignages — Config section (badge/titre/sous-titre/4 stats) + CRUD témoignages (photo ImageCropModal, toggle actif, supprimer), migration `testimonials_config` |
 
 ---
 
@@ -310,7 +310,7 @@ _Prompt courant : liquid-glass + testimonials — Hero liquid glass, section té
 | Elite sur mesure | ✅ (prompt-41) | Carte Elite : "Tarif sur mesure" + "Demander un devis" → EliteContactModal |
 | Texte membres dynamique | ✅ (prompt-52) | getMemberText() depuis plans.max_membres — remplace textes hardcodés |
 | EliteContactModal | ✅ (prompt-41) | Form 6 champs, insert table elite_requests, toast 24h |
-| TestimonialsSection | ✅ (liquid-glass) | Stack cards drag/swipe (framer-motion), fallback statique, chargement depuis Supabase `testimonials` |
+| TestimonialsSection | ✅ (testimonials-redesign) | Fond sombre (#0B0F1C), fan stack 3 cartes en éventail, photo en haut, drag/swipe (framer-motion), stats 2×4 en bas, config depuis `testimonials_config` |
 | CTA | ✅ | |
 | Header + Footer | ✅ | Liens /cgu + /privacy |
 | Page /privacy | ✅ (prompt-10) | |
@@ -446,3 +446,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | diag-ameliorations | 9 améliorations : Waitlist logo mobile, Activate/CompteSuspendu dark mode, PreviewPage ios-scroll-container, LandingHeader dark mode, Dashboard fetchStats dédupliqué (useCallback), KpiReportsPage activeNetworks + icônes empty states | 2026-04-25 |
 | glassmorphism | Liquid glass UI : Hero card (sheen + highlight + ring + shadow + bouton glass), GlassCard light mode (backdrop-blur-16 + inset sheen), Dialog + AlertDialog (overlay backdrop-blur-sm + contenu bg/85 backdrop-blur-xl) | 2026-04-25 |
 | liquid-glass | Hero card refactorisé : .liquid-glass-hero CSS (backdrop-blur-28 + saturate + multi-layer inset shadows, suppression overlay divs) ; TestimonialsSection landing (stack drag/swipe framer-motion + fallback statique + stats grid) ; AdminTestimonials CRUD (photo ImageCropModal, toggle actif, supprimer) ; migration 000038_testimonials.sql (table + RLS + storage bucket) | 2026-04-25 |
+| testimonials-redesign | TestimonialsSection redesign : fond sombre #0B0F1C, fan stack 3 cartes en éventail (rotations [-10°,0°,+8°] scales [0.84,0.92,1]), photo en haut de chaque carte, drag/swipe framer-motion, stats 2×4 grid en bas ; AdminTestimonials : panneau config éditable (badge, titre, sous-titre, 4 stats avec valeur+libellé), upsert testimonials_config, collapsible ; migration 000039_testimonials_config.sql | 2026-04-25 |
