@@ -771,12 +771,16 @@ function TeamTab() {
     const { error } = await supabase
       .from("users")
       .delete()
-      .eq("id", memberToRemove.id)
+      .eq("user_id", memberToRemove.user_id)
       .eq("agence_id", profile.agence_id);
     setRemovingMember(false);
     setMemberToRemove(null);
-    if (error) { toast.error("Erreur lors de la suppression du membre"); return; }
-    setTeamMembers((prev) => prev.filter((m) => m.id !== memberToRemove.id));
+    if (error) {
+      toast.error("Impossible de retirer ce membre");
+      if (import.meta.env.DEV) console.error(error);
+      return;
+    }
+    setTeamMembers((prev) => prev.filter((m) => m.user_id !== memberToRemove.user_id));
     toast.success("Membre retiré de l'équipe");
   };
 
