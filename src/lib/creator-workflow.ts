@@ -100,6 +100,23 @@ export async function rejectCreatorUpload(
     "warning",
   );
 
+  // Send push notification if subscriptions exist (silent fail)
+  try {
+    const { data: subs } = await supabase
+      .from("push_subscriptions")
+      .select("id")
+      .eq("user_id", creatorUserId);
+    if (subs && subs.length > 0) {
+      await supabase.functions.invoke("send-push", {
+        body: {
+          userId: creatorUserId,
+          title: "Fichier rejeté",
+          body: `Votre fichier a été rejeté : ${comment}`,
+        },
+      });
+    }
+  } catch { /* silent */ }
+
   // Send rejection email (silent fail)
   try {
     const { data: profile } = await supabase

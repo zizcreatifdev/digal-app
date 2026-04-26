@@ -80,6 +80,13 @@ export function CreateDocumentModal({ open, onOpenChange, type, preselectedClien
     supabase.from("clients").select("id, nom").eq("user_id", user.id).eq("statut", "actif")
       .then(({ data }) => setClients(data ?? []));
     generateNumero(type, user.id).then(setNumero);
+    // Apply TVA default from billing settings
+    supabase.from("site_settings").select("key, value")
+      .eq("key", "billing_tva")
+      .maybeSingle()
+      .then(({ data }) => {
+        setTauxTva(data?.value === "true" ? 18 : 0);
+      });
   }, [open, user, type]);
 
   useEffect(() => {

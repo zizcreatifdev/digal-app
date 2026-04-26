@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-25_
-_Prompt courant : testimonials-refonte — Grille bento 3 colonnes, IntersectionObserver, admin drag-and-drop_
+_Dernière mise à jour : 2026-04-26_
+_Prompt courant : fix E2E-B — verrouillage gracieux freemium + TVA 18% + assignation créateur + push rejet_
 
 ---
 
@@ -450,3 +450,5 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | testimonials-v3 | TestimonialsSection : fond blanc bg-background, animation exacte référence (fan gauche→droite : front -6° x=0%, middle 0° x=33%, back +6° x=66%, drag-left-150px→shuffle), glass-card, photo en haut, stats en bas ; migration 000040_seed_testimonials.sql (3 témoignages par défaut) pour cohérence admin/landing | 2026-04-25 |
 | testimonials-refonte | Refonte complète : migration 000041 (DROP+CREATE table testimonials avec est_actif, 3 témoignages seed Ayssata/Moussa/Fatou) ; TestimonialsSection grille bento 3 colonnes 7 emplacements (orange/noir/crème, IntersectionObserver fade-in-up stagger, no framer-motion, positionné avant PricingSection) ; AdminTestimonials drag-and-drop HTML5 réordonnancement + CRUD complet + ImageCropModal ; AdminSidebar groupe "Landing" avec Quote icon | 2026-04-25 |
 | testimonials-fix | Fix 3 problèmes : migration 000042 RLS WITH CHECK(true) + DELETE doublons ; AdminTestimonials fragment JSX fermé + compteur actifs/masqués ; TestimonialsSection couleur unique crème #FAF7F4 (suppression SCHEMES multi-couleurs) | 2026-04-25 |
+| fix-E2E-A | 5 fixes critiques : CalendarPage onGenerateLink câblé + GeneratePreviewLinkModal ; OnboardingDM TOTAL_STEPS=6 ; OnboardingWizard solo_standard dans PLAN_LABELS ; Activate.tsx getOnboardingDestination complet ; APP_URL config.ts + AdminWaitlist/Dashboard | 2026-04-26 |
+| fix-E2E-B | 4 fixes importants : Comptabilite + KpiReportsPage écran verrouillé freemium gracieux (Lock icon + bouton licence) + routes allowedProfileRoles ; TVA défaut 18% si billing_tva=true en site_settings ; CreatePostModal select créateur agence (DM/CM only) ; push notification rejet créateur (send-push silent fail) | 2026-04-26 |

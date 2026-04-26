@@ -3,9 +3,11 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { getAccountAccess } from "@/lib/account-access";
 import { Document, fetchDocuments } from "@/lib/facturation";
 import { Depense, Salaire, fetchDepenses, fetchSalaires, exportComptabiliteCSV } from "@/lib/comptabilite";
 import { RevenusSection } from "@/components/comptabilite/RevenusSection";
@@ -44,6 +46,8 @@ function generateMonthOptions(): { value: string; label: string }[] {
 
 export default function Comptabilite() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
   const [tab, setTab] = useState("dashboard");
   const [mois, setMois] = useState(getCurrentMonth());
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -54,6 +58,13 @@ export default function Comptabilite() {
   const [salairesPrev, setSalairesPrev] = useState<Salaire[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("users").select("role, plan").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfile(data); });
+  }, [user]);
+
+  const { isFreemium } = getAccountAccess(profile);
   const prevMois = getPrevMonth(mois);
   const monthOptions = generateMonthOptions();
 
@@ -86,6 +97,23 @@ export default function Comptabilite() {
   useEffect(() => {
     load();
   }, [load]);
+
+  if (isFreemium) return (
+    <DashboardLayout>
+      <div className="flex flex-col items-center justify-center h-60 gap-4 text-center p-8">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="text-lg font-semibold font-serif">Fonctionnalité Pro</h3>
+        <p className="text-muted-foreground text-sm max-w-sm font-sans">
+          La comptabilité est disponible à partir du plan CM Pro.
+        </p>
+        <Button onClick={() => navigate("/dashboard/parametres?tab=licence")}>
+          Débloquer avec une licence →
+        </Button>
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>

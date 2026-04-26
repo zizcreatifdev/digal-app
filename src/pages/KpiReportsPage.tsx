@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateKpiReportModal } from "@/components/kpi/CreateKpiReportModal";
-import { FileText, Plus, Download, Eye, Loader2, AlertCircle, MousePointerClick } from "lucide-react";
+import { FileText, Plus, Download, Eye, Loader2, AlertCircle, MousePointerClick, Lock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { getAccountAccess } from "@/lib/account-access";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { KpiReportPreviewModal } from "@/components/kpi/KpiReportPreviewModal";
@@ -23,6 +25,8 @@ function getPrevMonth(ym: string): string {
 
 const KpiReportsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<{ role?: string | null; plan?: string | null } | null>(null);
   const [clients, setClients] = useState<{ id: string; nom: string; logo_url: string | null }[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [reports, setReports] = useState<KpiReport[]>([]);
@@ -33,6 +37,14 @@ const KpiReportsPage = () => {
   const [previewData, setPreviewData] = useState<KpiReportPreviewData | null>(null);
   const [cmName, setCmName] = useState<string>("");
   const [activeNetworks, setActiveNetworks] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("users").select("role, plan").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfile(data); });
+  }, [user]);
+
+  const { isFreemium } = getAccountAccess(profile);
 
   useEffect(() => {
     if (!user) return;
@@ -111,6 +123,23 @@ const KpiReportsPage = () => {
     );
     pdf.save(`KPI-${selectedClientData?.nom ?? ""}-${report.mois}.pdf`);
   };
+
+  if (isFreemium) return (
+    <DashboardLayout>
+      <div className="flex flex-col items-center justify-center h-60 gap-4 text-center p-8">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="text-lg font-semibold font-serif">Fonctionnalité Pro</h3>
+        <p className="text-muted-foreground text-sm max-w-sm font-sans">
+          Les rapports KPI sont disponibles à partir du plan CM Pro.
+        </p>
+        <Button onClick={() => navigate("/dashboard/parametres?tab=licence")}>
+          Débloquer avec une licence →
+        </Button>
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>

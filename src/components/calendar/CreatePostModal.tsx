@@ -12,6 +12,7 @@ import { RESEAUX } from "@/lib/clients";
 import { logPostAction } from "@/lib/activity-logs";
 import { createPost, uploadPostMedia } from "@/lib/posts";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Upload, X, Image, Video, FileText, GripVertical, AlertCircle } from "lucide-react";
 import {
@@ -37,7 +38,7 @@ function FileIcon({ file }: { file: File }) {
 export function CreatePostModal({
   open, onOpenChange, clientId, activeNetworks, defaultDate, onSuccess,
 }: CreatePostModalProps) {
-  const { user } = useAuth();
+  const { user, profileRole } = useAuth();
   const [loading, setLoading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
@@ -52,6 +53,22 @@ export function CreatePostModal({
   const [dragOver, setDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [assigneA, setAssigneA] = useState<string>("");
+  const [creators, setCreators] = useState<{ user_id: string; prenom: string; nom: string }[]>([]);
+
+  const isAgenceMember = profileRole === "dm" || profileRole === "cm" ||
+    profileRole === "agence_standard" || profileRole === "agence_pro";
+
+  // Fetch creators from same agence when modal opens
+  useEffect(() => {
+    if (!open || !user || !isAgenceMember) { setCreators([]); return; }
+    supabase.from("users").select("user_id, prenom, nom, agence_id").eq("user_id", user.id).maybeSingle()
+      .then(({ data: me }) => {
+        if (!me?.agence_id) return;
+        supabase.from("users").select("user_id, prenom, nom").eq("agence_id", me.agence_id).eq("role", "createur")
+          .then(({ data }) => setCreators(data ?? []));
+      });
+  }, [open, user, isAgenceMember]);
 
   const selectedReseau = RESEAUX.find((r) => r.id === reseau);
   const formats = selectedReseau?.formats ?? [];
@@ -66,6 +83,7 @@ export function CreatePostModal({
     setHashtags("");
     setMediaFiles([]);
     setCompressionProgress(0);
+    setAssigneA("");
   };
 
   const addFiles = (files: FileList | File[]) => {
@@ -151,7 +169,7 @@ export function CreatePostModal({
         media_url: urls[0] ?? null,
         media_urls: urls,
         statut: "brouillon",
-        assigne_a: null,
+        assigne_a: assigneA || null,
         review_comment: null,
       });
 
@@ -232,6 +250,25 @@ export function CreatePostModal({
               className="mt-1"
             />
           </div>
+
+          {isAgenceMember && creators.length > 0 && (
+            <div>
+              <Label className="font-sans">Assigner à un créateur (optionnel)</Label>
+              <Select value={assigneA} onValueChange={setAssigneA}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="— Aucun —" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">— Aucun —</SelectItem>
+                  {creators.map((c) => (
+                    <SelectItem key={c.user_id} value={c.user_id}>
+                      {c.prenom} {c.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Multi-file media */}
           <div>
