@@ -64,7 +64,7 @@ _Prompt courant : fix E2E-B — verrouillage gracieux freemium + TVA 18% + assig
 
 ---
 
-### Module CALENDRIER ÉDITORIAL — 100% ✅ (prompt-48B)
+### Module CALENDRIER ÉDITORIAL — 100% ✅ (heatmap)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
 | Vue calendrier mensuelle | ✅ Complet | `EditorialCalendar` |
@@ -80,6 +80,7 @@ _Prompt courant : fix E2E-B — verrouillage gracieux freemium + TVA 18% + assig
 | Filtres par client/réseau | ✅ Complet | |
 | Templates de posts | ✅ Complet | Limite 3 en Freemium (prompt-09) |
 | Assignation à créateur | ✅ Complet | `assigne_a` field |
+| Heatmap charge éditoriale | ✅ Complet (heatmap) | `HeatmapView` — 30j, 5 réseaux, 4 niveaux, stagger CSS |
 | Review par CM | ✅ Complet | `ReviewPostModal` |
 | Blocs périodes production | ✅ Complet (prompt-27) | Shooting/montage/livraison/custom |
 | Couleur libre période custom | ✅ Complet (prompt-27) | Color picker + migration 000014 |
@@ -452,3 +453,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | testimonials-fix | Fix 3 problèmes : migration 000042 RLS WITH CHECK(true) + DELETE doublons ; AdminTestimonials fragment JSX fermé + compteur actifs/masqués ; TestimonialsSection couleur unique crème #FAF7F4 (suppression SCHEMES multi-couleurs) | 2026-04-25 |
 | fix-E2E-A | 5 fixes critiques : CalendarPage onGenerateLink câblé + GeneratePreviewLinkModal ; OnboardingDM TOTAL_STEPS=6 ; OnboardingWizard solo_standard dans PLAN_LABELS ; Activate.tsx getOnboardingDestination complet ; APP_URL config.ts + AdminWaitlist/Dashboard | 2026-04-26 |
 | fix-E2E-B | 4 fixes importants : Comptabilite + KpiReportsPage écran verrouillé freemium gracieux (Lock icon + bouton licence) + routes allowedProfileRoles ; TVA défaut 18% si billing_tva=true en site_settings ; CreatePostModal select créateur agence (DM/CM only) ; push notification rejet créateur (send-push silent fail) | 2026-04-26 |
+| heatmap | Heatmap charge éditoriale : HeatmapView.tsx (lignes=réseaux, colonnes=30j, 4 niveaux hachures/orange) sous le calendrier, stagger CSS 20ms/col, tooltip, scroll horizontal mobile | 2026-04-26 |
