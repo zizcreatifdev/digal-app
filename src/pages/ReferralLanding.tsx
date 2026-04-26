@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +26,18 @@ const PLAN_LABELS: Record<string, string> = {
 
 const SLIDES = ["Découverte", "Fonctionnalités", "Équipe", "Tarifs", "Inscription"];
 
+const schema = z.object({
+  prenom: z.string().min(2, "Minimum 2 caractères"),
+  nom: z.string().min(2, "Minimum 2 caractères"),
+  email: z.string().email("Email invalide"),
+  password: z.string().min(8, "Minimum 8 caractères"),
+  confirmPassword: z.string(),
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  { message: "Les mots de passe ne correspondent pas", path: ["confirmPassword"] }
+);
+type FormData = z.infer<typeof schema>;
+
 const ReferralLanding = () => {
   usePageTitle("Digal · Invitation parrainage");
   const { code } = useParams<{ code: string }>();
@@ -33,13 +48,11 @@ const ReferralLanding = () => {
   const [referrerId, setReferrerId] = useState<string | null>(null);
   const [invalidCode, setInvalidCode] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("freemium");
-
-  const [prenom, setPrenom] = useState("");
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
 
   useEffect(() => {
     if (!code) { setInvalidCode(true); return; }
@@ -61,28 +74,24 @@ const ReferralLanding = () => {
     setStep(4);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) { toast.error("Les mots de passe ne correspondent pas."); return; }
-    if (password.length < 8) { toast.error("Le mot de passe doit contenir au moins 8 caractères."); return; }
-
+  const onSubmit = async (data: FormData) => {
     setSubmitting(true);
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error || !data.user) {
+    const { data: authData, error } = await supabase.auth.signUp({ email: data.email, password: data.password });
+    if (error || !authData.user) {
       setSubmitting(false);
       toast.error(error?.message || "Erreur lors de la création du compte.");
       return;
     }
 
-    const userId = data.user.id;
+    const userId = authData.user.id;
     const referralCode = "DIG" + Math.random().toString(36).toUpperCase().slice(2, 8);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: profileError } = await (supabase as any).from("users").insert({
       user_id: userId,
-      email,
-      prenom,
-      nom,
+      email: data.email,
+      prenom: data.prenom,
+      nom: data.nom,
       role: "freemium",
       plan: "freemium",
       referred_by: referrerId,
@@ -101,7 +110,6 @@ const ReferralLanding = () => {
       });
     }
 
-    // Log inscription activity (fire-and-forget)
     logAuth(userId, "Inscription via parrainage").catch(() => {/* silent */});
 
     setSubmitting(false);
@@ -201,35 +209,37 @@ const ReferralLanding = () => {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Label htmlFor="ref-prenom" className="font-sans text-sm">Prénom *</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="ref-prenom"
                         placeholder="Amadou"
-                        value={prenom}
-                        onChange={(e) => setPrenom(e.target.value)}
+                        {...register("prenom")}
                         className="pl-10"
-                        required
                       />
                     </div>
+                    {errors.prenom && (
+                      <p className="text-xs text-destructive font-sans">{errors.prenom.message}</p>
+                    )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Label htmlFor="ref-nom" className="font-sans text-sm">Nom *</Label>
                     <Input
                       id="ref-nom"
                       placeholder="Diallo"
-                      value={nom}
-                      onChange={(e) => setNom(e.target.value)}
-                      required
+                      {...register("nom")}
                     />
+                    {errors.nom && (
+                      <p className="text-xs text-destructive font-sans">{errors.nom.message}</p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="ref-email" className="font-sans text-sm">Email *</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -237,15 +247,16 @@ const ReferralLanding = () => {
                       id="ref-email"
                       type="email"
                       placeholder="vous@exemple.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      {...register("email")}
                       className="pl-10"
-                      required
                     />
                   </div>
+                  {errors.email && (
+                    <p className="text-xs text-destructive font-sans">{errors.email.message}</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="ref-password" className="font-sans text-sm">
                     Mot de passe * <span className="text-muted-foreground font-normal">(min 8 caractères)</span>
                   </Label>
@@ -255,16 +266,16 @@ const ReferralLanding = () => {
                       id="ref-password"
                       type="password"
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      {...register("password")}
                       className="pl-10"
-                      required
-                      minLength={8}
                     />
                   </div>
+                  {errors.password && (
+                    <p className="text-xs text-destructive font-sans">{errors.password.message}</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="ref-confirm" className="font-sans text-sm">Confirmer le mot de passe *</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -272,13 +283,13 @@ const ReferralLanding = () => {
                       id="ref-confirm"
                       type="password"
                       placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      {...register("confirmPassword")}
                       className="pl-10"
-                      required
-                      minLength={8}
                     />
                   </div>
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-destructive font-sans">{errors.confirmPassword.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
