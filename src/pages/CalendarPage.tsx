@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
+import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ interface CalendarClient {
   couleur_marque: string | null;
   logo_url: string | null;
   assigned_cm: string | null;
+  preview_slug: string | null;
 }
 
 interface CmInfo { prenom: string; nom: string; avatar_url: string | null; }
@@ -25,6 +27,7 @@ const CalendarPage = () => {
   const [loading, setLoading] = useState(true);
   const [profileRole, setProfileRole] = useState<string | null | undefined>(undefined);
   const [cmInfo, setCmInfo] = useState<CmInfo | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -40,7 +43,7 @@ const CalendarPage = () => {
     if (!user || profileRole === undefined) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase.from("clients") as any)
-      .select("id, nom, couleur_marque, logo_url, assigned_cm")
+      .select("id, nom, couleur_marque, logo_url, assigned_cm, preview_slug")
       .eq("statut", "actif")
       .order("nom");
 
@@ -149,12 +152,22 @@ const CalendarPage = () => {
             <p className="text-muted-foreground font-sans">Aucun client actif. Ajoutez un client pour accéder au calendrier.</p>
           </div>
         ) : selected ? (
-          <EditorialCalendar
-            clientId={selected.id}
-            clientName={selected.nom}
-            clientColor={selected.couleur_marque ?? "#C4522A"}
-            activeNetworks={networks}
-          />
+          <>
+            <EditorialCalendar
+              clientId={selected.id}
+              clientName={selected.nom}
+              clientColor={selected.couleur_marque ?? "#C4522A"}
+              activeNetworks={networks}
+              onGenerateLink={() => setShowPreviewModal(true)}
+            />
+            <GeneratePreviewLinkModal
+              open={showPreviewModal}
+              onOpenChange={setShowPreviewModal}
+              clientId={selected.id}
+              clientName={selected.nom}
+              clientSlug={selected.preview_slug}
+            />
+          </>
         ) : null}
       </div>
     </DashboardLayout>

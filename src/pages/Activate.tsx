@@ -99,9 +99,6 @@ export default function Activate() {
 
       setPageState("success");
       const destination = getOnboardingDestination(tokenRow.type_compte);
-      if (destination.includes("onboarding=")) {
-        localStorage.setItem("onboarding_role", destination.split("onboarding=")[1]);
-      }
       setTimeout(() => navigate(destination), 2500);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de l'activation");
@@ -121,9 +118,19 @@ export default function Activate() {
   };
 
   const getOnboardingDestination = (type_compte: string): string => {
-    if (type_compte === "cm") return "/dashboard?onboarding=cm";
-    if (type_compte === "createur") return "/dashboard?onboarding=createur";
-    if (type_compte === "dm" || type_compte.startsWith("agence")) return "/dashboard?onboarding=dm";
+    if (type_compte === "cm") {
+      localStorage.setItem("onboarding_role", "cm");
+      return "/dashboard?onboarding=cm";
+    }
+    if (type_compte === "createur") {
+      localStorage.setItem("onboarding_role", "createur");
+      return "/dashboard?onboarding=createur";
+    }
+    if (type_compte === "dm" || type_compte.startsWith("agence")) {
+      localStorage.setItem("onboarding_role", "dm");
+      return "/dashboard?onboarding=dm";
+    }
+    // freemium, solo, solo_standard → dashboard sans onboarding spécifique
     return "/dashboard";
   };
 

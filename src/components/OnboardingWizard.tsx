@@ -27,6 +27,8 @@ interface OnboardingWizardProps {
 const PLAN_LABELS: Record<string, string> = {
   freemium: "Découverte",
   solo: "CM Pro",
+  solo_standard: "CM Pro",
+  agence: "Agence",
   agence_standard: "Studio",
   agence_pro: "Elite",
 };

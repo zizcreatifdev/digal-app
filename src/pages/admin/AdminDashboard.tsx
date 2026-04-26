@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/AdminLayout";
+import { APP_URL } from "@/lib/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
@@ -293,7 +294,7 @@ function getAlertMessage(alert: AlertEntry): string {
       "pas encore connecté(e).",
       "",
       "Accédez à votre espace ici :",
-      "digal.vercel.app/login",
+      `${APP_URL}/login`,
       "",
       "Besoin d'aide ? Répondez à ce message.",
       "",

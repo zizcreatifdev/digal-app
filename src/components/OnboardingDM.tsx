@@ -19,7 +19,7 @@ interface OnboardingDMProps {
   onComplete: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 export function OnboardingDM({ onComplete }: OnboardingDMProps) {
   const { user } = useAuth();

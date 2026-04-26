@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { APP_URL } from "@/lib/config";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -337,7 +338,7 @@ export default function AdminWaitlist() {
     }) => {
       const planSlug = TYPE_COMPTE_TO_PLAN_SLUG[entry.type_compte ?? "solo"] ?? "solo_standard";
       const planLabel = PLAN_SLUG_LABELS[planSlug] ?? (entry.type_compte ?? "Solo");
-      const activationLink = `https://digal.vercel.app/activate/${tokenInfo.token}`;
+      const activationLink = `${APP_URL}/activate/${tokenInfo.token}`;
 
       const template = activationMessages?.find((m) => m.plan_slug === planSlug)?.message;
       let message: string;
