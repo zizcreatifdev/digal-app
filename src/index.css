@@ -222,3 +222,36 @@
     /* Empêche le zoom auto iOS sur focus */
   }
 }
+
+/* ── Heatmap charge éditoriale ────────────────────────────── */
+.heatmap-cell-0 {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(232,81,26,0.15) 3px,
+    rgba(232,81,26,0.15) 4px
+  );
+}
+.heatmap-cell-1 { background: #FDBA74; }
+.heatmap-cell-2 { background: #F97316; }
+.heatmap-cell-3 { background: #EA580C; }
+
+.heatmap-cell {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease,
+              opacity 0.15s ease;
+  animation: heatmap-appear 0.2s ease both;
+}
+.heatmap-cell:hover {
+  transform: scale(1.15);
+  opacity: 0.9;
+}
+
+@keyframes heatmap-appear {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}

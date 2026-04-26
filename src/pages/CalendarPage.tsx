@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { EditorialCalendar } from "@/components/calendar/EditorialCalendar";
+import { HeatmapView } from "@/components/calendar/HeatmapView";
 import { GeneratePreviewLinkModal } from "@/components/preview/GeneratePreviewLinkModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -160,6 +161,7 @@ const CalendarPage = () => {
               activeNetworks={networks}
               onGenerateLink={() => setShowPreviewModal(true)}
             />
+            <HeatmapView clientId={selected.id} activeNetworks={networks} />
             <GeneratePreviewLinkModal
               open={showPreviewModal}
               onOpenChange={setShowPreviewModal}
