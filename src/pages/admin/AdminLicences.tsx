@@ -102,6 +102,7 @@ interface InvoicePreviewProps {
 function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, prixNormal, remisePct, remiseMontant, promoPercent, remisePromo, prixFinal, offert, payMethod, payRef }: InvoicePreviewProps) {
   const today = new Date();
   const endDate = addMonths(today, durationMonths);
+  const prixApresRemises = prixNormal - remiseMontant - remisePromo;
 
   return (
     <div style={{ fontFamily: "serif", fontSize: 11, color: "#1a1a1a", lineHeight: 1.5 }}>
@@ -138,26 +139,29 @@ function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, pri
         <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1, color: "#999", marginBottom: 6 }}>Prestation</div>
         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>
           <span>Licence {TYPE_LABELS[planType] ?? planType} — {durationMonths} mois</span>
-          <span>{offert ? "Offert" : formatFCFA(prixNormal)}</span>
+          <span>{formatFCFA(prixNormal)}</span>
         </div>
-        {!offert && remisePct > 0 && (
+        {remisePct > 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", color: "#e94e1b", fontSize: 10, marginTop: 4 }}>
             <span>Remise {durationMonths} mois {remisePct}%</span>
             <span>- {formatFCFA(remiseMontant)}</span>
           </div>
         )}
-        {!offert && promoPercent > 0 && remisePromo > 0 && (
+        {promoPercent > 0 && remisePromo > 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", color: "#e94e1b", fontSize: 10, marginTop: 4 }}>
             <span>Code promo {promoPercent}%</span>
             <span>- {formatFCFA(remisePromo)}</span>
           </div>
         )}
+        {offert && prixApresRemises > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", color: "#e94e1b", fontSize: 10, fontWeight: 600, marginTop: 4 }}>
+            <span>Offert</span>
+            <span>- {formatFCFA(prixApresRemises)}</span>
+          </div>
+        )}
         <div style={{ fontSize: 9, color: "#777", marginTop: 4 }}>
           Du {toLocaleFR(today)} au {toLocaleFR(endDate)}
         </div>
-        {offert && (
-          <div style={{ fontSize: 9, color: "#e94e1b", marginTop: 2, fontStyle: "italic" }}>Offert — 0 FCFA</div>
-        )}
       </div>
 
       {/* Total */}
