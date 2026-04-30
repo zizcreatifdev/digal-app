@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus, AlertCircle, Search, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { copyToClipboard } from "@/lib/clipboard";
 import { Switch } from "@/components/ui/switch";
@@ -22,6 +23,16 @@ interface PlanConfig {
   duree_mois: number;
   prix_fcfa: number;
   est_actif: boolean;
+}
+
+interface UserResult {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  role: string;
+  licence_expiration: string | null;
+  plan: string | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -37,6 +48,16 @@ const TYPE_SHORT: Record<string, string> = {
   agence_pro: "PRO",
 };
 
+const PLAN_LABEL: Record<string, string> = {
+  freemium: "Freemium",
+  solo: "CM Pro",
+  solo_standard: "CM Pro",
+  agence_standard: "Studio",
+  agence_pro: "Elite",
+  cm: "CM",
+  createur: "Créateur",
+};
+
 function generateKeyCode(type: string): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const array = new Uint8Array(6);
@@ -45,6 +66,104 @@ function generateKeyCode(type: string): string {
   return `DIGAL-${TYPE_SHORT[type] ?? "SOLO"}-${suffix}`;
 }
 
+function formatFCFA(n: number) {
+  return n.toLocaleString("fr-FR") + " FCFA";
+}
+
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function toLocaleFR(date: Date) {
+  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+// ── Inline invoice preview component ─────────────────────────────────────────
+interface InvoicePreviewProps {
+  invoiceNum: string;
+  user: UserResult | null;
+  planType: string;
+  durationMonths: number;
+  prix: number;
+  offert: boolean;
+  payMethod: string;
+  payRef: string;
+}
+
+function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, prix, offert, payMethod, payRef }: InvoicePreviewProps) {
+  const today = new Date();
+  const endDate = addMonths(today, durationMonths);
+
+  return (
+    <div style={{ fontFamily: "serif", fontSize: 11, color: "#1a1a1a", lineHeight: 1.5 }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "#e94e1b", letterSpacing: 1 }}>DIGAL</div>
+          <div style={{ fontSize: 9, color: "#666" }}>digal.sn</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 700, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 }}>Facture de licence</div>
+          <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>N° {invoiceNum}</div>
+          <div style={{ fontSize: 10, color: "#555" }}>{toLocaleFR(today)}</div>
+        </div>
+      </div>
+
+      <hr style={{ border: "none", borderTop: "1px solid #ddd", margin: "10px 0" }} />
+
+      {/* Billed to */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1, color: "#999", marginBottom: 4 }}>Facturé à</div>
+        {user ? (
+          <>
+            <div style={{ fontWeight: 600 }}>{user.prenom} {user.nom}</div>
+            <div style={{ fontSize: 10, color: "#555" }}>{user.email}</div>
+          </>
+        ) : (
+          <div style={{ color: "#aaa", fontStyle: "italic", fontSize: 10 }}>Sélectionner un utilisateur…</div>
+        )}
+      </div>
+
+      {/* Line items */}
+      <div style={{ background: "#f7f7f7", borderRadius: 4, padding: "10px 12px", marginBottom: 12 }}>
+        <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1, color: "#999", marginBottom: 6 }}>Prestation</div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>
+          <span>Licence {TYPE_LABELS[planType] ?? planType} — {durationMonths} mois</span>
+          <span>{offert ? "0 FCFA" : formatFCFA(prix)}</span>
+        </div>
+        <div style={{ fontSize: 9, color: "#777", marginTop: 4 }}>
+          Du {toLocaleFR(today)} au {toLocaleFR(endDate)}
+        </div>
+        {offert && (
+          <div style={{ fontSize: 9, color: "#e94e1b", marginTop: 2, fontStyle: "italic" }}>Offert — 0 FCFA</div>
+        )}
+      </div>
+
+      {/* Total */}
+      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 13, padding: "8px 12px", background: "#1a1a1a", color: "#fff", borderRadius: 4, marginBottom: 12 }}>
+        <span>Total</span>
+        <span>{offert ? "0 FCFA" : formatFCFA(prix)}</span>
+      </div>
+
+      {/* Payment info */}
+      {(payMethod || payRef) && (
+        <div style={{ fontSize: 9, color: "#666", marginBottom: 10 }}>
+          {payMethod && <div><strong>Mode :</strong> {payMethod}</div>}
+          {payRef && <div><strong>Réf. :</strong> {payRef}</div>}
+        </div>
+      )}
+
+      <hr style={{ border: "none", borderTop: "1px solid #eee", margin: "10px 0" }} />
+      <div style={{ fontSize: 8, color: "#aaa", textAlign: "center" }}>
+        Digal · digal.sn · noreply@digal.sn
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminLicences() {
   const queryClient = useQueryClient();
 
@@ -62,6 +181,17 @@ export default function AdminLicences() {
   const [copied, setCopied] = useState(false);
   const [genPromo, setGenPromo] = useState(false);
   const [genPromoDiscount, setGenPromoDiscount] = useState("30");
+  const [genOffert, setGenOffert] = useState(false);
+  const [genPayMethod, setGenPayMethod] = useState("");
+  const [genPayRef, setGenPayRef] = useState("");
+
+  // User search in generate dialog
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<UserResult[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserResult | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Extend license dialog
   const [extendUser, setExtendUser] = useState<{ id: string; email: string; licence_expiration: string | null } | null>(null);
@@ -112,6 +242,52 @@ export default function AdminLicences() {
 
   const licensedUsers = users?.filter(u => u.role !== "freemium") ?? [];
 
+  // Derived invoice data
+  const currentPlanConfig = (planConfigs ?? []).find(
+    c => c.plan_type === genType && c.duree_mois === parseInt(genDuration)
+  );
+  const invoiceNum = (() => {
+    const year = new Date().getFullYear();
+    const n = (licenseKeys?.length ?? 0) + 1;
+    return `LIC-DIG-${year}-${String(n).padStart(4, "0")}`;
+  })();
+
+  // Debounced user search
+  const doSearch = useCallback(async (q: string) => {
+    if (q.trim().length < 2) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    setSearchLoading(true);
+    const { data } = await supabase
+      .from("users")
+      .select("id, prenom, nom, email, role, licence_expiration, plan")
+      .or(`prenom.ilike.%${q}%,nom.ilike.%${q}%,email.ilike.%${q}%`)
+      .limit(10);
+    setSearchResults((data ?? []) as UserResult[]);
+    setSearchOpen(true);
+    setSearchLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => doSearch(searchQuery), 300);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [searchQuery, doSearch]);
+
+  const handleSelectUser = (u: UserResult) => {
+    setSelectedUser(u);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchOpen(false);
+  };
+
+  const handleClearUser = () => {
+    setSelectedUser(null);
+    setSearchQuery("");
+  };
+
   const activateLicense = useMutation({
     mutationFn: async () => {
       const expDate = new Date();
@@ -153,7 +329,6 @@ export default function AdminLicences() {
 
   const extendLicenseMutation = useMutation({
     mutationFn: async ({ userId, months }: { userId: string; months: number }) => {
-      // Get current expiry
       const { data: u, error: eErr } = await supabase.from("users").select("licence_expiration").eq("id", userId).single();
       if (eErr) throw eErr;
       const base = u?.licence_expiration ? new Date(u.licence_expiration) : new Date();
@@ -181,6 +356,11 @@ export default function AdminLicences() {
     setCopied(false);
     setGenPromo(false);
     setGenPromoDiscount("30");
+    setGenOffert(false);
+    setGenPayMethod("");
+    setGenPayRef("");
+    setSelectedUser(null);
+    setSearchQuery("");
     setShowGenerate(true);
   };
 
@@ -319,79 +499,194 @@ export default function AdminLicences() {
           </Card>
         )}
 
-        {/* Generate key dialog */}
-        <Dialog open={showGenerate} onOpenChange={(v) => { setShowGenerate(v); if (!v) setGeneratedKey(""); }}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+        {/* ── Generate key dialog ─────────────────────────────────────────── */}
+        <Dialog open={showGenerate} onOpenChange={(v) => { setShowGenerate(v); if (!v) { setGeneratedKey(""); setSelectedUser(null); setSearchQuery(""); } }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Générer une clé de licence</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Type de licence</Label>
-                <Select value={genType} onValueChange={setGenType} disabled={!!generatedKey}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="solo">CM Pro</SelectItem>
-                    <SelectItem value="agence_standard">Studio</SelectItem>
-                    <SelectItem value="agence_pro">Elite</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Durée</Label>
-                <Select
-                  value={genDuration}
-                  onValueChange={setGenDuration}
-                  disabled={!!generatedKey}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une durée" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(planConfigs ?? [])
-                      .filter((c) => c.plan_type === genType)
-                      .map((c) => (
-                        <SelectItem key={c.id} value={String(c.duree_mois)}>
-                          {c.duree_mois === 12 ? "12 mois (1 an)" : `${c.duree_mois} mois`}
-                          {" — "}
-                          {c.prix_fcfa.toLocaleString("fr-FR")} FCFA
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Promo key */}
-              <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-primary" />
+
+            <div className="grid grid-cols-2 gap-6">
+              {/* ── Left: form ── */}
+              <div className="space-y-4">
+                {/* User search */}
+                <div>
+                  <Label>Utilisateur (optionnel)</Label>
+                  {selectedUser ? (
+                    <div className="mt-1.5 flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                          {(selectedUser.prenom[0] ?? "") + (selectedUser.nom[0] ?? "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{selectedUser.prenom} {selectedUser.nom}</p>
+                        <p className="text-xs text-muted-foreground truncate">{selectedUser.email}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{PLAN_LABEL[selectedUser.role] ?? selectedUser.role}</Badge>
+                          {selectedUser.licence_expiration && (
+                            <span className="text-[10px] text-muted-foreground">
+                              exp. {new Date(selectedUser.licence_expiration).toLocaleDateString("fr-FR")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={handleClearUser} className="shrink-0 text-muted-foreground hover:text-foreground">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative mt-1.5">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        className="pl-8"
+                        placeholder="Rechercher un utilisateur…"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+                        disabled={!!generatedKey}
+                      />
+                      {searchLoading && (
+                        <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                      {searchOpen && searchResults.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+                          {searchResults.map(u => (
+                            <button
+                              key={u.id}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-accent text-left transition-colors"
+                              onClick={() => handleSelectUser(u)}
+                            >
+                              <Avatar className="h-7 w-7 shrink-0">
+                                <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
+                                  {(u.prenom[0] ?? "") + (u.nom[0] ?? "")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{u.prenom} {u.nom}</p>
+                                <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                              </div>
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{PLAN_LABEL[u.role] ?? u.role}</Badge>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Type */}
+                <div>
+                  <Label>Type de licence</Label>
+                  <Select value={genType} onValueChange={setGenType} disabled={!!generatedKey}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="solo">CM Pro</SelectItem>
+                      <SelectItem value="agence_standard">Studio</SelectItem>
+                      <SelectItem value="agence_pro">Elite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <Label>Durée</Label>
+                  <Select value={genDuration} onValueChange={setGenDuration} disabled={!!generatedKey}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une durée" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(planConfigs ?? [])
+                        .filter((c) => c.plan_type === genType)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={String(c.duree_mois)}>
+                            {c.duree_mois === 12 ? "12 mois (1 an)" : `${c.duree_mois} mois`}
+                            {" — "}
+                            {c.prix_fcfa.toLocaleString("fr-FR")} FCFA
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Offert toggle */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
                   <div>
-                    <p className="text-sm font-medium">Clé promotionnelle</p>
-                    <p className="text-xs text-muted-foreground">Réduction sur le prix affiché</p>
+                    <p className="text-sm font-medium">Licence offerte</p>
+                    <p className="text-xs text-muted-foreground">Montant affiché à 0 FCFA</p>
+                  </div>
+                  <Switch checked={genOffert} onCheckedChange={setGenOffert} disabled={!!generatedKey} />
+                </div>
+
+                {/* Promo key */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Clé promotionnelle</p>
+                      <p className="text-xs text-muted-foreground">Réduction sur le prix affiché</p>
+                    </div>
+                  </div>
+                  <Switch checked={genPromo} onCheckedChange={setGenPromo} disabled={!!generatedKey} />
+                </div>
+                {genPromo && !generatedKey && (
+                  <div className="flex items-center gap-2">
+                    <Label className="whitespace-nowrap">Remise (%)</Label>
+                    <Input type="number" value={genPromoDiscount} onChange={e => setGenPromoDiscount(e.target.value)} min="1" max="100" className="w-24" />
+                    <span className="text-xs text-muted-foreground">Ex : 30 = -30%</span>
+                  </div>
+                )}
+
+                {/* Payment info */}
+                {!generatedKey && (
+                  <>
+                    <div>
+                      <Label>Mode de paiement</Label>
+                      <Input placeholder="Wave, Orange Money, virement…" value={genPayMethod} onChange={e => setGenPayMethod(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Référence paiement</Label>
+                      <Input placeholder="Ex : OM-20260430-XXXX" value={genPayRef} onChange={e => setGenPayRef(e.target.value)} />
+                    </div>
+                  </>
+                )}
+
+                {/* Generated key display */}
+                {generatedKey && (
+                  <div className="rounded-lg bg-muted p-3 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="font-mono text-sm font-semibold">{generatedKey}</span>
+                      {genPromo && <Badge className="ml-2 bg-primary/10 text-primary text-[10px]">-{genPromoDiscount}%</Badge>}
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={handleCopy}>
+                      {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Right: invoice preview ── */}
+              <div>
+                <Label className="mb-2 block">Aperçu facture</Label>
+                <div className="rounded-lg border border-border bg-white overflow-hidden" style={{ minHeight: 340 }}>
+                  <div className="p-5">
+                    <LicenceInvoicePreview
+                      invoiceNum={invoiceNum}
+                      user={selectedUser}
+                      planType={genType}
+                      durationMonths={parseInt(genDuration) || 6}
+                      prix={currentPlanConfig?.prix_fcfa ?? 0}
+                      offert={genOffert}
+                      payMethod={genPayMethod}
+                      payRef={genPayRef}
+                    />
                   </div>
                 </div>
-                <Switch checked={genPromo} onCheckedChange={setGenPromo} disabled={!!generatedKey} />
               </div>
-              {genPromo && !generatedKey && (
-                <div className="flex items-center gap-2">
-                  <Label className="whitespace-nowrap">Remise (%)</Label>
-                  <Input type="number" value={genPromoDiscount} onChange={e => setGenPromoDiscount(e.target.value)} min="1" max="100" className="w-24" />
-                  <span className="text-xs text-muted-foreground">Ex : 30 = -30% de lancement</span>
-                </div>
-              )}
-              {generatedKey && (
-                <div className="rounded-lg bg-muted p-3 flex items-center justify-between gap-2">
-                  <div>
-                    <span className="font-mono text-sm font-semibold">{generatedKey}</span>
-                    {genPromo && <Badge className="ml-2 bg-primary/10 text-primary text-[10px]">-{genPromoDiscount}%</Badge>}
-                  </div>
-                  <Button size="icon" variant="ghost" onClick={handleCopy}>
-                    {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              )}
             </div>
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setShowGenerate(false); setGeneratedKey(""); }}>Fermer</Button>
+              <Button variant="outline" onClick={() => { setShowGenerate(false); setGeneratedKey(""); setSelectedUser(null); setSearchQuery(""); }}>Fermer</Button>
               {!generatedKey && (
                 <Button onClick={() => generateKey.mutate()} disabled={generateKey.isPending}>
                   {generateKey.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Générer
@@ -401,7 +696,7 @@ export default function AdminLicences() {
           </DialogContent>
         </Dialog>
 
-        {/* Extend license dialog */}
+        {/* ── Extend license dialog ──────────────────────────────────────────── */}
         <Dialog open={!!extendUser} onOpenChange={(v) => !v && setExtendUser(null)}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -431,7 +726,7 @@ export default function AdminLicences() {
           </DialogContent>
         </Dialog>
 
-        {/* Activate existing user dialog */}
+        {/* ── Activate existing user dialog ──────────────────────────────────── */}
         <Dialog open={showActivate} onOpenChange={setShowActivate}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>

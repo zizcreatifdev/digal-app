@@ -22,6 +22,7 @@ interface EmailPayload {
   type_compte_label?: string;  // activation
   subject?: string;            // marketing
   html?: string;               // marketing (raw text, newlines → <br>)
+  attachments?: Array<{ content: string; name: string }>;  // base64 attachments
 }
 
 function wrapHtml(body: string): string {
@@ -205,6 +206,7 @@ Deno.serve(async (req) => {
         to: [{ email: payload.to }],
         subject,
         htmlContent: html,
+        ...(payload.attachments?.length ? { attachment: payload.attachments.map(a => ({ content: a.content, name: a.name })) } : {}),
       }),
     });
 
