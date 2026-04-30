@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, ArrowRight, Loader2, CheckCircle, Briefcase } from "lucide-react";
+import { User, Mail, Phone, ArrowRight, Loader2, CheckCircle, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -17,6 +17,7 @@ const waitlistSchema = z.object({
   prenom: z.string().min(1, "Prénom obligatoire"),
   nom: z.string().min(1, "Nom obligatoire"),
   email: z.string().email("Email invalide"),
+  telephone: z.string().optional(),
 });
 type WaitlistFormData = z.infer<typeof waitlistSchema>;
 
@@ -56,7 +57,7 @@ const Waitlist = () => {
     }
 
     const { error } = await supabase.from("waitlist").insert([
-      { prenom: formData.prenom, nom: formData.nom, email: formData.email, type_compte: typeCompte, statut: "en_attente" },
+      { prenom: formData.prenom, nom: formData.nom, email: formData.email, telephone: formData.telephone || null, type_compte: typeCompte, statut: "en_attente" },
     ]);
     setLoading(false);
 
@@ -183,6 +184,21 @@ const Waitlist = () => {
                   />
                 </div>
                 {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="telephone" className="font-sans text-sm">Numéro WhatsApp <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="telephone"
+                    type="tel"
+                    placeholder="+221 77 000 00 00"
+                    {...register("telephone")}
+                    className="pl-10"
+                  />
+                </div>
+                {errors.telephone && <p className="text-xs text-destructive">{errors.telephone.message}</p>}
               </div>
 
               <div className="space-y-2">

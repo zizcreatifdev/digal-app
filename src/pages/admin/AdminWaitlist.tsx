@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle, XCircle, Copy, RefreshCw, Users, Star, MessageSquare, Save } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Copy, RefreshCw, Users, Star, MessageSquare, Save, Phone, MessageCircle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -20,6 +20,7 @@ interface WaitlistEntry {
   prenom: string | null;
   nom: string | null;
   email: string;
+  telephone?: string | null;
   type_compte: string | null;
   statut: string | null;
   created_at: string;
@@ -585,7 +586,12 @@ export default function AdminWaitlist() {
 
                         return (
                           <TableRow key={e.id}>
-                            <TableCell className="font-medium">{e.prenom} {e.nom}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-1.5">
+                                <span>{e.prenom} {e.nom}</span>
+                                {e.telephone && <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-sm">{e.email}</TableCell>
                             <TableCell><Badge variant="outline">{e.type_compte ?? "solo"}</Badge></TableCell>
                             <TableCell>
@@ -682,6 +688,18 @@ export default function AdminWaitlist() {
                                     <RefreshCw className="h-3 w-3" />
                                     {tokenInfo ? "Regénérer" : "Générer lien"}
                                   </Button>
+                                )}
+                                {e.telephone && (
+                                  <a
+                                    href={`https://wa.me/${e.telephone.replace(/\s+/g, "")}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+                                      <MessageCircle className="h-3 w-3" />
+                                      WhatsApp
+                                    </Button>
+                                  </a>
                                 )}
                               </div>
                             </TableCell>
