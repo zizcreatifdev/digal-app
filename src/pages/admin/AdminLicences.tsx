@@ -88,13 +88,16 @@ interface InvoicePreviewProps {
   user: UserResult | null;
   planType: string;
   durationMonths: number;
-  prix: number;
+  prixNormal: number;
+  remisePct: number;
+  remiseMontant: number;
+  prixFinal: number;
   offert: boolean;
   payMethod: string;
   payRef: string;
 }
 
-function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, prix, offert, payMethod, payRef }: InvoicePreviewProps) {
+function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, prixNormal, remisePct, remiseMontant, prixFinal, offert, payMethod, payRef }: InvoicePreviewProps) {
   const today = new Date();
   const endDate = addMonths(today, durationMonths);
 
@@ -133,8 +136,14 @@ function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, pri
         <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1, color: "#999", marginBottom: 6 }}>Prestation</div>
         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>
           <span>Licence {TYPE_LABELS[planType] ?? planType} — {durationMonths} mois</span>
-          <span>{offert ? "0 FCFA" : formatFCFA(prix)}</span>
+          <span>{offert ? "0 FCFA" : formatFCFA(prixNormal)}</span>
         </div>
+        {!offert && remisePct > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", color: "#e94e1b", fontSize: 10, marginTop: 4 }}>
+            <span>Remise {remisePct}%</span>
+            <span>- {formatFCFA(remiseMontant)}</span>
+          </div>
+        )}
         <div style={{ fontSize: 9, color: "#777", marginTop: 4 }}>
           Du {toLocaleFR(today)} au {toLocaleFR(endDate)}
         </div>
@@ -146,7 +155,7 @@ function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, pri
       {/* Total */}
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 13, padding: "8px 12px", background: "#1a1a1a", color: "#fff", borderRadius: 4, marginBottom: 12 }}>
         <span>Total</span>
-        <span>{offert ? "0 FCFA" : formatFCFA(prix)}</span>
+        <span>{offert ? "0 FCFA" : formatFCFA(prixFinal)}</span>
       </div>
 
       {/* Payment info */}
@@ -239,23 +248,25 @@ export default function AdminLicences() {
 
   const licensedUsers = users?.filter(u => u.role !== "freemium") ?? [];
 
-  // Prix calculé : correspondance exacte ou proportionnel depuis le prix mensuel le plus court
-  const computedPrix = (() => {
-    const dur = parseInt(genDuration, 10);
-    if (!dur || dur < 1) return 0;
+  // Retourne le prix unitaire mensuel pour un plan (depuis config 1 mois ou extrapolation)
+  const getPrixMensuel = (planType: string): number => {
     const normalize = (s: unknown) => String(s ?? "").toLowerCase().trim();
     const configs = (planConfigs ?? [])
-      .filter(c => normalize(c.plan_type) === normalize(genType))
-      .map(c => ({ ...c, duree_mois: Number(c.duree_mois), prix_fcfa: Number(c.prix_fcfa) }))
+      .filter(c => normalize(c.plan_type) === normalize(planType))
+      .map(c => ({ duree_mois: Number(c.duree_mois), prix_fcfa: Number(c.prix_fcfa) }))
       .sort((a, b) => a.duree_mois - b.duree_mois);
     if (configs.length === 0) return 0;
-    const exact = configs.find(c => c.duree_mois === dur);
-    if (exact) return exact.prix_fcfa;
-    const oneMonth = configs.find(c => c.duree_mois === 1);
-    if (oneMonth) return oneMonth.prix_fcfa * dur;
-    const shortest = configs[0];
-    return Math.round((shortest.prix_fcfa / shortest.duree_mois) * dur);
-  })();
+    const one = configs.find(c => c.duree_mois === 1);
+    if (one) return one.prix_fcfa;
+    return Math.round(configs[0].prix_fcfa / configs[0].duree_mois);
+  };
+
+  const dur = parseInt(genDuration, 10) || 1;
+  const prixMensuel = getPrixMensuel(genType);
+  const prixNormal = prixMensuel * dur;
+  const remisePct = dur === 6 ? 12 : dur === 12 ? 17 : 0;
+  const remiseMontant = Math.round(prixNormal * remisePct / 100);
+  const prixFinal = prixNormal - remiseMontant;
 
   const invoiceNum = (() => {
     const year = new Date().getFullYear();
@@ -336,7 +347,7 @@ export default function AdminLicences() {
         capturedUser: selectedUser,
         capturedPlanType: genType,
         capturedDuration: parseInt(genDuration, 10) || 6,
-        capturedPrix: computedPrix,
+        capturedPrix: prixFinal,
         capturedOffert: genOffert,
         capturedInvoiceNum: `LIC-DIG-${year}-${String((licenseKeys?.length ?? 0) + 1).padStart(4, "0")}`,
       };
@@ -674,9 +685,12 @@ export default function AdminLicences() {
                     onChange={e => setGenDuration(e.target.value)}
                     disabled={!!generatedKey}
                   />
-                  {computedPrix > 0 && !genOffert && (
+                  {prixFinal > 0 && !genOffert && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Prix calculé : {computedPrix.toLocaleString("fr-FR")} FCFA
+                      {remisePct > 0
+                        ? `${prixNormal.toLocaleString("fr-FR")} FCFA − ${remisePct}% = ${prixFinal.toLocaleString("fr-FR")} FCFA`
+                        : `${prixFinal.toLocaleString("fr-FR")} FCFA`
+                      }
                     </p>
                   )}
                 </div>
@@ -746,8 +760,11 @@ export default function AdminLicences() {
                       invoiceNum={invoiceNum}
                       user={selectedUser}
                       planType={genType}
-                      durationMonths={parseInt(genDuration) || 6}
-                      prix={computedPrix}
+                      durationMonths={dur}
+                      prixNormal={prixNormal}
+                      remisePct={remisePct}
+                      remiseMontant={remiseMontant}
+                      prixFinal={prixFinal}
                       offert={genOffert}
                       payMethod={genPayMethod}
                       payRef={genPayRef}
