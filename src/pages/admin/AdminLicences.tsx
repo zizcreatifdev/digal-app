@@ -91,13 +91,15 @@ interface InvoicePreviewProps {
   prixNormal: number;
   remisePct: number;
   remiseMontant: number;
+  promoPercent: number;
+  remisePromo: number;
   prixFinal: number;
   offert: boolean;
   payMethod: string;
   payRef: string;
 }
 
-function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, prixNormal, remisePct, remiseMontant, prixFinal, offert, payMethod, payRef }: InvoicePreviewProps) {
+function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, prixNormal, remisePct, remiseMontant, promoPercent, remisePromo, prixFinal, offert, payMethod, payRef }: InvoicePreviewProps) {
   const today = new Date();
   const endDate = addMonths(today, durationMonths);
 
@@ -136,12 +138,18 @@ function LicenceInvoicePreview({ invoiceNum, user, planType, durationMonths, pri
         <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1, color: "#999", marginBottom: 6 }}>Prestation</div>
         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600 }}>
           <span>Licence {TYPE_LABELS[planType] ?? planType} — {durationMonths} mois</span>
-          <span>{offert ? "0 FCFA" : formatFCFA(prixNormal)}</span>
+          <span>{offert ? "Offert" : formatFCFA(prixNormal)}</span>
         </div>
         {!offert && remisePct > 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", color: "#e94e1b", fontSize: 10, marginTop: 4 }}>
-            <span>Remise {remisePct}%</span>
+            <span>Remise {durationMonths} mois {remisePct}%</span>
             <span>- {formatFCFA(remiseMontant)}</span>
+          </div>
+        )}
+        {!offert && promoPercent > 0 && remisePromo > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", color: "#e94e1b", fontSize: 10, marginTop: 4 }}>
+            <span>Code promo {promoPercent}%</span>
+            <span>- {formatFCFA(remisePromo)}</span>
           </div>
         )}
         <div style={{ fontSize: 9, color: "#777", marginTop: 4 }}>
@@ -266,7 +274,10 @@ export default function AdminLicences() {
   const prixNormal = prixMensuel * dur;
   const remisePct = dur === 6 ? 12 : dur === 12 ? 17 : 0;
   const remiseMontant = Math.round(prixNormal * remisePct / 100);
-  const prixFinal = prixNormal - remiseMontant;
+  const prixApresRemiseDuree = prixNormal - remiseMontant;
+  const promoPercent = genPromo ? (parseInt(genPromoDiscount, 10) || 0) : 0;
+  const remisePromo = genPromo ? Math.round(prixApresRemiseDuree * promoPercent / 100) : 0;
+  const prixFinal = genOffert ? 0 : (prixApresRemiseDuree - remisePromo);
 
   const invoiceNum = (() => {
     const year = new Date().getFullYear();
@@ -687,10 +698,8 @@ export default function AdminLicences() {
                   />
                   {prixFinal > 0 && !genOffert && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {remisePct > 0
-                        ? `${prixNormal.toLocaleString("fr-FR")} FCFA − ${remisePct}% = ${prixFinal.toLocaleString("fr-FR")} FCFA`
-                        : `${prixFinal.toLocaleString("fr-FR")} FCFA`
-                      }
+                      Total : {prixFinal.toLocaleString("fr-FR")} FCFA
+                      {(remisePct > 0 || promoPercent > 0) && ` (remise incluse)`}
                     </p>
                   )}
                 </div>
@@ -716,15 +725,17 @@ export default function AdminLicences() {
                   <Switch checked={genPromo} onCheckedChange={setGenPromo} disabled={!!generatedKey} />
                 </div>
                 {genPromo && !generatedKey && (
-                  <div className="flex items-center gap-2">
-                    <Label className="whitespace-nowrap">Remise (%)</Label>
-                    <Input type="number" value={genPromoDiscount} onChange={e => setGenPromoDiscount(e.target.value)} min="1" max="100" className="w-24" />
-                    <span className="text-xs text-muted-foreground">Ex : 30 = -30%</span>
+                  <div>
+                    <Label>Réduction (%)</Label>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Input type="number" value={genPromoDiscount} onChange={e => setGenPromoDiscount(e.target.value)} min="1" max="100" className="w-24" />
+                      <span className="text-xs text-muted-foreground">Ex : 30 = -30%</span>
+                    </div>
                   </div>
                 )}
 
-                {/* Payment info */}
-                {!generatedKey && (
+                {/* Payment info — masqué si licence offerte */}
+                {!generatedKey && !genOffert && (
                   <>
                     <div>
                       <Label>Mode de paiement</Label>
@@ -764,10 +775,12 @@ export default function AdminLicences() {
                       prixNormal={prixNormal}
                       remisePct={remisePct}
                       remiseMontant={remiseMontant}
+                      promoPercent={promoPercent}
+                      remisePromo={remisePromo}
                       prixFinal={prixFinal}
                       offert={genOffert}
-                      payMethod={genPayMethod}
-                      payRef={genPayRef}
+                      payMethod={genOffert ? "" : genPayMethod}
+                      payRef={genOffert ? "" : genPayRef}
                     />
                   </div>
                 </div>
