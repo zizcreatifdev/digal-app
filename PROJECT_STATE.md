@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
 _Dernière mise à jour : 2026-04-30_
-_Prompt courant : emails-marketing — envoi réel campagnes via Brevo_
+_Prompt courant : support — système support et boîte à idées_
 
 ---
 
@@ -269,6 +269,7 @@ _Prompt courant : emails-marketing — envoi réel campagnes via Brevo_
 | Membres max par plan (agence) | ✅ Complet (prompt-52) | Input max_membres + toggle Illimité dans AdminPlans, sauvegarde plans.max_membres |
 | Gestion contrats | ✅ Complet | |
 | Campagnes emails | ✅ Complet (emails-marketing) | Envoi réel via Brevo, batches 10, progression, confirmation |
+| Support utilisateurs | ✅ Complet (support) | SupportModal sidebar user, AdminSupport onglets+filtres+réponse email, badge sidebar admin, widget dashboard |
 | Logs de sécurité | ✅ Complet (prompt-53) | Device + Navigateur (parsé depuis user_agent) |
 | Journal activité utilisateur | ✅ Complet (prompt-53) | Device / Navigateur / Ville · Pays avec flag emoji |
 | Géolocalisation IP | ✅ Complet (prompt-53) | Edge fn geolocate-ip → ip-api.com → activity_logs.city/country |
@@ -457,3 +458,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | prompt-A | Téléphone WhatsApp waitlist : migration 000044, champ optionnel formulaire Waitlist, icône Phone + bouton WhatsApp dans AdminWaitlist | 2026-04-30 |
 | prompt-B | Compteurs places lancement : migration 000045 site_settings, src/lib/launch-limits.ts, barres de progression PricingSection (CM Pro/Studio), CTA complet → waitlist, AdminPlateforme section limites | 2026-04-30 |
 | emails-marketing | Envoi réel campagnes email : type "marketing" dans send-email edge fn, AdminEmails bouton Envoyer + AlertDialog confirmation + barre progression, batches 10, 5 nouveaux segments (cm_pro/studio/inactifs), variables [Prénom][Nom] | 2026-04-30 |
+| support | Système support : migration support_messages, SupportModal (AppSidebar users), AdminSupport (onglets/filtres/réponse+email), badge unread AdminSidebar, widget AdminDashboard | 2026-04-30 |

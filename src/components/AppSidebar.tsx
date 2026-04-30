@@ -2,6 +2,7 @@ import {
   LayoutDashboard, Users, Calendar, Receipt, BookOpen, BarChart3,
   Activity, Settings, LogOut, Lock, Crown, Users2,
 } from "lucide-react";
+import { SupportModal } from "@/components/SupportModal";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import { UsersRound } from "lucide-react";
@@ -192,6 +193,9 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            <SidebarMenuItem>
+              <SupportModal collapsed={collapsed} />
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={handleLogout}

@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ClipboardList, KeyRound, Mail, Receipt,
   BookOpen, FileText, ShieldCheck, LogOut, ChevronDown, Tag, PenTool,
-  UserCog, Settings2, Users2, Quote,
+  UserCog, Settings2, Users2, Quote, Headphones,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,8 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -53,6 +54,21 @@ export function AdminSidebar() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const [usersOpen, setUsersOpen] = useState(true);
+  const [unreadSupport, setUnreadSupport] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count } = await (supabase as any)
+        .from("support_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("statut", "nouveau");
+      setUnreadSupport((count as number) ?? 0);
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
@@ -128,6 +144,28 @@ export function AdminSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
+                  {/* Support — badge dynamique messages non lus */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/admin/support"
+                        className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+                      >
+                        <Headphones className="h-4 w-4 shrink-0" />
+                        {!collapsed && (
+                          <span className="font-sans flex items-center gap-2 flex-1 min-w-0">
+                            <span>Support</span>
+                            {unreadSupport > 0 && (
+                              <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none shrink-0">
+                                {unreadSupport}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

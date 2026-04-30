@@ -9,7 +9,7 @@ import {
   DollarSign, Users, KeyRound, AlertTriangle, Briefcase,
   PieChart, TrendingUp, Loader2,
   UserX, UserMinus, UserCheck, Wallet, FileText, Link as LinkIcon,
-  Copy, Users2, Gift, Clock,
+  Copy, Users2, Gift, Clock, Headphones,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -398,6 +398,27 @@ const AdminDashboard = () => {
     refetchInterval: 60_000,
   });
 
+  // ── Messages support ──────────────────────���───────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supportDb = supabase as any;
+  const { data: supportStats, isLoading: supportLoading } = useQuery({
+    queryKey: ["admin-support-stats"],
+    queryFn: async () => {
+      const [newRes, luRes, resolvedRes] = await Promise.all([
+        supportDb.from("support_messages").select("id", { count: "exact", head: true }).eq("statut", "nouveau"),
+        supportDb.from("support_messages").select("id", { count: "exact", head: true }).eq("statut", "lu"),
+        supportDb.from("support_messages").select("id", { count: "exact", head: true }).eq("statut", "resolu"),
+      ]);
+      return {
+        nouveau: (newRes.count as number) ?? 0,
+        lu: (luRes.count as number) ?? 0,
+        resolu: (resolvedRes.count as number) ?? 0,
+      };
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
   // ── Statistiques parrainages ───────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -584,7 +605,45 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* ── Section 5 : Alertes prioritaires ───────────── */}
+        {/* ── Section 5 : Support ────────────────────────── */}
+        <SectionTitle>Messages support</SectionTitle>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              title: "Nouveaux messages",
+              value: supportStats ? String(supportStats.nouveau) : "—",
+              icon: Headphones,
+              highlight: supportStats && supportStats.nouveau > 0 ? ("red" as const) : undefined,
+              href: "/admin/support",
+            },
+            {
+              title: "En attente de réponse",
+              value: supportStats ? String(supportStats.lu) : "—",
+              icon: Headphones,
+              highlight: supportStats && supportStats.lu > 0 ? ("orange" as const) : undefined,
+              href: "/admin/support",
+            },
+            {
+              title: "Résolus",
+              value: supportStats ? String(supportStats.resolu) : "—",
+              icon: Headphones,
+              highlight: supportStats && supportStats.resolu > 0 ? ("green" as const) : undefined,
+              href: "/admin/support",
+            },
+          ].map((w) => (
+            <KpiWidget
+              key={w.title}
+              title={w.title}
+              value={w.value}
+              icon={w.icon}
+              highlight={w.highlight}
+              isLoading={supportLoading}
+              onClick={() => navigate(w.href)}
+            />
+          ))}
+        </div>
+
+        {/* ── Section 6 : Alertes prioritaires ───────────── */}
         <SectionTitle>Alertes prioritaires</SectionTitle>
         {healthLoading ? (
           <div className="flex justify-center py-8">
