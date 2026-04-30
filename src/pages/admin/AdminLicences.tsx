@@ -5,13 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus, AlertCircle, Search, X } from "lucide-react";
+import { Loader2, Plus, Download, Key, Copy, Check, Gift, CalendarPlus, AlertCircle, Search, X, Send } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { copyToClipboard } from "@/lib/clipboard";
 import { Switch } from "@/components/ui/switch";
@@ -193,6 +194,10 @@ export default function AdminLicences() {
   const [selectedUser, setSelectedUser] = useState<UserResult | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Confirmation dialog (send vs copy)
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [actionType, setActionType] = useState<"send" | "copy">("copy");
+
   // Extend license dialog
   const [extendUser, setExtendUser] = useState<{ id: string; email: string; licence_expiration: string | null } | null>(null);
   const [extendMonths, setExtendMonths] = useState("3");
@@ -322,10 +327,22 @@ export default function AdminLicences() {
     onSuccess: (keyCode) => {
       queryClient.invalidateQueries({ queryKey: ["admin-license-keys"] });
       setGeneratedKey(keyCode);
-      toast.success("Clé générée");
+      copyToClipboard(keyCode).catch(() => {/* silent */});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Clé copiée !");
     },
     onError: () => toast.error("Erreur lors de la génération"),
   });
+
+  const handleClickGenerate = () => {
+    if (selectedUser) {
+      setShowSendDialog(true);
+    } else {
+      setActionType("copy");
+      generateKey.mutate();
+    }
+  };
 
   const extendLicenseMutation = useMutation({
     mutationFn: async ({ userId, months }: { userId: string; months: number }) => {
@@ -688,7 +705,7 @@ export default function AdminLicences() {
             <DialogFooter>
               <Button variant="outline" onClick={() => { setShowGenerate(false); setGeneratedKey(""); setSelectedUser(null); setSearchQuery(""); }}>Fermer</Button>
               {!generatedKey && (
-                <Button onClick={() => generateKey.mutate()} disabled={generateKey.isPending}>
+                <Button onClick={handleClickGenerate} disabled={generateKey.isPending}>
                   {generateKey.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Générer
                 </Button>
               )}
@@ -768,6 +785,34 @@ export default function AdminLicences() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {/* ── Confirmation dialog ──────────────────────────────────────────── */}
+        <AlertDialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Envoyer par email ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                La clé et la facture seront envoyées à <strong>{selectedUser?.email}</strong>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <Button
+                variant="outline"
+                onClick={() => { setActionType("copy"); setShowSendDialog(false); generateKey.mutate(); }}
+                disabled={generateKey.isPending}
+              >
+                <Copy className="h-4 w-4 mr-1.5" /> Juste copier
+              </Button>
+              <Button
+                onClick={() => { setActionType("send"); setShowSendDialog(false); generateKey.mutate(); }}
+                disabled={generateKey.isPending}
+              >
+                <Send className="h-4 w-4 mr-1.5" /> Envoyer + copier
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </div>
     </AdminLayout>
   );
