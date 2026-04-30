@@ -216,14 +216,6 @@ export default function AdminLicences() {
     },
   });
 
-  // Reset genDuration when genType changes, default to 6m if available
-  useEffect(() => {
-    const configs = (planConfigs ?? []).filter((c) => c.plan_type === genType);
-    if (configs.length === 0) return;
-    const sixM = configs.find((c) => c.duree_mois === 6);
-    setGenDuration(String(sixM?.duree_mois ?? configs[0].duree_mois));
-  }, [genType, planConfigs]);
-
   const { data: users, isLoading, isError: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ["admin-licences-users"],
     queryFn: async () => {
@@ -247,17 +239,28 @@ export default function AdminLicences() {
 
   const licensedUsers = users?.filter(u => u.role !== "freemium") ?? [];
 
-  // Derived invoice data
-  const currentPlanConfig = (planConfigs ?? []).find(
-    c => c.plan_type === genType && c.duree_mois === parseInt(genDuration)
-  );
+  // Prix calculé : correspondance exacte ou proportionnel depuis le prix mensuel le plus court
+  const computedPrix = (() => {
+    const dur = parseInt(genDuration) || 1;
+    const configs = (planConfigs ?? [])
+      .filter(c => c.plan_type === genType)
+      .sort((a, b) => a.duree_mois - b.duree_mois);
+    if (configs.length === 0) return 0;
+    const exact = configs.find(c => c.duree_mois === dur);
+    if (exact) return exact.prix_fcfa;
+    const oneMonth = configs.find(c => c.duree_mois === 1);
+    if (oneMonth) return oneMonth.prix_fcfa * dur;
+    const shortest = configs[0];
+    return Math.round((shortest.prix_fcfa / shortest.duree_mois) * dur);
+  })();
+
   const invoiceNum = (() => {
     const year = new Date().getFullYear();
     const n = (licenseKeys?.length ?? 0) + 1;
     return `LIC-DIG-${year}-${String(n).padStart(4, "0")}`;
   })();
 
-  // Debounced user search
+  // Debounced user search — tous les rôles, aucun filtre de plan
   const doSearch = useCallback(async (q: string) => {
     if (q.trim().length < 2) {
       setSearchResults([]);
@@ -267,10 +270,10 @@ export default function AdminLicences() {
     setSearchLoading(true);
     const { data } = await supabase
       .from("users")
-      .select("id, prenom, nom, email, role, licence_expiration, plan")
+      .select("id, prenom, nom, email, role, licence_expiration")
       .or(`prenom.ilike.%${q}%,nom.ilike.%${q}%,email.ilike.%${q}%`)
       .limit(10);
-    setSearchResults((data ?? []) as UserResult[]);
+    setSearchResults((data ?? []).map(u => ({ ...u, plan: null })) as UserResult[]);
     setSearchOpen(true);
     setSearchLoading(false);
   }, []);
@@ -330,7 +333,7 @@ export default function AdminLicences() {
         capturedUser: selectedUser,
         capturedPlanType: genType,
         capturedDuration: parseInt(genDuration) || 6,
-        capturedPrix: currentPlanConfig?.prix_fcfa ?? 0,
+        capturedPrix: computedPrix,
         capturedOffert: genOffert,
         capturedInvoiceNum: `LIC-DIG-${year}-${String((licenseKeys?.length ?? 0) + 1).padStart(4, "0")}`,
       };
@@ -656,25 +659,23 @@ export default function AdminLicences() {
                   </Select>
                 </div>
 
-                {/* Duration */}
+                {/* Duration — saisie libre */}
                 <div>
-                  <Label>Durée</Label>
-                  <Select value={genDuration} onValueChange={setGenDuration} disabled={!!generatedKey}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une durée" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(planConfigs ?? [])
-                        .filter((c) => c.plan_type === genType)
-                        .map((c) => (
-                          <SelectItem key={c.id} value={String(c.duree_mois)}>
-                            {c.duree_mois === 12 ? "12 mois (1 an)" : `${c.duree_mois} mois`}
-                            {" — "}
-                            {c.prix_fcfa.toLocaleString("fr-FR")} FCFA
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Durée (mois)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="24"
+                    placeholder="Ex: 2"
+                    value={genDuration}
+                    onChange={e => setGenDuration(e.target.value)}
+                    disabled={!!generatedKey}
+                  />
+                  {computedPrix > 0 && !genOffert && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Prix calculé : {computedPrix.toLocaleString("fr-FR")} FCFA
+                    </p>
+                  )}
                 </div>
 
                 {/* Offert toggle */}
@@ -743,7 +744,7 @@ export default function AdminLicences() {
                       user={selectedUser}
                       planType={genType}
                       durationMonths={parseInt(genDuration) || 6}
-                      prix={currentPlanConfig?.prix_fcfa ?? 0}
+                      prix={computedPrix}
                       offert={genOffert}
                       payMethod={genPayMethod}
                       payRef={genPayRef}
