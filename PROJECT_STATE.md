@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — État du projet Digal
 
-_Dernière mise à jour : 2026-04-26_
-_Prompt courant : fix E2E-B — verrouillage gracieux freemium + TVA 18% + assignation créateur + push rejet_
+_Dernière mise à jour : 2026-04-30_
+_Prompt courant : prompt-B — compteurs places lancement_
 
 ---
 
@@ -274,7 +274,7 @@ _Prompt courant : fix E2E-B — verrouillage gracieux freemium + TVA 18% + assig
 | Géolocalisation IP | ✅ Complet (prompt-53) | Edge fn geolocate-ip → ip-api.com → activity_logs.city/country |
 | Keep-alive cron | ✅ Complet (prompt-53) | Edge fn keep-alive + pg_cron toutes les 48h |
 | TOTP 2FA obligatoire | ✅ Complet | AdminTotpGate |
-| Paramètres plateforme | ✅ Complet (prompt-44) | /admin/plateforme — widget countdown : date+heure, toggle show/hide, aperçu jours restants |
+| Paramètres plateforme | ✅ Complet (prompt-B) | /admin/plateforme — countdown, parrainage, limites lancement (toggle+inputs+indicateurs temps réel) |
 | Suspension/Suppression complète | ✅ Complet (prompt-55) | AuthGuard check statut, page /compte-suspendu, edge fn ban-user, toggle comptes supprimés, cron suppression définitive J+30 |
 | Gestion témoignages | ✅ Complet (testimonials-refonte) | /admin/temoignages — CRUD complet (photo ImageCropModal 1:1, nom, fonction, texte, toggle est_actif), drag-and-drop HTML5 pour réordonner, groupe "Landing" dans AdminSidebar |
 
@@ -307,7 +307,7 @@ _Prompt courant : fix E2E-B — verrouillage gracieux freemium + TVA 18% + assig
 | Hero + countdown | ✅ (prompt-44) | Countdown configurable via Admin ; toggle show/hide ; état lancé → CTA "Créer mon compte" |
 | Problem / Solution | ✅ | |
 | MockupsSection | ✅ (prompt-10) | 4 cartes animées |
-| Pricing | ✅ (prompt-41) | Toggle 3 options Mensuel/6mois/Annuel, badges -X% sur toggle, "au lieu de", taglines par plan, nouveaux noms |
+| Pricing | ✅ (prompt-B) | Toggle 3 options Mensuel/6mois/Annuel, badges -X%, barres de progression places (CM Pro/Studio), CTA "liste d'attente prioritaire" si complet |
 | Elite sur mesure | ✅ (prompt-41) | Carte Elite : "Tarif sur mesure" + "Demander un devis" → EliteContactModal |
 | Texte membres dynamique | ✅ (prompt-52) | getMemberText() depuis plans.max_membres — remplace textes hardcodés |
 | EliteContactModal | ✅ (prompt-41) | Form 6 champs, insert table elite_requests, toast 24h |
@@ -454,3 +454,5 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | fix-E2E-A | 5 fixes critiques : CalendarPage onGenerateLink câblé + GeneratePreviewLinkModal ; OnboardingDM TOTAL_STEPS=6 ; OnboardingWizard solo_standard dans PLAN_LABELS ; Activate.tsx getOnboardingDestination complet ; APP_URL config.ts + AdminWaitlist/Dashboard | 2026-04-26 |
 | fix-E2E-B | 4 fixes importants : Comptabilite + KpiReportsPage écran verrouillé freemium gracieux (Lock icon + bouton licence) + routes allowedProfileRoles ; TVA défaut 18% si billing_tva=true en site_settings ; CreatePostModal select créateur agence (DM/CM only) ; push notification rejet créateur (send-push silent fail) | 2026-04-26 |
 | heatmap | Heatmap charge éditoriale : HeatmapView.tsx (lignes=réseaux, colonnes=30j, 4 niveaux hachures/orange) sous le calendrier, stagger CSS 20ms/col, tooltip, scroll horizontal mobile | 2026-04-26 |
+| prompt-A | Téléphone WhatsApp waitlist : migration 000044, champ optionnel formulaire Waitlist, icône Phone + bouton WhatsApp dans AdminWaitlist | 2026-04-30 |
+| prompt-B | Compteurs places lancement : migration 000045 site_settings, src/lib/launch-limits.ts, barres de progression PricingSection (CM Pro/Studio), CTA complet → waitlist, AdminPlateforme section limites | 2026-04-30 |

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EliteContactModal } from "./EliteContactModal";
+import { getLaunchCounts } from "@/lib/launch-limits";
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -162,6 +163,32 @@ export function PricingSection({ onSelectPlan }: PricingSectionProps = {}) {
   const { data: plans, isLoading } = usePlans();
   const [selectedDuree, setSelectedDuree] = useState(1);
   const [eliteModalOpen, setEliteModalOpen] = useState(false);
+
+  // Load launch limit settings
+  const { data: launchSettings } = useQuery({
+    queryKey: ["launch-limit-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("key, value")
+        .in("key", ["show_launch_counters", "launch_limit_cm_pro", "launch_limit_studio"]);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const showLaunchCounters = launchSettings?.find((r) => r.key === "show_launch_counters")?.value === "true";
+  const cmProLimit = parseInt(launchSettings?.find((r) => r.key === "launch_limit_cm_pro")?.value ?? "100") || 100;
+  const studioLimit = parseInt(launchSettings?.find((r) => r.key === "launch_limit_studio")?.value ?? "100") || 100;
+
+  // Load real-time counts
+  const { data: launchCounts } = useQuery({
+    queryKey: ["launch-counts"],
+    queryFn: getLaunchCounts,
+    enabled: showLaunchCounters,
+    staleTime: 60 * 1000,
+  });
 
   // Load plan_configs (public read, no auth needed)
   const { data: planConfigs, error: planConfigsError } = useQuery({
@@ -402,6 +429,16 @@ export function PricingSection({ onSelectPlan }: PricingSectionProps = {}) {
               const tagline = PLAN_TAGLINES[slug] ?? null;
               const isElite = slug === "agence_pro";
 
+              // Launch counters
+              const isCountedPlan = slug === "solo_standard" || slug === "agence_standard";
+              const launchCount = slug === "solo_standard"
+                ? (launchCounts?.cmProCount ?? 0)
+                : slug === "agence_standard"
+                ? (launchCounts?.studioCount ?? 0)
+                : 0;
+              const launchLimit = slug === "solo_standard" ? cmProLimit : studioLimit;
+              const planIsFull = showLaunchCounters && isCountedPlan && launchCount >= launchLimit;
+
               return (
                 <Card
                   key={plan.id}
@@ -551,6 +588,27 @@ export function PricingSection({ onSelectPlan }: PricingSectionProps = {}) {
                       })()
                     )}
 
+                    {/* ── Launch progress bar ── */}
+                    {showLaunchCounters && isCountedPlan && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>{launchCount} places prises</span>
+                          <span>{Math.max(0, launchLimit - launchCount)} restantes</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, launchLimit > 0 ? (launchCount / launchLimit) * 100 : 0)}%` }}
+                          />
+                        </div>
+                        {planIsFull && (
+                          <p className="text-xs text-destructive mt-1 font-medium font-sans">
+                            Complet — prochaine vague bientôt
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* ── CTA Button ── */}
                     {onSelectPlan ? (
                       <Button
@@ -563,9 +621,9 @@ export function PricingSection({ onSelectPlan }: PricingSectionProps = {}) {
                         }`}
                         variant={!isElite && !plan.highlighted ? "outline" : "default"}
                         style={isElite ? { background: "#E8511A" } : undefined}
-                        onClick={() => onSelectPlan(slug)}
+                        onClick={planIsFull ? () => navigate("/waitlist") : () => onSelectPlan(slug)}
                       >
-                        Choisir ce plan
+                        {planIsFull ? "Rejoindre la liste d'attente prioritaire" : "Choisir ce plan"}
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Button>
                     ) : isElite ? (
@@ -587,8 +645,8 @@ export function PricingSection({ onSelectPlan }: PricingSectionProps = {}) {
                         }`}
                         onClick={() => navigate("/waitlist")}
                       >
-                        {plan.cta_text}
-                        {plan.cta_text.includes("liste") && <ArrowRight className="h-3.5 w-3.5" />}
+                        {planIsFull ? "Rejoindre la liste d'attente prioritaire" : plan.cta_text}
+                        {(planIsFull || plan.cta_text.includes("liste")) && <ArrowRight className="h-3.5 w-3.5" />}
                       </Button>
                     )}
                   </CardContent>

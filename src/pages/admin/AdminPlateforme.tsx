@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CalendarClock, Eye, EyeOff, Users2, MessageCircle, MessageSquare } from "lucide-react";
+import { Loader2, CalendarClock, Eye, EyeOff, Users2, MessageCircle, MessageSquare, BarChart2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { getLaunchCounts } from "@/lib/launch-limits";
 
 function toDatetimeLocal(iso: string): string {
   const d = new Date(iso);
@@ -33,6 +34,10 @@ export default function AdminPlateforme() {
   const [tierValues, setTierValues] = useState<Record<string, string>>({ "3": "1", "5": "2", "10": "3", "20": "5" });
   const [waTemplate, setWaTemplate] = useState("Bonjour ! Je t'invite à essayer Digal, la plateforme pour les Community Managers et agences au Sénégal. Rejoins-moi ici : [Lien]");
   const [thanksMsg, setThanksMsg] = useState("Merci pour vos retours !\nVotre Community Manager va prendre en compte vos commentaires.");
+  // Launch limits settings
+  const [showLaunchCounters, setShowLaunchCounters] = useState(true);
+  const [limitCmPro, setLimitCmPro] = useState("100");
+  const [limitStudio, setLimitStudio] = useState("100");
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["admin-plateforme-settings"],
@@ -40,7 +45,7 @@ export default function AdminPlateforme() {
       const { data, error } = await supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", ["launch_date", "show_countdown", "referral_enabled", "referral_tiers", "referral_whatsapp_template", "preview_thanks_message"]);
+        .in("key", ["launch_date", "show_countdown", "referral_enabled", "referral_tiers", "referral_whatsapp_template", "preview_thanks_message", "show_launch_counters", "launch_limit_cm_pro", "launch_limit_studio"]);
       if (error) throw error;
       return data ?? [];
     },
@@ -69,6 +74,13 @@ export default function AdminPlateforme() {
 
     const thanksRow = settings.find((r) => r.key === "preview_thanks_message");
     if (thanksRow?.value) setThanksMsg(thanksRow.value);
+
+    const showCountersRow = settings.find((r) => r.key === "show_launch_counters");
+    if (showCountersRow) setShowLaunchCounters(showCountersRow.value !== "false");
+    const limitCmRow = settings.find((r) => r.key === "launch_limit_cm_pro");
+    if (limitCmRow?.value) setLimitCmPro(limitCmRow.value);
+    const limitStudioRow = settings.find((r) => r.key === "launch_limit_studio");
+    if (limitStudioRow?.value) setLimitStudio(limitStudioRow.value);
   }, [settings]);
 
   const mutation = useMutation({
@@ -124,6 +136,38 @@ export default function AdminPlateforme() {
       toast.success("Message de remerciement enregistré.");
     },
     onError: () => toast.error("Erreur lors de la sauvegarde."),
+  });
+
+  const launchLimitsMutation = useMutation({
+    mutationFn: async () => {
+      const limitCmNum = parseInt(limitCmPro, 10);
+      const limitStudioNum = parseInt(limitStudio, 10);
+      if (isNaN(limitCmNum) || isNaN(limitStudioNum) || limitCmNum <= 0 || limitStudioNum <= 0) {
+        throw new Error("Les limites doivent être des nombres positifs.");
+      }
+      const ops = [
+        supabase.from("site_settings").upsert({ key: "show_launch_counters", value: String(showLaunchCounters) }, { onConflict: "key" }),
+        supabase.from("site_settings").upsert({ key: "launch_limit_cm_pro", value: String(limitCmNum) }, { onConflict: "key" }),
+        supabase.from("site_settings").upsert({ key: "launch_limit_studio", value: String(limitStudioNum) }, { onConflict: "key" }),
+      ];
+      const results = await Promise.all(ops);
+      for (const { error } of results) {
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-plateforme-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["launch-limit-settings"] });
+      toast.success("Limites de lancement enregistrées.");
+    },
+    onError: (err: Error) => toast.error(err.message ?? "Erreur lors de la sauvegarde."),
+  });
+
+  const { data: launchCounts, isLoading: loadingCounts } = useQuery({
+    queryKey: ["admin-launch-counts"],
+    queryFn: getLaunchCounts,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   const currentLaunchDate = settings?.find((r) => r.key === "launch_date")?.value ?? "";
@@ -203,6 +247,86 @@ export default function AdminPlateforme() {
                 className="w-full sm:w-auto"
               >
                 {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Enregistrer
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* ── Limites de lancement ── */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                Limites de lancement
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Toggle show/hide counters */}
+              <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">Afficher les compteurs sur la landing</div>
+                  <p className="text-xs text-muted-foreground font-sans">
+                    Barre de progression sous chaque plan payant (CM Pro / Studio).
+                  </p>
+                </div>
+                <Switch checked={showLaunchCounters} onCheckedChange={setShowLaunchCounters} />
+              </div>
+
+              {/* Limit inputs */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="limit-cm-pro" className="text-sm">Limite CM Pro</Label>
+                  <Input
+                    id="limit-cm-pro"
+                    type="number"
+                    min="1"
+                    value={limitCmPro}
+                    onChange={(e) => setLimitCmPro(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="limit-studio" className="text-sm">Limite Studio</Label>
+                  <Input
+                    id="limit-studio"
+                    type="number"
+                    min="1"
+                    value={limitStudio}
+                    onChange={(e) => setLimitStudio(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+
+              {/* Real-time indicators */}
+              <div className="rounded-lg bg-muted/50 border border-border px-4 py-3 space-y-2">
+                {loadingCounts ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Chargement des compteurs...
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-sm font-sans">
+                      <span className="font-medium">CM Pro :</span>{" "}
+                      <span className="text-primary font-bold">{launchCounts?.cmProCount ?? 0}</span>
+                      <span className="text-muted-foreground">/{limitCmPro} licences actives</span>
+                    </div>
+                    <div className="text-sm font-sans">
+                      <span className="font-medium">Studio :</span>{" "}
+                      <span className="text-primary font-bold">{launchCounts?.studioCount ?? 0}</span>
+                      <span className="text-muted-foreground">/{limitStudio} licences actives</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <Button
+                onClick={() => launchLimitsMutation.mutate()}
+                disabled={launchLimitsMutation.isPending}
+                className="w-full sm:w-auto"
+              >
+                {launchLimitsMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Enregistrer
               </Button>
             </CardContent>
