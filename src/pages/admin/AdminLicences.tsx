@@ -178,7 +178,7 @@ export default function AdminLicences() {
   // Generate key dialog
   const [showGenerate, setShowGenerate] = useState(false);
   const [genType, setGenType] = useState("solo");
-  const [genDuration, setGenDuration] = useState("6");
+  const [genDuration, setGenDuration] = useState("1");
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
   const [genPromo, setGenPromo] = useState(false);
@@ -209,10 +209,10 @@ export default function AdminLicences() {
       const { data, error } = await (supabase as any)
         .from("plan_configs")
         .select("id, plan_type, duree_mois, prix_fcfa, est_actif")
-        .eq("est_actif", true)
         .order("duree_mois");
       if (error) throw error;
-      return (data ?? []) as PlanConfig[];
+      // Filter actives client-side to avoid boolean comparison issues across DB drivers
+      return ((data ?? []) as PlanConfig[]).filter(c => c.est_actif);
     },
   });
 
@@ -243,8 +243,9 @@ export default function AdminLicences() {
   const computedPrix = (() => {
     const dur = parseInt(genDuration, 10);
     if (!dur || dur < 1) return 0;
+    const normalize = (s: unknown) => String(s ?? "").toLowerCase().trim();
     const configs = (planConfigs ?? [])
-      .filter(c => String(c.plan_type) === String(genType))
+      .filter(c => normalize(c.plan_type) === normalize(genType))
       .map(c => ({ ...c, duree_mois: Number(c.duree_mois), prix_fcfa: Number(c.prix_fcfa) }))
       .sort((a, b) => a.duree_mois - b.duree_mois);
     if (configs.length === 0) return 0;
