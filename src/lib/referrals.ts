@@ -65,17 +65,17 @@ export async function checkReferralQualification(userAuthId: string, newPlan: st
     // Skip if referral already qualified/rewarded
     const { data: existing } = await db
       .from("referrals")
-      .select("id, status")
+      .select("id, statut")
       .eq("referee_id", userAuthId)
       .maybeSingle();
 
-    if (existing?.status === "qualified" || existing?.status === "rewarded") return;
+    if (existing?.statut === "qualified" || existing?.statut === "rewarded") return;
 
     const now = new Date().toISOString();
 
     if (existing) {
       await db.from("referrals").update({
-        status: "qualified",
+        statut: "qualified",
         plan_referee: newPlan,
         qualified_at: now,
       }).eq("id", existing.id);
@@ -83,7 +83,7 @@ export async function checkReferralQualification(userAuthId: string, newPlan: st
       await db.from("referrals").insert({
         referrer_id: referrerAuthId,
         referee_id: userAuthId,
-        status: "qualified",
+        statut: "qualified",
         plan_referee: newPlan,
         qualified_at: now,
       });
@@ -169,7 +169,7 @@ export async function requestQuota(userAuthId: string): Promise<{ error?: string
       .from("referral_quota_requests")
       .select("id")
       .eq("user_id", userAuthId)
-      .eq("status", "pending")
+      .eq("statut", "pending")
       .maybeSingle();
 
     if (existing) return { error: "Une demande est déjà en cours de traitement." };
@@ -189,7 +189,7 @@ export async function requestQuota(userAuthId: string): Promise<{ error?: string
     const { error: insertErr } = await db.from("referral_quota_requests").insert({
       user_id: userAuthId,
       requested_quota: 3,
-      status: "pending",
+      statut: "pending",
       auto_approve_at: autoApproveAt.toISOString(),
     });
 

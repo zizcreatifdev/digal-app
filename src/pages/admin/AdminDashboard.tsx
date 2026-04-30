@@ -441,8 +441,8 @@ const AdminDashboard = () => {
       const [totalRes, monthlyRes, qualifiedRes, quotaRes] = await Promise.all([
         db.from("referrals").select("id", { count: "exact", head: true }),
         db.from("referrals").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth.toISOString()),
-        db.from("referrals").select("id", { count: "exact", head: true }).in("status", ["qualified", "rewarded"]),
-        db.from("referral_quota_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        db.from("referrals").select("id", { count: "exact", head: true }).in("statut", ["qualified", "rewarded"]),
+        db.from("referral_quota_requests").select("id", { count: "exact", head: true }).eq("statut", "pending"),
       ]);
       return {
         total: totalRes.count ?? 0,

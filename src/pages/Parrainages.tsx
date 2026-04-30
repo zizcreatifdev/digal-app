@@ -51,7 +51,7 @@ const APP_URL = window.location.origin;
 interface ReferralRow {
   id: string;
   referee_id: string;
-  status: string;
+  statut: string;
   qualified_at: string | null;
   created_at: string;
   plan_referee: string | null;
@@ -102,7 +102,7 @@ export default function Parrainages() {
     queryFn: async () => {
       const { data } = await db
         .from("referrals")
-        .select("id, referee_id, status, qualified_at, created_at, plan_referee")
+        .select("id, referee_id, statut, qualified_at, created_at, plan_referee")
         .eq("referrer_id", user!.id)
         .order("created_at", { ascending: false });
       return (data ?? []) as ReferralRow[];
@@ -251,7 +251,7 @@ export default function Parrainages() {
   const monthsUsed: number = profile.referral_months_used ?? 0;
   const monthsStock: number = monthsEarned - monthsUsed;
   const isFreemium = profile.role === "freemium";
-  const qualifiedCount = (referrals ?? []).filter((r) => r.status === "qualified" || r.status === "rewarded").length;
+  const qualifiedCount = (referrals ?? []).filter((r) => r.statut === "qualified" || r.statut === "rewarded").length;
 
   // Next tier calculation — tiers is always Record<string, number> after normalization
   const tierKeys = Object.keys(tiers ?? {}).map(Number).filter(Boolean).sort((a, b) => a - b);
@@ -397,7 +397,7 @@ export default function Parrainages() {
                     const ru = getReferredUser(ref.referee_id);
                     const initials = ru ? (ru.prenom[0] + ru.nom[0]).toUpperCase() : "?";
                     const planLabel = PLAN_LABELS[ru?.role ?? ""] ?? ru?.role ?? "—";
-                    const isQualified = ref.status === "qualified" || ref.status === "rewarded";
+                    const isQualified = ref.statut === "qualified" || ref.statut === "rewarded";
                     return (
                       <TableRow key={ref.id}>
                         <TableCell>

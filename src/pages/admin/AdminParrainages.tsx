@@ -18,7 +18,7 @@ interface ReferralRow {
   id: string;
   referrer_id: string;
   referred_id: string;
-  status: string;
+  statut: string;
   plan_referee: string | null;
   qualified_at: string | null;
   created_at: string;
@@ -28,7 +28,7 @@ interface QuotaRequest {
   id: string;
   user_id: string;
   requested_quota: number;
-  status: string;
+  statut: string;
   created_at: string;
   auto_approve_at: string | null;
 }
@@ -54,7 +54,7 @@ export default function AdminParrainages() {
     queryKey: ["admin-referrals-list"],
     queryFn: async () => {
       const { data } = await db.from("referrals")
-        .select("id, referrer_id, referred_id, status, plan_referee, qualified_at, created_at")
+        .select("id, referrer_id, referred_id, statut, plan_referee, qualified_at, created_at")
         .order("created_at", { ascending: false });
       return (data ?? []) as ReferralRow[];
     },
@@ -64,7 +64,7 @@ export default function AdminParrainages() {
     queryKey: ["admin-quota-requests"],
     queryFn: async () => {
       const { data } = await db.from("referral_quota_requests")
-        .select("id, user_id, requested_quota, status, created_at, auto_approve_at")
+        .select("id, user_id, requested_quota, statut, created_at, auto_approve_at")
         .order("created_at", { ascending: false })
         .limit(100);
       return (data ?? []) as QuotaRequest[];
@@ -98,7 +98,7 @@ export default function AdminParrainages() {
     mutationFn: async (refId: string) => {
       setMarkingId(refId);
       const { error } = await db.from("referrals")
-        .update({ status: "rewarded" })
+        .update({ statut: "rewarded" })
         .eq("id", refId);
       if (error) throw error;
     },
@@ -116,7 +116,7 @@ export default function AdminParrainages() {
       const newQuota = (userRow?.referral_quota ?? 3) + requested;
       await db.from("users").update({ referral_quota: newQuota }).eq("user_id", userId);
       await db.from("referral_quota_requests")
-        .update({ status: "approved", reviewed_at: new Date().toISOString() })
+        .update({ statut: "approved", reviewed_at: new Date().toISOString() })
         .eq("id", reqId);
       await supabase.from("notifications").insert({
         user_id: userId,
@@ -135,7 +135,7 @@ export default function AdminParrainages() {
   const rejectQuota = useMutation({
     mutationFn: async (reqId: string) => {
       await db.from("referral_quota_requests")
-        .update({ status: "rejected", reviewed_at: new Date().toISOString() })
+        .update({ statut: "rejected", reviewed_at: new Date().toISOString() })
         .eq("id", reqId);
     },
     onSuccess: () => {
@@ -177,7 +177,7 @@ export default function AdminParrainages() {
               Parrainages {referrals ? `(${referrals.length})` : ""}
             </TabsTrigger>
             <TabsTrigger value="quota" className="font-sans">
-              Demandes quota {quotaRequests?.filter((q) => q.status === "pending").length ? `(${quotaRequests.filter((q) => q.status === "pending").length})` : ""}
+              Demandes quota {quotaRequests?.filter((q) => q.statut === "pending").length ? `(${quotaRequests.filter((q) => q.statut === "pending").length})` : ""}
             </TabsTrigger>
           </TabsList>
 
@@ -206,7 +206,7 @@ export default function AdminParrainages() {
                         const referrer = getUser(ref.referrer_id);
                         const referred = getUser(ref.referred_id);
                         const planLabel = PLAN_LABELS[ref.plan_referee ?? ""] ?? ref.plan_referee ?? "—";
-                        const isQualified = ref.status === "qualified";
+                        const isQualified = ref.statut === "qualified";
                         return (
                           <TableRow key={ref.id}>
                             <TableCell>
@@ -229,7 +229,7 @@ export default function AdminParrainages() {
                                 ? new Date(ref.qualified_at).toLocaleDateString("fr-FR")
                                 : "—"}
                             </TableCell>
-                            <TableCell>{getStatusBadge(ref.status)}</TableCell>
+                            <TableCell>{getStatusBadge(ref.statut)}</TableCell>
                             <TableCell className="text-right">
                               {isQualified && (
                                 <Button
@@ -287,7 +287,7 @@ export default function AdminParrainages() {
                       {(quotaRequests ?? []).map((req) => {
                         const u = getUser(req.user_id);
                         const mins = minutesUntil(req.auto_approve_at);
-                        const isPending = req.status === "pending";
+                        const isPending = req.statut === "pending";
                         return (
                           <TableRow key={req.id}>
                             <TableCell>
@@ -312,7 +312,7 @@ export default function AdminParrainages() {
                                 <span className="text-xs text-muted-foreground font-sans">—</span>
                               )}
                             </TableCell>
-                            <TableCell>{getQuotaStatusBadge(req.status)}</TableCell>
+                            <TableCell>{getQuotaStatusBadge(req.statut)}</TableCell>
                             <TableCell className="text-right">
                               {isPending && (
                                 <div className="flex gap-1.5 justify-end">

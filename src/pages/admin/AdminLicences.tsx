@@ -203,9 +203,9 @@ export default function AdminLicences() {
   const [genDuration, setGenDuration] = useState("1");
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
-  const [genPromo, setGenPromo] = useState(false);
+  const [genPromo, setGenPromo] = useState<boolean>(false);
   const [genPromoDiscount, setGenPromoDiscount] = useState("30");
-  const [genOffert, setGenOffert] = useState(false);
+  const [genOffert, setGenOffert] = useState<boolean>(false);
   const [genPayMethod, setGenPayMethod] = useState("");
   const [genPayRef, setGenPayRef] = useState("");
 
