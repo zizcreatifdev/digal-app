@@ -2,19 +2,37 @@
 // Runs daily at 09:00 UTC via pg_cron.
 // 1. Sends licence expiry warning emails at J-30, J-15, J-7.
 // 2. Sends relance email to freemium users inactive for 30+ days.
-// Required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
+// Required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BREVO_API_KEY
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const FROM = "Digal <noreply@digal.sn>";
 const APP_URL = "https://digal.vercel.app";
+
+const sendEmail = async (to: string, subject: string, htmlContent: string) => {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": Deno.env.get("BREVO_API_KEY") ?? "",
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "Digal", email: "noreply@digal.sn" },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Brevo error ${response.status}: ${err}`);
+  }
+};
 
 // ─── Shared layout ────────────────────────────────────────────────────────────
 function wrapHtml(body: string): string {
@@ -138,12 +156,11 @@ Deno.serve(async (req) => {
         const tpl = LICENCE_TEMPLATES[String(days)];
         const expFormatted = new Date(user.licence_expiration!).toLocaleDateString("fr-FR");
         try {
-          await resend.emails.send({
-            from: FROM,
-            to: [user.email],
-            subject: tpl.subject,
-            html: tpl.body(user.prenom ?? "cher utilisateur", expFormatted, user.plan ?? "Digal"),
-          });
+          await sendEmail(
+            user.email,
+            tpl.subject,
+            tpl.body(user.prenom ?? "cher utilisateur", expFormatted, user.plan ?? "Digal"),
+          );
           sent++;
         } catch (emailErr) {
           console.warn(`[expiry-reminders] failed to email ${user.email}:`, emailErr);
@@ -167,12 +184,11 @@ Deno.serve(async (req) => {
 
         for (const u of (inactiveUsers ?? []) as Array<{ user_email: string; user_prenom: string; user_uid: string }>) {
           try {
-            await resend.emails.send({
-              from: FROM,
-              to: [u.user_email],
-              subject: "On ne vous a pas vu depuis un moment...",
-              html: buildRelanceHtml(u.user_prenom ?? "cher utilisateur"),
-            });
+            await sendEmail(
+              u.user_email,
+              "On ne vous a pas vu depuis un moment...",
+              buildRelanceHtml(u.user_prenom ?? "cher utilisateur"),
+            );
             relanceSent++;
             relancedIds.push(u.user_uid);
           } catch (emailErr) {
