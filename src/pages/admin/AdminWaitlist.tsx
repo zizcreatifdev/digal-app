@@ -281,7 +281,7 @@ export default function AdminWaitlist() {
   };
 
   const updateWaitlistStatus = useMutation({
-    mutationFn: async ({ id, statut, entry }: { id: string; statut: string; entry: WaitlistEntry }) => {
+    mutationFn: async ({ id, statut, entry }: { id: string; statut: string; entry: WaitlistEntry }): Promise<{ emailFailed?: boolean }> => {
       if (statut === "approuve") {
         // Server-side guard: reject if an account already exists
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -300,22 +300,51 @@ export default function AdminWaitlist() {
       const { error } = await supabase.from("waitlist").update({ statut }).eq("id", id);
       if (error) throw error;
       if (statut === "approuve") {
-        const { error: tokenError } = await supabase
+        const { error: tokenError, data: tokenData } = await supabase
           .from("activation_tokens")
           .insert({
             email: entry.email,
             prenom: entry.prenom ?? "",
             nom: entry.nom ?? "",
             type_compte: entry.type_compte ?? "solo",
-          });
+          })
+          .select("token")
+          .single();
         if (tokenError && import.meta.env.DEV) console.warn("[waitlist] Token creation failed:", tokenError.message);
+
+        // Send activation email automatically
+        if (tokenData?.token) {
+          const planSlug = TYPE_COMPTE_TO_PLAN_SLUG[entry.type_compte ?? "solo"] ?? "solo_standard";
+          const planLabel = PLAN_SLUG_LABELS[planSlug] ?? (entry.type_compte ?? "Solo");
+          const activationLink = `${APP_URL}/activate/${tokenData.token}`;
+          try {
+            const { error: emailError } = await supabase.functions.invoke("send-email", {
+              body: {
+                type: "activation",
+                to: entry.email,
+                prenom: entry.prenom ?? undefined,
+                activation_link: activationLink,
+                type_compte_label: planLabel,
+              },
+            });
+            if (emailError) throw emailError;
+          } catch (emailErr) {
+            if (import.meta.env.DEV) console.warn("[waitlist] auto-email failed:", emailErr);
+            return { emailFailed: true };
+          }
+        }
       }
+      return {};
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-waitlist"] });
       queryClient.invalidateQueries({ queryKey: ["admin-activation-tokens"] });
       if (variables.statut === "approuve") {
-        toast.success("Approuvé, copiez le message d'activation");
+        if (result?.emailFailed) {
+          toast.warning("Compte approuvé mais email non envoyé. Envoyez le lien manuellement.");
+        } else {
+          toast.success("Compte approuvé, email envoyé !");
+        }
       } else {
         toast.success("Statut mis à jour");
       }
