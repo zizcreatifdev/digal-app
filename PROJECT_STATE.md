@@ -465,3 +465,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | support | Système support : migration support_messages, SupportModal (AppSidebar users), AdminSupport (onglets/filtres/réponse+email), badge unread AdminSidebar, widget AdminDashboard | 2026-04-30 |
 | audit-agence-cm | Fix 4 bugs audit : supabase import Comptabilite, réassignation créateur EditPostModal, getOnboardingDestination solo localStorage, referral_code auto-génération Parrainages | 2026-04-30 |
 | fix-licences-facturation | Fix 3 problèmes : email licence fallback sans PDF + Brevo error visible, owner_payments auto-insert après génération clé (migration 000047 + duree_mois/licence_key/reference/description), MRR harmonisé sur owner_payments dans AdminDashboard | 2026-04-30 |
+| fix-referrals-statut | Fix 3 bugs console : referrals/referral_quota_requests status→statut (5 fichiers), Switch uncontrolled useState<boolean>(false), String() coercions inputs AdminLicences + Number() guard capturedPrix | 2026-04-30 |

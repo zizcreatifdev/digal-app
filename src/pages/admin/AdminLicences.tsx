@@ -443,7 +443,7 @@ export default function AdminLicences() {
           compte_email: capturedUser.email,
           user_id: capturedUser.user_id ?? null,
           plan: capturedPlanType,
-          montant: capturedOffert ? 0 : capturedPrix,
+          montant: capturedOffert ? 0 : (Number(capturedPrix) || 0),
           methode: capturedOffert ? "offert" : capturedPayMethod || "autre",
           date_paiement: today.toISOString().slice(0, 10),
           statut: "paye",
@@ -739,7 +739,7 @@ export default function AdminLicences() {
                     min="1"
                     max="24"
                     placeholder="Ex: 2"
-                    value={genDuration}
+                    value={String(genDuration)}
                     onChange={e => setGenDuration(e.target.value)}
                     disabled={!!generatedKey}
                   />
@@ -786,11 +786,11 @@ export default function AdminLicences() {
                   <>
                     <div>
                       <Label>Mode de paiement</Label>
-                      <Input placeholder="Wave, Orange Money, virement…" value={genPayMethod} onChange={e => setGenPayMethod(e.target.value)} />
+                      <Input placeholder="Wave, Orange Money, virement…" value={String(genPayMethod)} onChange={e => setGenPayMethod(e.target.value)} />
                     </div>
                     <div>
                       <Label>Référence paiement</Label>
-                      <Input placeholder="Ex : OM-20260430-XXXX" value={genPayRef} onChange={e => setGenPayRef(e.target.value)} />
+                      <Input placeholder="Ex : OM-20260430-XXXX" value={String(genPayRef)} onChange={e => setGenPayRef(e.target.value)} />
                     </div>
                   </>
                 )}
