@@ -378,35 +378,45 @@ export default function AdminLicences() {
         const montant = capturedOffert ? "0" : capturedPrix.toLocaleString("fr-FR");
 
         // Generate PDF
-        const doc = new jsPDF();
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(16);
-        doc.text("FACTURE DE LICENCE", 20, 20);
-        doc.setFontSize(11);
-        doc.text(`Numéro : ${capturedInvoiceNum}`, 20, 35);
-        doc.text(`Date : ${toLocaleFR(today)}`, 20, 45);
-        doc.text(`Facturé à : ${capturedUser.prenom} ${capturedUser.nom}`, 20, 60);
-        doc.text(`Email : ${capturedUser.email}`, 20, 70);
-        doc.text(`Plan : ${planLabel}`, 20, 85);
-        doc.text(`Durée : ${capturedDuration} mois`, 20, 95);
-        doc.text(`Montant : ${montant} FCFA`, 20, 110);
-        doc.text(`Clé : ${keyCode}`, 20, 125);
-        doc.text("digal.sn", 20, 270);
-        const pdfBase64 = doc.output("datauristring").split(",")[1];
-
+        let pdfBase64 = "";
         try {
-          await supabase.functions.invoke("send-email", {
-            body: {
-              type: "marketing",
-              to: capturedUser.email,
-              subject: `Votre licence Digal ${planLabel} est prête !`,
-              html: `Bonjour ${capturedUser.prenom},<br><br>Votre licence <b>${planLabel}</b> (${capturedDuration} mois) est activée.<br><br><b>Clé :</b> ${keyCode}<br><br>Activez sur digal.sn → Paramètres → Licence<br><br>Valable jusqu'au ${toLocaleFR(expDate)}.`,
-              attachments: [{ content: pdfBase64, name: `licence-digal-${keyCode}.pdf` }],
-            },
-          });
+          const doc = new jsPDF();
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(16);
+          doc.text("FACTURE DE LICENCE", 20, 20);
+          doc.setFontSize(11);
+          doc.text(`Numéro : ${capturedInvoiceNum}`, 20, 35);
+          doc.text(`Date : ${toLocaleFR(today)}`, 20, 45);
+          doc.text(`Facturé à : ${capturedUser.prenom} ${capturedUser.nom}`, 20, 60);
+          doc.text(`Email : ${capturedUser.email}`, 20, 70);
+          doc.text(`Plan : ${planLabel}`, 20, 85);
+          doc.text(`Durée : ${capturedDuration} mois`, 20, 95);
+          doc.text(`Montant : ${montant} FCFA`, 20, 110);
+          doc.text(`Clé : ${keyCode}`, 20, 125);
+          doc.text("digal.sn", 20, 270);
+          pdfBase64 = doc.output("datauristring").split(",")[1];
+          console.log("[Licence] PDF généré, base64 length:", pdfBase64?.length ?? 0);
+        } catch (pdfErr) {
+          console.error("[Licence] Erreur génération PDF:", pdfErr);
+          toast.error("Erreur lors de la génération du PDF.");
+          return;
+        }
+
+        console.log("[Licence] Envoi email à:", capturedUser.email);
+        const { data: invokeData, error: invokeError } = await supabase.functions.invoke("send-email", {
+          body: {
+            type: "marketing",
+            to: capturedUser.email,
+            subject: `Votre licence Digal ${planLabel} est prête !`,
+            html: `Bonjour ${capturedUser.prenom},<br><br>Votre licence <b>${planLabel}</b> (${capturedDuration} mois) est activée.<br><br><b>Clé :</b> ${keyCode}<br><br>Activez sur digal.sn → Paramètres → Licence<br><br>Valable jusqu'au ${toLocaleFR(expDate)}.`,
+            attachments: [{ content: pdfBase64, name: `licence-digal-${keyCode}.pdf` }],
+          },
+        });
+        console.log("[Licence] Résultat invoke:", { invokeData, invokeError });
+        if (invokeError) {
+          toast.error(`Email non envoyé : ${invokeError.message}`);
+        } else {
           toast.success("Licence envoyée par email !");
-        } catch {
-          toast.error("Clé générée — l'email n'a pas pu être envoyé.");
         }
       } else {
         toast.success("Clé copiée !");
