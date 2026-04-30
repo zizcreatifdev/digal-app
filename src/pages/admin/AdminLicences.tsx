@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import jsPDF from "jspdf";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -194,9 +195,8 @@ export default function AdminLicences() {
   const [selectedUser, setSelectedUser] = useState<UserResult | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Confirmation dialog (send vs copy)
+  // Confirmation dialog
   const [showSendDialog, setShowSendDialog] = useState(false);
-  const [actionType, setActionType] = useState<"send" | "copy">("copy");
 
   // Extend license dialog
   const [extendUser, setExtendUser] = useState<{ id: string; email: string; licence_expiration: string | null } | null>(null);
@@ -311,7 +311,7 @@ export default function AdminLicences() {
   });
 
   const generateKey = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (action: "send" | "copy") => {
       const keyCode = generateKeyCode(genType);
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("license_keys").insert({
@@ -322,15 +322,67 @@ export default function AdminLicences() {
         promo_discount: genPromo ? parseInt(genPromoDiscount) || 0 : 0,
       });
       if (error) throw error;
-      return keyCode;
+      // Capture current UI state to avoid stale closures in onSuccess
+      const year = new Date().getFullYear();
+      return {
+        keyCode,
+        action,
+        capturedUser: selectedUser,
+        capturedPlanType: genType,
+        capturedDuration: parseInt(genDuration) || 6,
+        capturedPrix: currentPlanConfig?.prix_fcfa ?? 0,
+        capturedOffert: genOffert,
+        capturedInvoiceNum: `LIC-DIG-${year}-${String((licenseKeys?.length ?? 0) + 1).padStart(4, "0")}`,
+      };
     },
-    onSuccess: (keyCode) => {
+    onSuccess: async ({ keyCode, action, capturedUser, capturedPlanType, capturedDuration, capturedPrix, capturedOffert, capturedInvoiceNum }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-license-keys"] });
       setGeneratedKey(keyCode);
+
+      if (action === "send" && capturedUser) {
+        const planLabel = TYPE_LABELS[capturedPlanType] ?? capturedPlanType;
+        const today = new Date();
+        const expDate = addMonths(today, capturedDuration);
+        const montant = capturedOffert ? "0" : capturedPrix.toLocaleString("fr-FR");
+
+        // Generate PDF
+        const doc = new jsPDF();
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(16);
+        doc.text("FACTURE DE LICENCE", 20, 20);
+        doc.setFontSize(11);
+        doc.text(`Numéro : ${capturedInvoiceNum}`, 20, 35);
+        doc.text(`Date : ${toLocaleFR(today)}`, 20, 45);
+        doc.text(`Facturé à : ${capturedUser.prenom} ${capturedUser.nom}`, 20, 60);
+        doc.text(`Email : ${capturedUser.email}`, 20, 70);
+        doc.text(`Plan : ${planLabel}`, 20, 85);
+        doc.text(`Durée : ${capturedDuration} mois`, 20, 95);
+        doc.text(`Montant : ${montant} FCFA`, 20, 110);
+        doc.text(`Clé : ${keyCode}`, 20, 125);
+        doc.text("digal.sn", 20, 270);
+        const pdfBase64 = doc.output("datauristring").split(",")[1];
+
+        try {
+          await supabase.functions.invoke("send-email", {
+            body: {
+              type: "marketing",
+              to: capturedUser.email,
+              subject: `Votre licence Digal ${planLabel} est prête !`,
+              html: `Bonjour ${capturedUser.prenom},<br><br>Votre licence <b>${planLabel}</b> (${capturedDuration} mois) est activée.<br><br><b>Clé :</b> ${keyCode}<br><br>Activez sur digal.sn → Paramètres → Licence<br><br>Valable jusqu'au ${toLocaleFR(expDate)}.`,
+              attachments: [{ content: pdfBase64, name: `licence-digal-${keyCode}.pdf` }],
+            },
+          });
+          toast.success("Licence envoyée par email !");
+        } catch {
+          toast.error("Clé générée — l'email n'a pas pu être envoyé.");
+        }
+      } else {
+        toast.success("Clé copiée !");
+      }
+
       copyToClipboard(keyCode).catch(() => {/* silent */});
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast.success("Clé copiée !");
     },
     onError: () => toast.error("Erreur lors de la génération"),
   });
@@ -339,8 +391,7 @@ export default function AdminLicences() {
     if (selectedUser) {
       setShowSendDialog(true);
     } else {
-      setActionType("copy");
-      generateKey.mutate();
+      generateKey.mutate("copy");
     }
   };
 
@@ -798,16 +849,16 @@ export default function AdminLicences() {
               <AlertDialogCancel>Annuler</AlertDialogCancel>
               <Button
                 variant="outline"
-                onClick={() => { setActionType("copy"); setShowSendDialog(false); generateKey.mutate(); }}
+                onClick={() => { setShowSendDialog(false); generateKey.mutate("copy"); }}
                 disabled={generateKey.isPending}
               >
                 <Copy className="h-4 w-4 mr-1.5" /> Juste copier
               </Button>
               <Button
-                onClick={() => { setActionType("send"); setShowSendDialog(false); generateKey.mutate(); }}
+                onClick={() => { setShowSendDialog(false); generateKey.mutate("send"); }}
                 disabled={generateKey.isPending}
               >
-                <Send className="h-4 w-4 mr-1.5" /> Envoyer + copier
+                {generateKey.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />} Envoyer + copier
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
