@@ -91,11 +91,27 @@ const PRIORITY_CONFIG = {
 /* ─── Data fetchers ──────────────────────────────────────── */
 
 async function fetchKpis(planPrices: Record<string, number>): Promise<KpiData> {
-  const { data: users, error } = await supabase.from("users").select("*");
+  const now = new Date();
+  const startOfMonthStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const endOfMonthStr = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+  const [{ data: users, error }, { data: paymentsThisMonth }] = await Promise.all([
+    supabase.from("users").select("*"),
+    supabase
+      .from("owner_payments")
+      .select("montant")
+      .gte("date_paiement", startOfMonthStr)
+      .lte("date_paiement", endOfMonthStr)
+      .eq("statut", "paye"),
+  ]);
   if (error) throw error;
 
+  // MRR = paiements réels encaissés ce mois (harmonisé avec AdminFacturation)
+  const mrr = (paymentsThisMonth ?? []).reduce((s, p) => s + (p.montant ?? 0), 0);
+  // planPrices kept for query-key reactivity
+  void planPrices;
+
   const allUsers = (users ?? []).filter((u) => u.role !== "owner");
-  const now = new Date();
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -103,11 +119,6 @@ async function fetchKpis(planPrices: Record<string, number>): Promise<KpiData> {
   const activeUsers = paidUsers.filter(
     (u) => !u.licence_expiration || new Date(u.licence_expiration) > now
   );
-
-  const mrr = activeUsers.reduce((sum, u) => {
-    const slug = roleToPlanSlug[u.role] ?? u.role;
-    return sum + (planPrices[slug] ?? 0);
-  }, 0);
 
   const soloActive = activeUsers.filter((u) => u.role === "solo" || u.role === "solo_standard").length;
   const agenceActive = activeUsers.filter(

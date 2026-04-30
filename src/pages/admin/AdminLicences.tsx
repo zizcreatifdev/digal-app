@@ -29,6 +29,7 @@ interface PlanConfig {
 
 interface UserResult {
   id: string;
+  user_id?: string;
   prenom: string;
   nom: string;
   email: string;
@@ -299,7 +300,7 @@ export default function AdminLicences() {
     setSearchLoading(true);
     const { data } = await supabase
       .from("users")
-      .select("id, prenom, nom, email, role, licence_expiration")
+      .select("id, user_id, prenom, nom, email, role, licence_expiration")
       .or(`prenom.ilike.%${q}%,nom.ilike.%${q}%,email.ilike.%${q}%`)
       .limit(10);
     setSearchResults((data ?? []).map(u => ({ ...u, plan: null })) as UserResult[]);
@@ -364,20 +365,24 @@ export default function AdminLicences() {
         capturedDuration: parseInt(genDuration, 10) || 6,
         capturedPrix: prixFinal,
         capturedOffert: genOffert,
+        capturedPayMethod: genPayMethod,
+        capturedPayRef: genPayRef,
         capturedInvoiceNum: `LIC-DIG-${year}-${String((licenseKeys?.length ?? 0) + 1).padStart(4, "0")}`,
       };
     },
-    onSuccess: async ({ keyCode, action, capturedUser, capturedPlanType, capturedDuration, capturedPrix, capturedOffert, capturedInvoiceNum }) => {
+    onSuccess: async ({ keyCode, action, capturedUser, capturedPlanType, capturedDuration, capturedPrix, capturedOffert, capturedPayMethod, capturedPayRef, capturedInvoiceNum }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-license-keys"] });
       setGeneratedKey(keyCode);
 
+      const planLabel = TYPE_LABELS[capturedPlanType] ?? capturedPlanType;
+      const today = new Date();
+
       if (action === "send" && capturedUser) {
-        const planLabel = TYPE_LABELS[capturedPlanType] ?? capturedPlanType;
-        const today = new Date();
         const expDate = addMonths(today, capturedDuration);
         const montant = capturedOffert ? "0" : capturedPrix.toLocaleString("fr-FR");
+        const emailHtml = `Bonjour ${capturedUser.prenom},<br><br>Votre licence <b>${planLabel}</b> (${capturedDuration} mois) est activée.<br><br><b>Clé :</b> ${keyCode}<br><br>Activez sur digal.sn → Paramètres → Licence<br><br>Valable jusqu'au ${toLocaleFR(expDate)}.`;
 
-        // Generate PDF
+        // Generate PDF (try/catch isolated)
         let pdfBase64 = "";
         try {
           const doc = new jsPDF();
@@ -398,28 +403,58 @@ export default function AdminLicences() {
           console.log("[Licence] PDF généré, base64 length:", pdfBase64?.length ?? 0);
         } catch (pdfErr) {
           console.error("[Licence] Erreur génération PDF:", pdfErr);
-          toast.error("Erreur lors de la génération du PDF.");
-          return;
         }
 
+        // Try with PDF first, fallback to simple email
         console.log("[Licence] Envoi email à:", capturedUser.email);
         const { data: invokeData, error: invokeError } = await supabase.functions.invoke("send-email", {
           body: {
             type: "marketing",
             to: capturedUser.email,
             subject: `Votre licence Digal ${planLabel} est prête !`,
-            html: `Bonjour ${capturedUser.prenom},<br><br>Votre licence <b>${planLabel}</b> (${capturedDuration} mois) est activée.<br><br><b>Clé :</b> ${keyCode}<br><br>Activez sur digal.sn → Paramètres → Licence<br><br>Valable jusqu'au ${toLocaleFR(expDate)}.`,
-            attachments: [{ content: pdfBase64, name: `licence-digal-${keyCode}.pdf` }],
+            html: emailHtml,
+            ...(pdfBase64 ? { attachments: [{ content: pdfBase64, name: `licence-digal-${keyCode}.pdf` }] } : {}),
           },
         });
         console.log("[Licence] Résultat invoke:", { invokeData, invokeError });
+
         if (invokeError) {
-          toast.error(`Email non envoyé : ${invokeError.message}`);
+          // Fallback : simple email without PDF
+          console.warn("[Licence] Échec email (avec PDF), tentative sans pièce jointe :", invokeError.message);
+          const { error: fallbackError } = await supabase.functions.invoke("send-email", {
+            body: { type: "marketing", to: capturedUser.email, subject: `Votre licence Digal ${planLabel} est prête !`, html: emailHtml },
+          });
+          if (fallbackError) {
+            toast.error(`Erreur Brevo : ${invokeError.message}`);
+          } else {
+            toast.success("Email envoyé — pièce jointe indisponible.");
+          }
         } else {
           toast.success("Licence envoyée par email !");
         }
       } else {
         toast.success("Clé copiée !");
+      }
+
+      // Insert owner_payments entry (si utilisateur sélectionné)
+      if (capturedUser) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from("owner_payments").insert({
+          compte_nom: `${capturedUser.prenom} ${capturedUser.nom}`,
+          compte_email: capturedUser.email,
+          user_id: capturedUser.user_id ?? null,
+          plan: capturedPlanType,
+          montant: capturedOffert ? 0 : capturedPrix,
+          duree_mois: capturedDuration,
+          methode: capturedOffert ? "offert" : capturedPayMethod || "autre",
+          date_paiement: today.toISOString().slice(0, 10),
+          statut: "paye",
+          licence_key: keyCode,
+          reference: capturedOffert ? "OFFERT" : capturedPayRef || null,
+          description: `Licence ${planLabel} ${capturedDuration} mois`,
+        }).then(({ error }: { error: unknown }) => {
+          if (error) console.error("[Licence] owner_payments insert failed:", error);
+        });
       }
 
       copyToClipboard(keyCode).catch(() => {/* silent */});
