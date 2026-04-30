@@ -40,7 +40,7 @@ function FileIcon({ file }: { file: File }) {
 }
 
 export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSuccess }: EditPostModalProps) {
-  const { user } = useAuth();
+  const { user, profileRole } = useAuth();
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [compressing, setCompressing] = useState(false);
@@ -51,6 +51,8 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
   const [texte, setTexte] = useState("");
   const [hashtags, setHashtags] = useState("");
   const [statut, setStatut] = useState("");
+  const [assigneA, setAssigneA] = useState<string>("");
+  const [creators, setCreators] = useState<{ user_id: string; prenom: string; nom: string }[]>([]);
   // New-file queue (files to upload on save)
   const [newFiles, setNewFiles] = useState<MediaFile[]>([]);
   // Existing media URLs (already uploaded)
@@ -61,6 +63,9 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
   const [loadingComments, setLoadingComments] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isAgenceMember = profileRole === "dm" || profileRole === "cm" ||
+    profileRole === "agence_standard" || profileRole === "agence_pro";
+
   useEffect(() => {
     if (post && open) {
       setReseau(post.reseau);
@@ -69,6 +74,7 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
       setTexte(post.texte ?? "");
       setHashtags(post.hashtags ?? "");
       setStatut(post.statut);
+      setAssigneA(post.assigne_a ?? "");
       // Existing media
       const urls = post.media_urls?.length ? post.media_urls : post.media_url ? [post.media_url] : [];
       setExistingUrls(urls);
@@ -76,6 +82,17 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
       loadClientComments(post.id);
     }
   }, [post, open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch creators from same agence when modal opens
+  useEffect(() => {
+    if (!open || !user || !isAgenceMember) { setCreators([]); return; }
+    supabase.from("users").select("user_id, prenom, nom, agence_id").eq("user_id", user.id).maybeSingle()
+      .then(({ data: me }) => {
+        if (!me?.agence_id) return;
+        supabase.from("users").select("user_id, prenom, nom").eq("agence_id", me.agence_id).eq("role", "createur")
+          .then(({ data }) => setCreators(data ?? []));
+      });
+  }, [open, user, isAgenceMember]);
 
   const loadClientComments = async (postId: string) => {
     setLoadingComments(true);
@@ -190,6 +207,7 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
         media_url: allUrls[0] ?? null,
         media_urls: allUrls,
         statut: finalStatut,
+        assigne_a: assigneA || null,
       });
 
       toast.success("Post mis à jour");
@@ -305,6 +323,25 @@ export function EditPostModal({ open, onOpenChange, post, activeNetworks, onSucc
                 className="mt-1"
               />
             </div>
+
+            {isAgenceMember && creators.length > 0 && (
+              <div>
+                <Label className="font-sans text-xs">Créateur assigné (optionnel)</Label>
+                <Select value={assigneA} onValueChange={setAssigneA}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="— Aucun —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">— Aucun —</SelectItem>
+                    {creators.map((c) => (
+                      <SelectItem key={c.user_id} value={c.user_id}>
+                        {c.prenom} {c.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Multi-file media */}
             <div>

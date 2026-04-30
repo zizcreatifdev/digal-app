@@ -360,6 +360,10 @@ _Prompt courant : support — système support et boîte à idées_
 | 10 | ~~ClientDetail.tsx "none" écrit en BDD pour assigned_cm/assigned_creator~~ | ✅ Corrigé (diag-bugs) — `=== "none" ? null` |
 | 11 | ~~ReferralLanding.tsx code invalide affichait texte brut~~ | ✅ Corrigé (diag-bugs) — logo image |
 | 12 | ~~OnboardingWizard PLAN_LABELS slugs obsolètes~~ | ✅ Corrigé (diag-bugs) — `solo/agence_standard/agence_pro` |
+| 13 | ~~`supabase` non importé dans Comptabilite.tsx — ReferenceError runtime~~ | ✅ Corrigé (audit-agence-cm) |
+| 14 | ~~EditPostModal sans champ réassignation créateur~~ | ✅ Corrigé (audit-agence-cm) — select créateur ajouté |
+| 15 | ~~getOnboardingDestination ne set pas localStorage pour solo/solo_standard~~ | ✅ Corrigé (audit-agence-cm) |
+| 16 | ~~Parrainages.tsx referral_code sans génération auto~~ | ✅ Corrigé (audit-agence-cm) — auto-génération + UPDATE DB |
 
 ---
 
@@ -459,3 +463,4 @@ SUPABASE_SERVICE_ROLE_KEY=...
 | prompt-B | Compteurs places lancement : migration 000045 site_settings, src/lib/launch-limits.ts, barres de progression PricingSection (CM Pro/Studio), CTA complet → waitlist, AdminPlateforme section limites | 2026-04-30 |
 | emails-marketing | Envoi réel campagnes email : type "marketing" dans send-email edge fn, AdminEmails bouton Envoyer + AlertDialog confirmation + barre progression, batches 10, 5 nouveaux segments (cm_pro/studio/inactifs), variables [Prénom][Nom] | 2026-04-30 |
 | support | Système support : migration support_messages, SupportModal (AppSidebar users), AdminSupport (onglets/filtres/réponse+email), badge unread AdminSidebar, widget AdminDashboard | 2026-04-30 |
+| audit-agence-cm | Fix 4 bugs audit : supabase import Comptabilite, réassignation créateur EditPostModal, getOnboardingDestination solo localStorage, referral_code auto-génération Parrainages | 2026-04-30 |

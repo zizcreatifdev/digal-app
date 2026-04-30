@@ -130,7 +130,11 @@ export default function Activate() {
       localStorage.setItem("onboarding_role", "dm");
       return "/dashboard?onboarding=dm";
     }
-    // freemium, solo, solo_standard → dashboard sans onboarding spécifique
+    if (type_compte === "solo" || type_compte === "solo_standard") {
+      localStorage.setItem("onboarding_role", "solo");
+      return "/dashboard";
+    }
+    // freemium → dashboard sans onboarding spécifique
     return "/dashboard";
   };
 

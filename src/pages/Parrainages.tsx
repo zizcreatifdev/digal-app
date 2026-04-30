@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -206,6 +206,17 @@ export default function Parrainages() {
       queryClient.invalidateQueries({ queryKey: ["parrainage-quota-request", user?.id] });
     },
   });
+
+  // Auto-generate referral_code if absent
+  useEffect(() => {
+    if (!profile || !user || profile.referral_code) return;
+    const code = "DIG" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    supabase
+      .from("users")
+      .update({ referral_code: code })
+      .eq("user_id", user.id)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["parrainage-profile", user.id] }));
+  }, [profile, user, queryClient]);
 
   if (profileLoading || (!profile && !profileLoading && user)) {
     if (!profileLoading && !profile) {
