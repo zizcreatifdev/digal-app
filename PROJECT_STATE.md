@@ -191,7 +191,7 @@ _Prompt courant : prompt-B — compteurs places lancement_
 ### Module EMAIL — 100% ✅ (prompt-30)
 | Fonctionnalité | État | Notes |
 |----------------|------|-------|
-| Edge function `send-email` | ✅ Complet | Deno + Resend |
+| Edge function `send-email` | ✅ Complet | Deno + Brevo |
 | `lib/emails.ts` | ✅ Complet | 10 types dont relance_freemium |
 | Rejet créateur câblé | ✅ Complet (prompt-09) | |
 | Approbation waitlist câblée | ✅ Complet (prompt-09) | |
@@ -202,7 +202,7 @@ _Prompt courant : prompt-B — compteurs places lancement_
 | RPC `get_inactive_freemium_users` | ✅ Complet (prompt-30) | SECURITY DEFINER, join auth.users |
 | Migration `expiry_notified` | ✅ Complet (prompt-30) | `preview_links.expiry_notified` BOOLEAN |
 | Migration `relance_sent` | ✅ Complet (prompt-30) | `users.relance_sent` BOOLEAN |
-| Clé RESEND_API_KEY | ❌ À configurer | Variable env Supabase |
+| Clé BREVO_API_KEY | ✅ Configurée | Variable env Supabase |
 
 ---
 
@@ -350,7 +350,7 @@ _Prompt courant : prompt-B — compteurs places lancement_
 | 1 | ~~QR code TOTP via api.qrserver.com~~ | ✅ Corrigé (prompt-33) — génération locale via `qrcode` |
 | 2 | ~~Double fetch session dans useAuth (race condition)~~ | ✅ Corrigé (prompt-32) |
 | 3 | ~~Export CSV comptabilité non implémenté~~ | ✅ Implémenté (prompt-32) |
-| 4 | RESEND_API_KEY + VAPID keys à configurer en production | CRITIQUE (config) |
+| 4 | VAPID keys à configurer en production | CRITIQUE (config) |
 | 5 | ~~Notification refus lien vers route inexistante~~ | ✅ Corrigé (prompt-50) — `/calendrier` retiré |
 | 6 | ~~Race condition PDF KpiReportsPage setTimeout~~ | ✅ Corrigé (prompt-50) — `handleDirectDownload(report)` |
 | 7 | ~~Settings agence_standard → "Digital Manager"~~ | ✅ Corrigé (prompt-50) — "Studio" |
@@ -373,7 +373,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 VITE_VAPID_PUBLIC_KEY=...
 
 # Supabase secrets (edge functions)
-RESEND_API_KEY=...
+BREVO_API_KEY=...        # ✅ configuré
 VAPID_PRIVATE_KEY=...
 VAPID_PUBLIC_KEY=...
 VAPID_SUBJECT=mailto:contact@digal.sn
