@@ -438,23 +438,21 @@ export default function AdminLicences() {
 
       // Insert owner_payments entry (si utilisateur sélectionné)
       if (capturedUser) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).from("owner_payments").insert({
+        const { error: insertError } = await supabase.from("owner_payments").insert({
           compte_nom: `${capturedUser.prenom} ${capturedUser.nom}`,
           compte_email: capturedUser.email,
           user_id: capturedUser.user_id ?? null,
           plan: capturedPlanType,
           montant: capturedOffert ? 0 : capturedPrix,
-          duree_mois: capturedDuration,
           methode: capturedOffert ? "offert" : capturedPayMethod || "autre",
           date_paiement: today.toISOString().slice(0, 10),
           statut: "paye",
-          licence_key: keyCode,
-          reference: capturedOffert ? "OFFERT" : capturedPayRef || null,
-          description: `Licence ${planLabel} ${capturedDuration} mois`,
-        }).then(({ error }: { error: unknown }) => {
-          if (error) console.error("[Licence] owner_payments insert failed:", error);
         });
+        if (insertError) {
+          console.error("[Licence] owner_payments insert error:", insertError);
+        } else {
+          console.log("[Licence] owner_payments insert OK");
+        }
       }
 
       copyToClipboard(keyCode).catch(() => {/* silent */});
