@@ -1,7 +1,7 @@
 // Supabase Edge Function: scheduled-cleanup
 // Cleans up expired preview links and old published post media.
 // Also sends "expired without response" notification emails to CMs.
-// Required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
+// Required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BREVO_API_KEY
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,11 +9,29 @@ const corsHeaders = {
 };
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@3";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const FROM = "Digal <noreply@digal.sn>";
 const APP_URL = "https://digal.vercel.app";
+
+const sendEmail = async (to: string, subject: string, htmlContent: string) => {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": Deno.env.get("BREVO_API_KEY") ?? "",
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "Digal", email: "noreply@digal.sn" },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    console.error("Brevo error:", err);
+  }
+};
 
 function wrapHtml(body: string): string {
   return `
@@ -85,11 +103,10 @@ Deno.serve(async (req) => {
             const periodFin = new Date(link.periode_fin).toLocaleDateString("fr-FR");
             const clientUrl = `${APP_URL}/dashboard/clients/${link.client_id}`;
 
-            await resend.emails.send({
-              from: FROM,
-              to: [(cmUser as { email: string }).email],
-              subject: "Lien de validation expiré sans réponse",
-              html: wrapHtml(`
+            await sendEmail(
+              (cmUser as { email: string }).email,
+              "Lien de validation expiré sans réponse",
+              wrapHtml(`
                 <h2>Bonjour ${cmPrenom},</h2>
                 <p>Le lien de validation partagé avec <strong>${clientName}</strong> pour la période du <strong>${periodDebut} au ${periodFin}</strong> a expiré sans réponse de votre client.</p>
                 <p>Vous pouvez générer un nouveau lien directement depuis la fiche client.</p>
@@ -98,7 +115,7 @@ Deno.serve(async (req) => {
                 </p>
                 <p>L'équipe Digal</p>
               `),
-            });
+            );
 
             notified++;
             notifiedIds.push(link.id);
