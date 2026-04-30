@@ -9,7 +9,7 @@ const DIGAL_LOGO_HTML = `<img src="data:image/svg+xml;base64,${DIGAL_LOGO_B64}" 
 interface EmailPayload {
   type: "bienvenue" | "expiration_30" | "expiration_15" | "expiration_7" | "renouvellement"
     | "rejet_createur" | "waitlist_approuve" | "preview_expire" | "activation"
-    | "relance_freemium";
+    | "relance_freemium" | "marketing";
   to: string;
   prenom?: string;
   expiration_date?: string;
@@ -20,6 +20,8 @@ interface EmailPayload {
   client_id?: string;          // preview_expire (for CTA link)
   activation_link?: string;    // activation
   type_compte_label?: string;  // activation
+  subject?: string;            // marketing
+  html?: string;               // marketing (raw text, newlines → <br>)
 }
 
 function wrapHtml(body: string): string {
@@ -160,6 +162,11 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
           <p style="font-size:12px;color:#999;">Ce lien est valable 48 heures. Si vous n'avez pas demandé cet accès, ignorez cet email.</p>
           <p>L'équipe Digal</p>
         `),
+      };
+    case "marketing":
+      return {
+        subject: payload.subject ?? "(Sans objet)",
+        html: wrapHtml((payload.html ?? "").replace(/\n/g, "<br>")),
       };
   }
 }
