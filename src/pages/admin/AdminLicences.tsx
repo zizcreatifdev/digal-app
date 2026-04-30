@@ -241,9 +241,11 @@ export default function AdminLicences() {
 
   // Prix calculé : correspondance exacte ou proportionnel depuis le prix mensuel le plus court
   const computedPrix = (() => {
-    const dur = parseInt(genDuration) || 1;
+    const dur = parseInt(genDuration, 10);
+    if (!dur || dur < 1) return 0;
     const configs = (planConfigs ?? [])
-      .filter(c => c.plan_type === genType)
+      .filter(c => String(c.plan_type) === String(genType))
+      .map(c => ({ ...c, duree_mois: Number(c.duree_mois), prix_fcfa: Number(c.prix_fcfa) }))
       .sort((a, b) => a.duree_mois - b.duree_mois);
     if (configs.length === 0) return 0;
     const exact = configs.find(c => c.duree_mois === dur);
@@ -320,7 +322,7 @@ export default function AdminLicences() {
       const { error } = await supabase.from("license_keys").insert({
         key_code: keyCode,
         type: genType,
-        duration_months: parseInt(genDuration),
+        duration_months: parseInt(genDuration, 10),
         created_by: user?.id,
         promo_discount: genPromo ? parseInt(genPromoDiscount) || 0 : 0,
       });
@@ -332,7 +334,7 @@ export default function AdminLicences() {
         action,
         capturedUser: selectedUser,
         capturedPlanType: genType,
-        capturedDuration: parseInt(genDuration) || 6,
+        capturedDuration: parseInt(genDuration, 10) || 6,
         capturedPrix: computedPrix,
         capturedOffert: genOffert,
         capturedInvoiceNum: `LIC-DIG-${year}-${String((licenseKeys?.length ?? 0) + 1).padStart(4, "0")}`,
