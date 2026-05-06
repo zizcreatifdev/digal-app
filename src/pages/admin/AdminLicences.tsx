@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import jsPDF from "jspdf";
+import { DIGAL_LOGO_B64 } from "@/lib/digal-logo-b64";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -83,17 +84,7 @@ function toLocaleFR(date: Date) {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-const loadLogoBase64 = async (): Promise<string> => {
-  const response = await fetch("/logos/Logo_Digal_Newcomplet02.png");
-  if (!response.ok) throw new Error("Logo not found");
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
+const loadLogoBase64 = async (): Promise<string> => DIGAL_LOGO_B64;
 
 // ── Inline invoice preview component ─────────────────────────────────────────
 interface InvoicePreviewProps {
@@ -407,7 +398,7 @@ export default function AdminLicences() {
 <table width="580" cellpadding="0" cellspacing="0" style="border-radius:16px;overflow:hidden;">
   <tr>
     <td bgcolor="#111111" style="padding:32px 40px 0;">
-      <img src="https://digal.sn/logos/Logo_Digal_Newcomplet02.png" alt="Digal" height="36" style="display:block;">
+      <img src="${DIGAL_LOGO_B64}" alt="Digal" height="36" style="display:block;max-width:200px;">
     </td>
   </tr>
   <tr>
@@ -477,25 +468,8 @@ export default function AdminLicences() {
           doc.setFillColor(17, 17, 17);
           doc.rect(0, 0, 210, 45, "F");
 
-          // Logo PNG (fallback texte si indisponible)
-          let logoLoaded = false;
-          try {
-            const logoBase64 = await loadLogoBase64();
-            doc.addImage(logoBase64, "PNG", 14, 8, 60, 28);
-            logoLoaded = true;
-          } catch {
-            // Logo non disponible — fallback texte
-          }
-          if (!logoLoaded) {
-            doc.setTextColor(255, 255, 255);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(22);
-            doc.text("DIGAL", 20, 28);
-            doc.setTextColor(232, 81, 26);
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "normal");
-            doc.text("La plateforme des CM sérieux", 20, 36);
-          }
+          // Logo PNG hardcodé en base64
+          doc.addImage(DIGAL_LOGO_B64, "PNG", 14, 8, 60, 28);
 
           // FACTURE DE LICENCE à droite
           doc.setTextColor(255, 255, 255);
