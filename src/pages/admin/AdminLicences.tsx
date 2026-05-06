@@ -364,13 +364,16 @@ export default function AdminLicences() {
         capturedPlanType: genType,
         capturedDuration: parseInt(genDuration, 10) || 6,
         capturedPrix: prixFinal,
+        capturedPrixNormal: prixNormal,
+        capturedRemisePct: remisePct,
+        capturedRemiseMontant: remiseMontant,
         capturedOffert: genOffert,
         capturedPayMethod: genPayMethod,
         capturedPayRef: genPayRef,
         capturedInvoiceNum: `LIC-DIG-${year}-${String((licenseKeys?.length ?? 0) + 1).padStart(4, "0")}`,
       };
     },
-    onSuccess: async ({ keyCode, action, capturedUser, capturedPlanType, capturedDuration, capturedPrix, capturedOffert, capturedPayMethod, capturedPayRef, capturedInvoiceNum }) => {
+    onSuccess: async ({ keyCode, action, capturedUser, capturedPlanType, capturedDuration, capturedPrix, capturedPrixNormal, capturedRemisePct, capturedRemiseMontant, capturedOffert, capturedPayMethod, capturedPayRef, capturedInvoiceNum }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-license-keys"] });
       setGeneratedKey(keyCode);
 
@@ -379,26 +382,204 @@ export default function AdminLicences() {
 
       if (action === "send" && capturedUser) {
         const expDate = addMonths(today, capturedDuration);
-        const montant = capturedOffert ? "0" : capturedPrix.toLocaleString("fr-FR");
-        const emailHtml = `Bonjour ${capturedUser.prenom},<br><br>Votre licence <b>${planLabel}</b> (${capturedDuration} mois) est activée.<br><br><b>Clé :</b> ${keyCode}<br><br>Activez sur digal.sn → Paramètres → Licence<br><br>Valable jusqu'au ${toLocaleFR(expDate)}.`;
+        const emailHtml = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#FAF7F4;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" bgcolor="#FAF7F4" cellpadding="0" cellspacing="0">
+    <tr><td align="center" style="padding:40px 20px;">
+      <table width="600" bgcolor="#111111" cellpadding="0" cellspacing="0" style="border-radius:16px;overflow:hidden;">
+        <tr>
+          <td align="center" style="padding:40px 40px 30px;">
+            <img src="https://digal.sn/logos/Logo%20Digal_iconorange_ettext_enblanc.svg" alt="Digal" height="36">
+          </td>
+        </tr>
+        <tr><td height="3" bgcolor="#E8511A"></td></tr>
+        <tr>
+          <td style="padding:40px;color:white;">
+            <p style="font-size:16px;margin:0 0 24px;">Bonjour <strong>${capturedUser.prenom}</strong>,</p>
+            <p style="font-size:15px;color:rgba(255,255,255,0.7);margin:0 0 32px;line-height:1.6;">
+              Votre licence <strong style="color:#E8511A;">${planLabel}</strong> (${capturedDuration} mois) est activée.
+            </p>
+            <table width="100%" bgcolor="#1a1a1a" style="border-radius:12px;margin:0 0 32px;">
+              <tr>
+                <td style="padding:20px 24px;">
+                  <p style="margin:0 0 4px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;">Clé de licence</p>
+                  <p style="margin:0;font-size:20px;font-weight:700;color:#E8511A;letter-spacing:0.05em;">${keyCode}</p>
+                </td>
+              </tr>
+            </table>
+            <table width="100%" style="border-top:1px solid rgba(255,255,255,0.1);margin:0 0 32px;">
+              <tr>
+                <td style="padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);font-size:13px;">Plan</td>
+                <td style="padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:white;font-size:13px;text-align:right;">${planLabel}</td>
+              </tr>
+              <tr>
+                <td style="padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);font-size:13px;">Durée</td>
+                <td style="padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:white;font-size:13px;text-align:right;">${capturedDuration} mois</td>
+              </tr>
+              <tr>
+                <td style="padding:16px 0;color:rgba(255,255,255,0.5);font-size:13px;">Valable jusqu'au</td>
+                <td style="padding:16px 0;color:white;font-size:13px;text-align:right;">${toLocaleFR(expDate)}</td>
+              </tr>
+            </table>
+            <table width="100%">
+              <tr>
+                <td align="center">
+                  <a href="https://digal.sn/dashboard/parametres" style="display:inline-block;background:#E8511A;color:white;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;font-size:15px;">Activer ma licence →</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:32px 0 0;font-size:13px;color:rgba(255,255,255,0.3);text-align:center;line-height:1.6;">
+              Activez depuis Paramètres → Licence<br>La facture PDF est en pièce jointe.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:24px 40px;border-top:1px solid rgba(255,255,255,0.08);">
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.25);">© 2026 Digal · <a href="https://digal.sn" style="color:#E8511A;text-decoration:none;">digal.sn</a></p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
         // Generate PDF (try/catch isolated)
         let pdfBase64 = "";
         try {
           const doc = new jsPDF();
+          const year = today.getFullYear();
+          const num = capturedInvoiceNum.split("-").pop() ?? "0001";
+          const dateDebut = toLocaleFR(today);
+          const dateFin = toLocaleFR(expDate);
+
+          // Fond crème
+          doc.setFillColor(250, 247, 244);
+          doc.rect(0, 0, 210, 297, "F");
+
+          // Bande noire en haut
+          doc.setFillColor(17, 17, 17);
+          doc.rect(0, 0, 210, 45, "F");
+
+          // Logo texte blanc
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(22);
+          doc.text("DIGAL", 20, 28);
+
+          // Sous-titre orange
+          doc.setTextColor(232, 81, 26);
+          doc.setFontSize(8);
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(16);
-          doc.text("FACTURE DE LICENCE", 20, 20);
+          doc.text("La plateforme des CM sérieux", 20, 36);
+
+          // Numéro facture à droite
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(14);
+          doc.setFont("helvetica", "bold");
+          doc.text("FACTURE DE LICENCE", 190, 22, { align: "right" });
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.text(`N° LIC-DIG-${year}-${num}`, 190, 30, { align: "right" });
+          doc.text(`Date : ${dateDebut}`, 190, 37, { align: "right" });
+
+          // Section FACTURÉ À
+          doc.setTextColor(107, 101, 96);
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "bold");
+          doc.text("FACTURÉ À", 20, 62);
+
+          doc.setTextColor(17, 17, 17);
           doc.setFontSize(11);
-          doc.text(`Numéro : ${capturedInvoiceNum}`, 20, 35);
-          doc.text(`Date : ${toLocaleFR(today)}`, 20, 45);
-          doc.text(`Facturé à : ${capturedUser.prenom} ${capturedUser.nom}`, 20, 60);
-          doc.text(`Email : ${capturedUser.email}`, 20, 70);
-          doc.text(`Plan : ${planLabel}`, 20, 85);
-          doc.text(`Durée : ${capturedDuration} mois`, 20, 95);
-          doc.text(`Montant : ${montant} FCFA`, 20, 110);
-          doc.text(`Clé : ${keyCode}`, 20, 125);
-          doc.text("digal.sn", 20, 270);
+          doc.setFont("helvetica", "bold");
+          doc.text(`${capturedUser.prenom} ${capturedUser.nom}`, 20, 72);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(107, 101, 96);
+          doc.text(capturedUser.email, 20, 80);
+
+          // Ligne orange
+          doc.setDrawColor(232, 81, 26);
+          doc.setLineWidth(0.5);
+          doc.line(20, 90, 190, 90);
+
+          // Section PRESTATION
+          doc.setTextColor(107, 101, 96);
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "bold");
+          doc.text("PRESTATION", 20, 102);
+
+          doc.setTextColor(17, 17, 17);
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.text(`Licence Digal ${planLabel} — ${capturedDuration} mois`, 20, 112);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(107, 101, 96);
+          doc.text(`Du ${dateDebut} au ${dateFin}`, 20, 120);
+
+          // Ligne séparatrice grise
+          doc.setDrawColor(220, 215, 210);
+          doc.line(20, 130, 190, 130);
+
+          // Remise (si applicable)
+          if (capturedRemisePct > 0) {
+            doc.setTextColor(107, 101, 96);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("Prix normal", 20, 145);
+            doc.text(`${capturedPrixNormal.toLocaleString("fr-FR")} FCFA`, 190, 145, { align: "right" });
+
+            doc.setTextColor(232, 81, 26);
+            doc.text(`Remise ${capturedRemisePct}%`, 20, 155);
+            doc.text(`- ${capturedRemiseMontant.toLocaleString("fr-FR")} FCFA`, 190, 155, { align: "right" });
+          }
+
+          // Total
+          doc.setFillColor(17, 17, 17);
+          doc.rect(20, 165, 170, 18, "F");
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          doc.text("TOTAL", 30, 177);
+          doc.text(
+            capturedOffert ? "Offert" : `${(Number(capturedPrix) || 0).toLocaleString("fr-FR")} FCFA`,
+            190, 177, { align: "right" }
+          );
+
+          // Méthode de paiement
+          if (!capturedOffert) {
+            doc.setTextColor(107, 101, 96);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Méthode : ${capturedPayMethod || "—"}`, 20, 195);
+            if (capturedPayRef) {
+              doc.text(`Référence : ${capturedPayRef}`, 20, 203);
+            }
+          }
+
+          // Clé de licence
+          doc.setFillColor(245, 240, 235);
+          doc.rect(20, 215, 170, 22, "F");
+          doc.setTextColor(107, 101, 96);
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.text("CLÉ DE LICENCE", 30, 224);
+          doc.setTextColor(232, 81, 26);
+          doc.setFontSize(13);
+          doc.setFont("helvetica", "bold");
+          doc.text(keyCode, 30, 233);
+
+          // Footer
+          doc.setFillColor(17, 17, 17);
+          doc.rect(0, 275, 210, 22, "F");
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.text("Digal · digal.sn · noreply@digal.sn", 105, 287, { align: "center" });
+
           pdfBase64 = doc.output("datauristring").split(",")[1];
           console.log("[Licence] PDF généré, base64 length:", pdfBase64?.length ?? 0);
         } catch (pdfErr) {
