@@ -21,7 +21,7 @@ const sendEmail = async (to: string, subject: string, htmlContent: string) => {
       "Accept": "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "Digal", email: "noreply@digal.sn" },
+      sender: { name: "Digal", email: "contact@digal.sn" },
       to: [{ email: to }],
       subject,
       htmlContent,
