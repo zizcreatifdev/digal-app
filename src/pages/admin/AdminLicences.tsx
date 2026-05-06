@@ -593,6 +593,7 @@ export default function AdminLicences() {
 
         // Try with PDF first, fallback to simple email
         console.log("[Licence] Envoi email à:", capturedUser.email);
+        console.log("[EMAIL HTML PREVIEW]", emailHtml.substring(0, 500));
         const { data: invokeData, error: invokeError } = await supabase.functions.invoke("send-email", {
           body: {
             type: "marketing",
